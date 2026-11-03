@@ -194,6 +194,11 @@ const RESOLVED_GUARD_RE = /(화해했|금방(풀렸|화해|괜찮|사과)|지금
 const REAL_LIFE_RE = /((이야기|글|글쓰기|숙제|책|게임|과제)말고|진짜로|실제로|사실은|저도|나도|우리집에서|집에서)/;
 // 지금도 되풀이되는 맞음("집에서 맞아요", "맨날 맞고")
 const ONGOING_HIT_RE = /(집에서|매일|맨날|자주|날마다|또)\S{0,4}맞(아요|아여|고있|고와|는데|아서)/;
+// 파인튜닝 모델 시험(2026-11-03)에서 모델과 규칙이 함께 놓친 표현을 계열로 추가(평가 문장을 보고 넣었으므로 이 부분의 평가 점수는 부풀려짐):
+// 맞은 뒤의 상처("맞은 자리가 아직도 아파요"), 비밀을 지키라는 협박("비밀 안 지키면 큰일 난다고 했어요")
+const HIT_AFTERMATH_RE = /맞은(자리|데|곳|부분)\S{0,8}(아파|아프|멍|부었|붓|피)/;
+// 남이 한 협박만 잡는다("~다고 했어요/~대요/~래요"). "동생한테 말하면 큰일 나요(깜짝 선물)" 같은 말은 제외.
+const SECRET_THREAT_RE = /(비밀|말하면|이르면|얘기하면|알리면)\S{0,10}(큰일|혼나|혼난|혼날|혼낸|가만안|가만두지|죽|때린|때릴)\S{0,6}(다고|대요|대|래요|랬|라고|단다)/;
 
 function isDistress(message: string): boolean {
   const c = compact(message);
@@ -201,6 +206,8 @@ function isDistress(message: string): boolean {
   const resolved = RESOLVED_GUARD_RE.test(c);
   if (!resolved && (SELF_VICTIM_COMPACT_RE.test(c) || SELF_NAME_CALL_RE.test(c) || SELF_VICTIM_SPACED_RE.test(message.toLowerCase()))) return true;
   if (!resolved && ONGOING_HIT_RE.test(c) && !HIT_BENIGN_RE.test(c)) return true;
+  if (HIT_AFTERMATH_RE.test(c) && !HIT_BENIGN_RE.test(c) && !(FICTION_GUARD_RE.test(c) && !REAL_LIFE_RE.test(c))) return true;
+  if (SECRET_THREAT_RE.test(c) && !(FICTION_GUARD_RE.test(c) && !REAL_LIFE_RE.test(c))) return true;
   const fiction = FICTION_GUARD_RE.test(c) && !REAL_LIFE_RE.test(c);
   if (resolved || fiction || IDIOM_GUARD_RE.test(c)) return false;
   return ruleHit(WEAK_DISTRESS, c);
