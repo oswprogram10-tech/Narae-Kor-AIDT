@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "eval:coach": "tsx --conditions=react-server scripts/eval-coach.ts",
     "model:fetch": "node scripts/fetch-model.mjs",
+    "score:finetuned": "tsx --conditions=react-server scripts/score-finetuned.ts",
     "postinstall": "node scripts/copy-ort.mjs"
   },
   "dependencies": {

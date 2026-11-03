@@ -21,7 +21,7 @@ export default async function LocalModelLabPage() {
           결과를 보여 줍니다. 학생 데이터는 쓰지 않습니다.
         </p>
         <LocalModelLab
-          models={LOCAL_MODELS.map((m) => ({ id: m.id, label: `${m.label} (${m.license}, WebGPU ${m.webgpu.sizeMB}MB / 일반 ${m.wasm.sizeMB}MB)` }))}
+          models={LOCAL_MODELS.map((m) => ({ id: m.id, label: `${m.label} (${m.license}, ${m.webgpu ? `WebGPU ${m.webgpu.sizeMB}MB / ` : ""}일반 ${m.wasm.sizeMB}MB)` }))}
           defaults={{ id: cfg?.id ?? DEFAULT_LOCAL_MODEL, baseUrl: cfg?.baseUrl ?? "/models/", allowRemote: cfg?.allowRemote ?? false }}
         />
       </main>

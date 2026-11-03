@@ -16,7 +16,7 @@ export function LocalModelPanel({ config }: { config: LocalModelClientConfig }) 
 
   if (!model) return null;
   const hasWebGPU = typeof navigator !== "undefined" && "gpu" in navigator;
-  const size = hasWebGPU ? model.webgpu.sizeMB : model.wasm.sizeMB;
+  const size = hasWebGPU && model.webgpu ? model.webgpu.sizeMB : model.wasm.sizeMB;
 
   return (
     <div className="rounded-xl border border-black/10 bg-stone-50 p-3 text-sm" data-testid="local-model-panel">

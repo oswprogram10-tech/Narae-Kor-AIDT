@@ -1,7 +1,8 @@
 // 내장 모델 파일을 Hugging Face에서 내려받아 모듈 안(public/models/<id>/)에 넣는다.
 // 사용: node scripts/fetch-model.mjs qwen2.5-0.5b [q4f16,q4]
-//      node scripts/fetch-model.mjs narae-gemma-1b int8 --repo 내아이디/narae-coach-gemma3-1b   (파인튜닝 모델)
+//      node scripts/fetch-model.mjs narae-coach-1b   (파인튜닝 모델: int8 파일만 받음. 다른 저장소면 --repo 내아이디/이름)
 //      비공개 저장소면 HF_TOKEN 환경 변수에 읽기 토큰을 넣는다.
+//  - WebGPU 파일이 없는 모델(narae-coach-1b)은 int8 하나만 받는다.
 //  - q4f16: WebGPU 기기용, q4: WebGPU가 없는 기기(WASM)용. 둘 다 넣으면 모든 기기를 지원한다.
 // 파일이 커서(수백 MB) git에는 넣지 않는다(.gitignore). 배포할 때 함께 복사하거나 호스트가 제공하는 저장소에 둔다.
 import fs from "node:fs";
@@ -9,31 +10,18 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-const CATALOG = {
-  "qwen2.5-0.5b": "onnx-community/Qwen2.5-0.5B-Instruct",
-  "qwen3-0.6b": "onnx-community/Qwen3-0.6B-ONNX",
-  "gemma-3-1b": "onnx-community/gemma-3-1b-it-ONNX",
-};
-const META_FILES = [
-  "config.json",
-  "generation_config.json",
-  "tokenizer.json",
-  "tokenizer_config.json",
-  "special_tokens_map.json",
-  "chat_template.jinja",
-  "chat_template.json",
-];
+import { CATALOG, resolveDtypes, selectFiles } from "./model-files.mjs";
 
 const args = process.argv.slice(2);
 const repoFlag = args.indexOf("--repo");
 const customRepo = repoFlag >= 0 ? args.splice(repoFlag, 2)[1] : null;
-const [id, dtypesArg = "q4f16,q4"] = args;
-const repo = customRepo ?? CATALOG[id];
+const [id, dtypesArg] = args;
+const repo = customRepo ?? CATALOG[id]?.repo;
 if (!repo) {
   console.error(`모델 id를 확인하세요: ${Object.keys(CATALOG).join(", ")}`);
   process.exit(1);
 }
-const dtypes = dtypesArg.split(",").map((s) => s.trim());
+const dtypes = resolveDtypes(id, dtypesArg);
 const outDir = path.join(process.cwd(), "public", "models", id);
 const hf = "https://huggingface.co";
 
@@ -59,10 +47,7 @@ const tree = async (sub) => {
 };
 const root = (await tree("")).map((f) => f.path);
 const onnx = (await tree("onnx")).map((f) => ({ path: f.path, size: f.size }));
-const wanted = [
-  ...META_FILES.filter((f) => root.includes(f)).map((p) => ({ path: p, size: 0 })),
-  ...onnx.filter((f) => dtypes.some((d) => f.path === `onnx/model_${d}.onnx` || f.path.startsWith(`onnx/model_${d}.onnx_data`))),
-];
+const wanted = selectFiles(root, onnx, dtypes);
 const total = wanted.reduce((a, f) => a + (f.size || 0), 0);
 console.log(`${repo} → ${path.relative(process.cwd(), outDir)}  (${wanted.length}개 파일, 약 ${Math.round(total / 1e6)}MB)`);
 

@@ -114,11 +114,13 @@ export class TransformersLocalRuntime implements LocalModelRuntime {
     if (this.gen) return Promise.resolve();
     this.loading ??= (async () => {
       const t0 = Date.now();
-      const preferred = this.opts.device && this.opts.device !== "auto" ? this.opts.device : detectDevice();
+      const requested = this.opts.device && this.opts.device !== "auto" ? this.opts.device : detectDevice();
+      // WebGPU용 파일이 없는 모델은 기기에 그래픽 가속이 있어도 WASM으로 바로 실행한다.
+      const preferred: LocalDevice = requested === "webgpu" && !this.opts.model.webgpu ? "wasm" : requested;
       const factory = this.opts.pipelineFactory ?? defaultFactory(this.opts);
       const modelPath = this.opts.modelBaseUrl ? this.opts.model.id : this.opts.model.hfRepo;
       const tryDevice = async (device: LocalDevice) => {
-        const spec = device === "webgpu" ? this.opts.model.webgpu : this.opts.model.wasm;
+        const spec = (device === "webgpu" ? this.opts.model.webgpu : undefined) ?? this.opts.model.wasm;
         const externalData = "externalData" in spec ? spec.externalData : undefined;
         this.gen = await factory({ modelPath, device, dtype: spec.dtype, externalData, onProgress: this.opts.onProgress });
         this.device = device;

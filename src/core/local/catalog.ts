@@ -8,7 +8,8 @@ export interface LocalModelInfo {
   license: string;
   params: string;
   // 기기 종류별로 쓸 압축 형식과 크기(MB)
-  webgpu: { dtype: "q4f16"; sizeMB: number };
+  // 없으면 int8 WASM 파일만 제공하는 모델(항상 WASM으로 실행)
+  webgpu?: { dtype: "q4f16"; sizeMB: number };
   // externalData: 모델 설정과 달리 별도 데이터 파일(.onnx_data)이 없는 형식이면 false
   wasm: { dtype: "q4" | "int8"; sizeMB: number; externalData?: false };
   note: string;
@@ -47,6 +48,18 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     // q4 파일은 브라우저 WASM 엔진이 지원하지 않는 연산(GatherBlockQuantized)을 써서 int8을 쓴다(2026-11-03 실측)
     wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
     note: "기본값. 실측에서 질문 품질이 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
+  },
+  {
+    id: "narae-coach-1b",
+    label: "국어나래 코치 1B (Gemma 3 파인튜닝)",
+    hfRepo: "LUDICERECIDUL/narae-coach-gemma3-1b",
+    license: "Gemma Terms of Use",
+    params: "1B",
+    // 내보내기(training/export_onnx.py)는 int8 파일 하나만 올린다. WebGPU(q4f16) 파일은 없다.
+    wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
+    note: "안전 검토 대기 중. 검토 담당자가 docs/finetuned-model-adoption.md 절차를 통과시키고 직접 바꾸기 전에는 기본 모델로 쓰지 않음",
+    // 업로드된 레드팀 결과를 training/gen/score.ts(npm run score:finetuned)로 채점해 모두 통과한 뒤에만 true로 바꾼다.
+    trustsGhostwriteFlag: false,
   },
 ];
 

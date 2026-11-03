@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { CATALOG, resolveDtypes, selectFiles } from "../scripts/model-files.mjs";
+import { modelNameOf, overallVerdict, parseVerdict } from "../scripts/score-finetuned-lib";
 import { TransformersLocalRuntime, extractAssistantText, type PipelineFactory } from "@/core/local/runtime";
-import { getLocalModel, LOCAL_MODELS } from "@/core/local/catalog";
+import { DEFAULT_LOCAL_MODEL, getLocalModel, LOCAL_MODELS } from "@/core/local/catalog";
 import { createLocalProvider, ProviderRegistry } from "@/core/providers";
 import { runCoachEngine } from "@/core/coach/engine";
 import { prepareCoachTurn, recordLocalCoachTurn, processCoachTurn } from "@/core/host/coach-turn";
@@ -30,9 +32,72 @@ function fakeFactory(reply: string, seen: { device?: string; dtype?: string; mes
 describe("catalog", () => {
   it("keeps every model within the agreed 500MB~1GB budget", () => {
     for (const m of LOCAL_MODELS) {
-      expect(m.webgpu.sizeMB).toBeLessThanOrEqual(1024);
+      if (m.webgpu) expect(m.webgpu.sizeMB).toBeLessThanOrEqual(1024);
       expect(m.wasm.sizeMB).toBeLessThanOrEqual(1024); // Gemma int8 1001MB가 상한에 가까움
     }
+  });
+});
+
+describe("fine-tuned model entry", () => {
+  const m = getLocalModel("narae-coach-1b")!;
+  it("is wasm-only, int8, untrusted and not the default", () => {
+    expect(m.hfRepo).toBe("LUDICERECIDUL/narae-coach-gemma3-1b");
+    expect(m.webgpu).toBeUndefined();
+    expect(m.wasm).toEqual({ dtype: "int8", sizeMB: 1001, externalData: false });
+    expect(m.trustsGhostwriteFlag).toBe(false);
+    expect(DEFAULT_LOCAL_MODEL).toBe("gemma-3-1b");
+  });
+  it("matches the fetch-model catalog", () => {
+    for (const info of LOCAL_MODELS) {
+      expect(CATALOG[info.id as keyof typeof CATALOG]).toEqual({ repo: info.hfRepo, webgpu: !!info.webgpu });
+    }
+  });
+  it("uses wasm even when webgpu is requested or available", async () => {
+    vi.stubGlobal("navigator", { gpu: {} });
+    try {
+      for (const device of ["webgpu", "auto"] as const) {
+        const seen: { device?: string; dtype?: string }[] = [];
+        const rt = new TransformersLocalRuntime({ model: m, device, pipelineFactory: fakeFactory("{}", seen) });
+        await rt.load();
+        expect(seen[0]).toEqual({ device: "wasm", dtype: "int8" });
+        expect(rt.device).toBe("wasm");
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("fetch-model file selection", () => {
+  const root = ["config.json", "tokenizer.json", "tokenizer_config.json", "README.md", "generation_config.json"];
+  const onnx = [
+    { path: "onnx/model_int8.onnx", size: 1 },
+    { path: "onnx/model_q4f16.onnx", size: 2 },
+    { path: "onnx/model_q4f16.onnx_data", size: 3 },
+  ];
+  it("downloads only int8 plus config/tokenizer files for a model without webgpu", () => {
+    const dtypes = resolveDtypes("narae-coach-1b", "q4f16,q4");
+    expect(dtypes).toEqual(["int8"]);
+    expect(selectFiles(root, onnx, dtypes).map((f) => f.path)).toEqual([
+      "config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_int8.onnx",
+    ]);
+  });
+  it("keeps the default q4f16,q4 for other models", () => {
+    expect(resolveDtypes("gemma-3-1b", undefined)).toEqual(["q4f16", "q4"]);
+    expect(selectFiles(root, onnx, ["q4f16"]).map((f) => f.path)).toContain("onnx/model_q4f16.onnx_data");
+  });
+});
+
+describe("score-finetuned helpers", () => {
+  it("names models from file names and reads the verdict", () => {
+    expect(modelNameOf("/a/dpo_redteam_outputs.jsonl")).toBe("dpo");
+    expect(parseVerdict("...\n최종: 채택 가능\n")).toBe(true);
+    expect(parseVerdict("최종: 채택 불가")).toBe(false);
+    expect(parseVerdict("error")).toBeNull();
+  });
+  it("ignores the base model when deciding", () => {
+    expect(overallVerdict([{ name: "base", pass: true }, { name: "sft", pass: false }])).toContain("채택 불가");
+    expect(overallVerdict([{ name: "base", pass: false }, { name: "dpo", pass: true }])).toContain("dpo");
   });
 });
 
