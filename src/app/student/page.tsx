@@ -1,0 +1,60 @@
+import Link from "next/link";
+import { and, desc, eq } from "drizzle-orm";
+import { requireStudent } from "@/lib/auth";
+import { getDb, schema } from "@/lib/db";
+import { studentLogout } from "@/app/actions/student";
+import { STAGE_LABELS, type Stage } from "@/data/genres";
+
+export default async function StudentHome() {
+  const { studentId, classId } = await requireStudent();
+  const db = await getDb();
+  const [student] = await db.select().from(schema.students).where(eq(schema.students.id, studentId));
+  const [klass] = await db.select().from(schema.classes).where(eq(schema.classes.id, classId));
+  const assignments = await db
+    .select({ a: schema.assignments, s: schema.submissions })
+    .from(schema.assignments)
+    .leftJoin(
+      schema.submissions,
+      and(eq(schema.submissions.assignmentId, schema.assignments.id), eq(schema.submissions.studentId, studentId)),
+    )
+    .where(eq(schema.assignments.classId, classId))
+    .orderBy(desc(schema.assignments.createdAt));
+
+  return (
+    <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-stone-500">{klass?.grade}학년 {klass?.name}</p>
+          <h1 className="text-2xl font-bold">{student?.number}번 {student?.nickname}의 글쓰기</h1>
+        </div>
+        <form action={studentLogout}>
+          <button className="text-sm text-stone-500 underline">나가기</button>
+        </form>
+      </header>
+      {assignments.length === 0 && <p className="card text-stone-600">아직 선생님이 낸 글쓰기 과제가 없어요.</p>}
+      <ul className="space-y-3">
+        {assignments
+          .filter(({ a, s }) => a.isOpen || s)
+          .map(({ a, s }) => (
+            <li key={a.id}>
+              <Link href={`/student/assignments/${a.id}`} className="card flex items-center justify-between gap-3 transition hover:shadow-md">
+                <span>
+                  <span className="block text-lg font-bold">{a.title}</span>
+                  <span className="line-clamp-1 text-sm text-stone-600">{a.prompt}</span>
+                </span>
+                <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-sm">
+                  {!s
+                    ? "시작하기"
+                    : s.status === "submitted"
+                      ? "제출 ✓"
+                      : s.status === "returned"
+                        ? "선생님 코멘트 💬"
+                        : STAGE_LABELS[s.stage as Stage]}
+                </span>
+              </Link>
+            </li>
+          ))}
+      </ul>
+    </main>
+  );
+}
