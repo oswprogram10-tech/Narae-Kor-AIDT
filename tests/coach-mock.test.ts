@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { STAGES } from "@/data/genres";
-import { checkOutput } from "@/lib/coach/guard";
-import { mockCoach } from "@/lib/coach/mock";
-import type { CoachContext } from "@/lib/coach/types";
+import { STAGES } from "@/core/data/genres";
+import { checkOutput } from "@/core/coach/guard";
+import { mockCoach } from "@/core/coach/mock";
+import type { CoachContext } from "@/core/coach/types";
 
 const base: CoachContext = {
   grade: 4, genreName: "문단", coachFocus: "", standardStatements: [], prompt: "", organizer: [], rubric: [],

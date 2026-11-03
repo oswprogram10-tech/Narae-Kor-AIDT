@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { Stage } from "@/data/genres";
-import type { OrganizerField, RubricCriterion } from "@/data/genres";
+import type { Stage } from "@/core/data/genres";
+import type { OrganizerField, RubricCriterion } from "@/core/data/genres";
 
 export const LENS_KEYS = ["whole", "paragraph", "sentence", "word"] as const;
 
@@ -45,11 +45,21 @@ export interface CoachContext {
   helpCountThisStage: number; // 힌트 단계(1→2→3)를 정하는 데 씀
 }
 
+export interface ProviderAttempt {
+  provider: string; // local | claude | gemini | openai
+  model: string;
+  outcome: "ok" | "invalid" | "error";
+  error?: string;
+}
+
 export interface CoachResult {
   output: CoachOutput;
   blocked: boolean;
   blockReason?: string;
-  model: string; // "mock" 또는 모델 ID
+  provider: string; // 실제로 응답한 AI: local | claude | gemini | openai | mock | rule
+  model: string; // 모델 ID, 또는 "mock" / "rule"
+  fellBack: boolean; // 앞 순서의 AI가 실패해서 다음 AI(또는 모의 코치)가 응답했는지
+  attempts: ProviderAttempt[];
   policyVersion: string;
   inputFlags: InputFlags;
 }

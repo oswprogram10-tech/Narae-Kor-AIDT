@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { REVISION_LENSES, STAGES, STAGE_LABELS, type LensKey, type OrganizerField, type Stage } from "@/data/genres";
-import { lintKorean } from "@/lib/lint";
+import { REVISION_LENSES, STAGES, STAGE_LABELS, type LensKey, type OrganizerField, type Stage } from "@/core/data/genres";
+import { lintKorean } from "@/core/lint";
 
 export interface CoachMessageView {
   id: number;

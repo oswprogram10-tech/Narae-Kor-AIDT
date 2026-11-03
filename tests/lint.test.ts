@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lintKorean } from "@/lib/lint";
+import { lintKorean } from "@/core/lint";
 
 const rules = (t: string) => lintKorean(t).map((f) => f.rule);
 const marked = (t: string) => lintKorean(t).map((f) => t.slice(f.start, f.end));

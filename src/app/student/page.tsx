@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { requireStudent } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { studentLogout } from "@/app/actions/student";
-import { STAGE_LABELS, type Stage } from "@/data/genres";
+import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 
 export default async function StudentHome() {
   const { studentId, classId } = await requireStudent();

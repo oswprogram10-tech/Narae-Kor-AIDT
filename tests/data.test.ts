@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { STANDARDS, getStandard } from "@/data/standards";
-import { GENRES, genresForGrade } from "@/data/genres";
+import { STANDARDS, getStandard } from "@/core/data/standards";
+import { GENRES, genresForGrade } from "@/core/data/genres";
 
 describe("standards", () => {
   it("has 87 elementary standards (23 / 30 / 34)", () => {

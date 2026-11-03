@@ -9,7 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { OrganizerField, RubricCriterion } from "@/data/genres";
+import type { OrganizerField, RubricCriterion } from "@/core/data/genres";
 
 // 학생 실명·이메일은 저장하지 않는다(결정 6: 익명 계정). 번호-이름 대응표는 교사가 앱 밖에서 보관한다.
 
@@ -53,6 +53,8 @@ export const assignments = pgTable("assignments", {
   organizer: jsonb("organizer").$type<OrganizerField[]>().notNull(),
   rubric: jsonb("rubric").$type<RubricCriterion[]>().notNull(),
   coachEnabled: boolean("coach_enabled").default(true).notNull(),
+  // 이 과제의 코치 AI: auto(기본 순서) | local | claude | gemini | openai
+  coachProvider: text("coach_provider").notNull().default("auto"),
   isOpen: boolean("is_open").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -103,6 +105,7 @@ export const coachMessages = pgTable(
     // 코치 응답의 질문·하이라이트 등 구조화된 부분
     meta: jsonb("meta").$type<Record<string, unknown>>(),
     policyVersion: text("policy_version"),
+    provider: text("provider"), // 실제로 응답한 AI(local/claude/gemini/openai/mock/rule)
     model: text("model"),
     blocked: boolean("blocked").notNull().default(false),
     blockReason: text("block_reason"),

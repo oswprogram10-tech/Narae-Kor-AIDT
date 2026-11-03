@@ -5,7 +5,7 @@ import { ownedClass, requireTeacher } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { TeacherHeader } from "@/components/TeacherHeader";
 import { resetStudentPin } from "@/app/actions/teacher";
-import { getGenre } from "@/data/genres";
+import { getGenre } from "@/core/data/genres";
 
 export default async function ClassPage({ params }: { params: Promise<{ classId: string }> }) {
   const { teacherId } = await requireTeacher();

@@ -6,8 +6,9 @@ import { TeacherHeader } from "@/components/TeacherHeader";
 import { coachHistory, teacherSubmission } from "@/lib/submissions";
 import { wordDiff } from "@/lib/diff";
 import { returnSubmission } from "@/app/actions/teacher";
-import { STAGE_LABELS, type Stage } from "@/data/genres";
+import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 import { RubricPanel } from "./RubricPanel";
+import { PROVIDER_LABELS } from "@/core/providers";
 import { CommentForm } from "./CommentForm";
 
 const fmt = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" });
@@ -109,7 +110,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ sub
                       {meta.flags?.distress && <span className="font-bold text-red-700">힘든 일 언급</span>}
                       {meta.flags?.personalInfo && <span className="text-red-700">개인 정보</span>}
                       {m.blocked && <span className="text-orange-700">가드레일이 응답 교체({m.blockReason})</span>}
-                      {m.model && <span>{m.model}</span>}
+                      {m.role === "coach" && m.provider && <span>{PROVIDER_LABELS[m.provider as keyof typeof PROVIDER_LABELS] ?? m.provider}{m.model && m.model !== m.provider ? ` · ${m.model}` : ""}</span>}
                     </div>
                     <p className="whitespace-pre-wrap">{m.content}</p>
                   </li>

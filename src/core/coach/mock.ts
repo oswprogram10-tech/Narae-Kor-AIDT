@@ -1,7 +1,7 @@
 // API 키 없이도 수업·시연·테스트를 할 수 있게 하는 규칙 기반 모의 코치.
 // 정해진 질문 은행에서 단계와 힌트 단계에 맞는 질문을 고른다. 문장을 대신 쓰지 않는다는 원칙은 같다.
-import type { Stage } from "@/data/genres";
-import { lintKorean } from "@/lib/lint";
+import type { Stage } from "@/core/data/genres";
+import { lintKorean } from "@/core/lint";
 import type { CoachContext, CoachOutput } from "./types";
 
 const BANK: Record<Stage, [string, string[]][]> = {

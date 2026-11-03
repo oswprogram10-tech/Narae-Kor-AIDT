@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkOutput, classifyInput } from "@/lib/coach/guard";
-import type { CoachOutput } from "@/lib/coach/types";
+import { checkOutput, classifyInput } from "@/core/coach/guard";
+import type { CoachOutput } from "@/core/coach/types";
 
 const out = (reply: string, extra: Partial<CoachOutput> = {}): CoachOutput => ({
   reply,

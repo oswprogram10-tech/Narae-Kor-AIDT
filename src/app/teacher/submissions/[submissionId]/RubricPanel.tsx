@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveRubricFinal, type FormState } from "@/app/actions/teacher";
 import { FormMessage } from "@/components/FormMessage";
-import type { RubricCriterion } from "@/data/genres";
+import type { RubricCriterion } from "@/core/data/genres";
 
 interface Score {
   criterion: string;

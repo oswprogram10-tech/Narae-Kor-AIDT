@@ -13,8 +13,9 @@ import {
   requireTeacher,
   verifySecret,
 } from "@/lib/auth";
-import { getGenre } from "@/data/genres";
+import { getGenre } from "@/core/data/genres";
 import { teacherSubmission } from "@/lib/submissions";
+import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
 
 export interface FormState {
@@ -124,6 +125,16 @@ export async function setCoachEnabled(assignmentId: number, coachEnabled: boolea
   if (!(await ownedAssignment(teacherId, assignmentId))) return;
   const db = await getDb();
   await db.update(schema.assignments).set({ coachEnabled }).where(eq(schema.assignments.id, assignmentId));
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+}
+
+export async function setCoachProvider(assignmentId: number, form: FormData): Promise<void> {
+  const { teacherId } = await requireTeacher();
+  if (!(await ownedAssignment(teacherId, assignmentId))) return;
+  const v = String(form.get("coachProvider") ?? "auto");
+  const coachProvider = v === "auto" || (PROVIDER_IDS as readonly string[]).includes(v) ? v : "auto";
+  const db = await getDb();
+  await db.update(schema.assignments).set({ coachProvider }).where(eq(schema.assignments.id, assignmentId));
   revalidatePath(`/teacher/assignments/${assignmentId}`);
 }
 

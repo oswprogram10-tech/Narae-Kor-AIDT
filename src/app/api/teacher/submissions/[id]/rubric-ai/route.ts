@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { teacherSubmission } from "@/lib/submissions";
-import { suggestRubric } from "@/lib/rubric-ai";
-import { getGenre } from "@/data/genres";
+import { suggestRubric } from "@/core/rubric";
+import { getRegistry } from "@/lib/coach";
+import { PROVIDER_IDS, type ProviderId } from "@/core/providers";
+import { getGenre } from "@/core/data/genres";
 import { logEvent } from "@/lib/events";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -13,13 +15,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const row = await teacherSubmission(session.teacherId, id);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const { suggestions, reason } = await suggestRubric({
-    grade: row.klass.grade,
-    genreName: getGenre(row.assignment.genreId)?.name ?? row.assignment.title,
-    prompt: row.assignment.prompt,
-    rubric: row.assignment.rubric,
-    draft: row.submission.draft,
-  });
+  const pref = (PROVIDER_IDS as readonly string[]).includes(row.assignment.coachProvider)
+    ? (row.assignment.coachProvider as ProviderId)
+    : "auto";
+  const { suggestions, reason } = await suggestRubric(
+    getRegistry(),
+    {
+      grade: row.klass.grade,
+      genreName: getGenre(row.assignment.genreId)?.name ?? row.assignment.title,
+      prompt: row.assignment.prompt,
+      rubric: row.assignment.rubric,
+      draft: row.submission.draft,
+    },
+    pref,
+  );
   if (!suggestions) return NextResponse.json({ error: reason }, { status: 422 });
 
   const db = await getDb();

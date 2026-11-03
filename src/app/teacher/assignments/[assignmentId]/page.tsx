@@ -4,9 +4,10 @@ import { ownedAssignment, requireTeacher } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { TeacherHeader } from "@/components/TeacherHeader";
 import { assignmentStatus } from "@/lib/dashboard";
-import { setAssignmentOpen, setCoachEnabled } from "@/app/actions/teacher";
-import { getGenre } from "@/data/genres";
-import { coachMode } from "@/lib/coach";
+import { setAssignmentOpen, setCoachEnabled, setCoachProvider } from "@/app/actions/teacher";
+import { getGenre } from "@/core/data/genres";
+import { getRegistry } from "@/lib/coach";
+import { PROVIDER_IDS, PROVIDER_LABELS } from "@/core/providers";
 import { LiveStatus } from "./LiveStatus";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -18,6 +19,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
   const rows = await assignmentStatus(id, klass.id);
+  const available = getRegistry().available();
 
   return (
     <>
@@ -47,9 +49,23 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
             <a className="btn-ghost text-sm" href={`/api/teacher/assignments/${id}/export`}>연구용 CSV</a>
           </div>
         </div>
-        <p className="text-sm text-stone-500">
-          코치: {a.coachEnabled ? "켜짐" : "꺼짐"} · 모드: {coachMode() === "mock" ? "모의 코치(API 키 없음)" : "Claude"} · 과제: {a.isOpen ? "열림" : "닫힘"}
-        </p>
+        {/* key: 저장 후 새 값으로 다시 그려서, 제출 뒤 폼 초기화로 예전 값이 보이는 문제를 막는다 */}
+        <form key={a.coachProvider} action={setCoachProvider.bind(null, id)} className="flex flex-wrap items-center gap-2 text-sm">
+          <label htmlFor="coachProvider" className="text-stone-600">코치 AI</label>
+          <select id="coachProvider" name="coachProvider" defaultValue={a.coachProvider} className="input w-auto py-1.5 text-sm">
+            <option value="auto">자동 ({available.length ? available.map((p) => PROVIDER_LABELS[p]).join(" → ") : "모의 코치"})</option>
+            {PROVIDER_IDS.map((p) => (
+              <option key={p} value={p} disabled={!available.includes(p)}>
+                {PROVIDER_LABELS[p]}
+                {available.includes(p) ? "" : p === "local" ? " (2단계에서 연결)" : " (서버에 API 키 없음)"}
+              </option>
+            ))}
+          </select>
+          <button className="btn-ghost px-3 py-1.5 text-sm">적용</button>
+          <span className="text-stone-500">
+            · 코치 {a.coachEnabled ? "켜짐" : "꺼짐"} · 과제 {a.isOpen ? "열림" : "닫힘"} · 고른 AI가 실패하면 다음 AI, 마지막엔 모의 코치가 답해요.
+          </span>
+        </form>
         <LiveStatus assignmentId={id} initial={rows} />
       </main>
     </>

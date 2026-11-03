@@ -1,5 +1,5 @@
 import type { CoachContext } from "./types";
-import { STAGE_LABELS, REVISION_LENSES } from "@/data/genres";
+import { STAGE_LABELS, REVISION_LENSES } from "@/core/data/genres";
 
 // 정책을 바꾸면 버전을 올린다. 모든 코치 메시지에 기록되어 연구 분석 때 정책별로 비교할 수 있다.
 export const POLICY_VERSION = "2026-11-03.v1";

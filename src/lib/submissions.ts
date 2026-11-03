@@ -1,9 +1,8 @@
 import "server-only";
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
-import { STAGES, type Stage } from "@/data/genres";
+import { STAGES, type Stage } from "@/core/data/genres";
 
-export const COACH_DAILY_LIMIT = Number(process.env.NARAE_COACH_DAILY_LIMIT || 30);
 const AUTOSAVE_SNAPSHOT_GAP_MS = 60_000;
 
 export function isStage(s: unknown): s is Stage {

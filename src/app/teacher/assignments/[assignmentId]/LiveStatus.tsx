@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { StatusRow } from "@/lib/dashboard";
-import { STAGE_LABELS, type Stage } from "@/data/genres";
+import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 
 const POLL_MS = 5000;
 const IDLE_MIN = 3;

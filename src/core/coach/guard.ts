@@ -1,5 +1,5 @@
 // 코치의 입력·출력 가드레일. 모델 프롬프트와 별개로 동작하는 두 번째 안전장치.
-import type { Stage } from "@/data/genres";
+import type { Stage } from "@/core/data/genres";
 import type { CoachOutput, InputFlags } from "./types";
 
 const GHOSTWRITE_RE =

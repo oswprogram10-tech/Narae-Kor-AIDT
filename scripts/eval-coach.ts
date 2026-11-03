@@ -1,14 +1,18 @@
 // 대필 차단 평가: 실제 모델로 평가셋을 돌려 (1) 모델이 스스로 대필을 거절했는지, (2) 가드레일이 막아야 했는지,
 // (3) 최종 응답에 예시 문장이 새어 나가지 않았는지를 잰다. 정상 도움 요청에 대해 과잉 차단이 없는지도 본다.
 //
-// 실행: ANTHROPIC_API_KEY=... npm run eval:coach
-// 비용: 평가셋 50건 × 1회 호출(기본 모델 claude-haiku-5-5, effort low) — 매우 적지만 실제 과금이 발생한다.
+// 실행(AI별로 따로 재서 비교): npm run eval:coach -- claude   (또는 gemini / openai / local)
+//   필요한 환경 변수: ANTHROPIC_API_KEY · GEMINI_API_KEY + NARAE_GEMINI_MODEL · OPENAI_API_KEY + NARAE_OPENAI_MODEL
+// 비용: 평가셋 50건 × 1회 호출 — 적지만 실제 과금이 발생한다.
+// 비교를 공정하게 하려고 다른 AI로 넘어가지 않게(대체 없이) 한 AI만 쓴다. 실패하면 모의 코치가 답하고 'failed'로 센다.
 import fs from "node:fs";
 import path from "node:path";
-import { runCoach, coachMode, COACH_MODEL } from "@/lib/coach";
-import { checkOutput } from "@/lib/coach/guard";
-import type { CoachContext } from "@/lib/coach/types";
-import { getGenre, type Stage } from "@/data/genres";
+import { getRegistry } from "@/lib/coach";
+import { runCoachEngine } from "@/core/coach/engine";
+import { PROVIDER_IDS, ProviderRegistry, type ProviderId } from "@/core/providers";
+import { checkOutput } from "@/core/coach/guard";
+import type { CoachContext } from "@/core/coach/types";
+import { getGenre, type Stage } from "@/core/data/genres";
 
 interface Case {
   stage: Stage;
@@ -33,10 +37,17 @@ const BASE: Omit<CoachContext, "stage" | "studentMessage" | "lens"> = {
 };
 
 async function main() {
-  if (coachMode() !== "claude") {
-    console.error("ANTHROPIC_API_KEY가 없습니다. 실제 모델 평가는 키가 있어야 합니다.");
+  const id = (process.argv[2] ?? "claude") as ProviderId;
+  if (!(PROVIDER_IDS as readonly string[]).includes(id)) {
+    console.error(`AI 이름을 확인하세요: ${PROVIDER_IDS.join(", ")}`);
     process.exit(1);
   }
+  const provider = getRegistry().get(id);
+  if (!provider?.available()) {
+    console.error(`${id}: 설정되지 않았습니다(API 키나 모델 이름 환경 변수를 확인하세요).`);
+    process.exit(1);
+  }
+  const registry = ProviderRegistry.fromProviders([provider]);
   const data = JSON.parse(fs.readFileSync(path.join(process.cwd(), "evals/ghostwrite.json"), "utf8")) as {
     attack: Case[];
     help: Case[];
@@ -47,10 +58,12 @@ async function main() {
   let leaked = 0;
   let helpBlocked = 0;
   let helpNoQuestion = 0;
+  let failed = 0;
 
   const run = async (kind: "attack" | "help", c: Case) => {
     const ctx: CoachContext = { ...BASE, stage: c.stage, studentMessage: c.message, lens: c.lens };
-    const r = await runCoach(ctx);
+    const r = await runCoachEngine(ctx, registry);
+    if (r.provider === "mock") failed++;
     // 최종 응답을 가드로 한 번 더 검사(새어 나간 예시 문장이 없어야 함)
     const corpus = [ctx.brainstorm, ...Object.values(ctx.organizerValues), ctx.draft, ctx.studentMessage].join("\n");
     const final = checkOutput(r.output, corpus, c.stage);
@@ -62,7 +75,7 @@ async function main() {
       if (r.blocked) helpBlocked++;
       if (r.output.questions.length === 0 && !r.output.reply.includes("?")) helpNoQuestion++;
     }
-    rows.push({ kind, ...c, model: r.model, flag: r.output.flag, blocked: r.blocked, blockReason: r.blockReason, reply: r.output.reply, questions: r.output.questions });
+    rows.push({ kind, ...c, provider: r.provider, model: r.model, attempts: r.attempts, flag: r.output.flag, blocked: r.blocked, blockReason: r.blockReason, reply: r.output.reply, questions: r.output.questions });
     process.stdout.write(r.blocked ? "B" : kind === "attack" ? "a" : "h");
   };
 
@@ -72,7 +85,9 @@ async function main() {
 
   const pct = (n: number, d: number) => `${n}/${d} (${((100 * n) / d).toFixed(1)}%)`;
   const summary = {
-    model: COACH_MODEL,
+    provider: id,
+    model: provider.model,
+    provider_failed_fell_to_mock: pct(failed, data.attack.length + data.help.length),
     attack_total: data.attack.length,
     attack_flagged_as_ghostwrite: pct(attackRefused, data.attack.length),
     attack_needed_guardrail: pct(attackGuardBlocked, data.attack.length),
@@ -82,7 +97,7 @@ async function main() {
     final_leaks_after_guard: leaked,
   };
   console.table(summary);
-  const out = path.join(process.cwd(), "evals", `result-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  const out = path.join(process.cwd(), "evals", `result-${id}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   fs.writeFileSync(out, JSON.stringify({ summary, rows }, null, 2));
   console.log("자세한 결과:", out);
   console.log("※ 교사 3인이 rows의 reply/questions를 5점 척도로 평가하면 '도움 품질' 지표가 됩니다(docs/plan.md B4).");

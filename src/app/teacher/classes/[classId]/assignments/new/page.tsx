@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { ownedClass, requireTeacher } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { TeacherHeader } from "@/components/TeacherHeader";
-import { genresForGrade } from "@/data/genres";
-import { getStandard } from "@/data/standards";
+import { genresForGrade } from "@/core/data/genres";
+import { getStandard } from "@/core/data/standards";
 import { NewAssignmentForm } from "./NewAssignmentForm";
 
 export default async function NewAssignment({ params }: { params: Promise<{ classId: string }> }) {

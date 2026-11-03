@@ -5,6 +5,19 @@
 - 목적: 1인·교사 프로젝트, 연구·대회·공모전용
 - 계획 문서: [docs/plan.md](docs/plan.md) (Gemini 계획서 분석과 확정된 결정 사항), [docs/gemini-original.md](docs/gemini-original.md)
 - 현재 단계: **1단계 — 공통 기반 + 생각·붓 나래(쓰기)**. 이후 문법·어휘 → 읽기 → 매체 → 문학 → 듣기·말하기 + 음성·카메라 실험 순서로 확장합니다.
+- **최종 목표: 다른 프로그램(웹·안드로이드·윈도우)에 병합하는 모듈.** 핵심부는 `src/core/`에 있고, 이 저장소의 Next.js 앱은 병합 방법을 보여 주는 레퍼런스 호스트입니다. 병합 방법은 [docs/host-integration.md](docs/host-integration.md)를 보세요.
+
+## 코치 AI
+
+| AI | 위치 | 설정 |
+| --- | --- | --- |
+| 내장 모델(0.5B~1B급) | 학생 기기 안 | 2단계에서 연결 예정(`src/core/providers/local.ts`) |
+| Claude | 호스트 서버 | `ANTHROPIC_API_KEY` (기본 모델 `claude-haiku-5-5`) |
+| Gemini | 호스트 서버 | `GEMINI_API_KEY` + `NARAE_GEMINI_MODEL` |
+| ChatGPT | 호스트 서버 | `OPENAI_API_KEY` + `NARAE_OPENAI_MODEL` |
+| 모의 코치 | 어디서나 | 설정 없음. 다른 AI가 모두 없거나 실패할 때 답함 |
+
+교사는 과제마다 코치 AI를 고를 수 있고(기본: 자동), 고른 AI가 실패하면 다음 AI → 모의 코치 순서로 넘어갑니다. 어떤 AI가 답하든 같은 대필 금지 정책과 가드레일이 적용되며, 교사 화면에 어느 AI가 답했는지 기록됩니다.
 
 ## 주요 기능 (1단계)
 
@@ -33,13 +46,13 @@ npm install
 npm run dev
 ```
 
-브라우저에서 http://localhost:3000 을 엽니다. 데이터는 `./.data/pglite`에 저장됩니다(별도 DB 설치 불필요). AI 코치를 쓰려면 `.env.example`을 `.env.local`로 복사하고 `ANTHROPIC_API_KEY`를 넣습니다. 키가 없으면 모의 코치로 동작합니다.
+브라우저에서 http://localhost:3000 을 엽니다. 데이터는 `./.data/pglite`에 저장됩니다(별도 DB 설치 불필요). AI 코치를 쓰려면 `.env.example`을 `.env.local`로 복사하고 쓰려는 AI의 키(와 모델 이름)를 넣습니다. 키가 없으면 모의 코치로 동작합니다.
 
 ## 무료 티어로 배포하기 (Vercel + Supabase)
 
 1. [Supabase](https://supabase.com)에서 무료 프로젝트를 만들고, 서울 리전(Northeast Asia)을 고릅니다. 학생 글이 국내 리전에 저장되도록 하기 위함입니다.
 2. Project Settings → Database에서 연결 문자열(Transaction pooler, 포트 6543)을 복사합니다.
-3. [Vercel](https://vercel.com)에서 이 저장소를 가져오고, 환경 변수 `DATABASE_URL`, `SESSION_SECRET`(`openssl rand -hex 32`), `ANTHROPIC_API_KEY`를 넣습니다.
+3. [Vercel](https://vercel.com)에서 이 저장소를 가져오고, 환경 변수 `DATABASE_URL`, `SESSION_SECRET`(`openssl rand -hex 32`)와 쓰려는 AI의 키를 넣습니다.
 4. 배포하면 첫 요청 때 DB 표가 자동으로 만들어집니다(`drizzle/` 마이그레이션).
 
 비용 관리: 기본 코치 모델은 가장 저렴한 `claude-haiku-5-5`(effort `low`)이고, 학생 1명당 하루 30회로 제한됩니다(`NARAE_COACH_DAILY_LIMIT`).
@@ -62,11 +75,13 @@ npm run db:generate
 
 ## 연구·대회용 평가
 
-- **대필 차단 평가**: `evals/ghostwrite.json`(대필 유도 30건 + 정상 도움 20건)을 실제 모델로 돌려 거절률, 가드레일 개입률, 과잉 차단률을 잽니다. 실제 API 비용이 조금 듭니다.
+- **대필 차단 평가**: `evals/ghostwrite.json`(대필 유도 30건 + 정상 도움 20건)을 AI별로 따로 돌려 거절률, 가드레일 개입률, 과잉 차단률을 비교합니다(다른 AI로 넘어가지 않게 한 AI만 씀). 실제 API 비용이 조금 듭니다.
 
   ```bash
-  ANTHROPIC_API_KEY=sk-ant-... npm run eval:coach
+  npm run eval:coach -- claude
   ```
+
+  `claude` 대신 `gemini`, `openai`, (2단계 이후) `local`을 넣으면 됩니다.
 
 - **수업 데이터**: 과제 대시보드의 ‘연구용 CSV’는 학생 번호만 담은 익명 데이터(단계, 글자 수, 저장 버전 수, 도움 요청, 대필 요청, 가드레일 개입, 붙여 넣기, 활동 시간, 루브릭 AI 제안·교사 점수)입니다.
 - 학생 데이터를 연구에 쓰기 전에 학교장 승인과 보호자 안내·동의를 받아 두세요.
@@ -74,7 +89,7 @@ npm run db:generate
 ## 개인정보
 
 - 학생은 실명·이메일 없이 번호와 별명으로만 등록됩니다. 번호-이름 대응표는 선생님이 앱 밖에서 보관합니다.
-- AI 코치에는 과제와 학생 글만 보내고, 별명·번호는 보내지 않습니다.
+- AI 코치에는 과제와 학생 글만 보내고, 별명·번호는 보내지 않습니다. 외부 AI의 API 키는 서버에만 둡니다.
 - 그림 비밀번호는 해시로만 저장하며, 5번 틀리면 5분간 잠깁니다. 선생님이 초기화할 수 있습니다.
 
 ## 성취기준 데이터
@@ -85,10 +100,14 @@ npm run db:generate
 
 ```
 src/
-  data/          성취기준 87개, 글쓰기 템플릿(계획표·루브릭·코치 초점)
-  lib/coach/     코치 정책(프롬프트), 가드레일, 모의 코치, Claude 호출
-  lib/lint.ts    맞춤법·띄어쓰기 규칙 점검기
-  lib/db/        Drizzle 스키마(PGlite/PostgreSQL 공용)
+  core/          ★ 모듈 핵심부(호스트 무관, 어디에나 병합)
+    coach/       코치 정책(프롬프트), 가드레일, 모의 코치, 엔진(AI 대체 순서)
+    providers/   AI 공통 연결부: 내장 모델(연결 지점)·Claude·Gemini·ChatGPT
+    host/        호스트 서버 연결 지점(CoachHostAdapter, processCoachTurn)
+    data/        성취기준 87개, 글쓰기 템플릿
+    lint.ts      맞춤법·띄어쓰기 규칙 점검기
+    rubric.ts    루브릭 AI 제안
+  lib/           레퍼런스 호스트 서버: 로그인, DB(Drizzle), 코치 어댑터, AI 설정
   app/teacher/   교사 화면
   app/student/   학생 작업대
   app/api/       자동 저장, 코치, 제출, 대시보드, CSV, 루브릭 AI
