@@ -22,6 +22,8 @@ export interface LocalRuntimeOptions {
   modelBaseUrl?: string;
   // true면 내장 파일이 없을 때 Hugging Face에서 받아 온다(개발·실험용)
   allowRemote?: boolean;
+  // 브라우저용 ONNX Runtime(WASM) 파일 위치. 기본 "/ort/"(scripts/copy-ort.mjs가 복사). 외부 CDN을 쓰지 않기 위함
+  wasmBaseUrl?: string;
   device?: LocalDevice | "auto";
   onProgress?: (p: LoadProgress) => void;
   // 테스트에서 실제 라이브러리 대신 넣는 생성기
@@ -37,6 +39,7 @@ export type PipelineFactory = (args: {
   modelPath: string;
   device: LocalDevice;
   dtype: string;
+  externalData?: false;
   onProgress?: (p: LoadProgress) => void;
 }) => Promise<Generator>;
 
@@ -48,16 +51,30 @@ export function detectDevice(): LocalDevice {
 }
 
 // 실제 transformers.js를 쓰는 기본 생성기(필요할 때만 불러와서 다른 화면의 용량을 늘리지 않음)
-const defaultFactory = (opts: LocalRuntimeOptions): PipelineFactory => async ({ modelPath, device, dtype, onProgress }) => {
+const defaultFactory = (opts: LocalRuntimeOptions): PipelineFactory => async ({ modelPath, device, dtype, externalData, onProgress }) => {
   const tf = await import("@huggingface/transformers");
   if (opts.modelBaseUrl) {
     tf.env.localModelPath = opts.modelBaseUrl;
     tf.env.allowLocalModels = true;
   }
   tf.env.allowRemoteModels = !!opts.allowRemote;
+  const onnxWasm = (tf.env.backends.onnx as { wasm?: { wasmPaths?: unknown; proxy?: boolean; numThreads?: number } } | undefined)?.wasm;
+  if (onnxWasm && typeof (globalThis as { window?: unknown }).window !== "undefined") {
+    const base = opts.wasmBaseUrl ?? "/ort/";
+    onnxWasm.wasmPaths = {
+      mjs: `${base}ort-wasm-simd-threaded.asyncify.mjs`,
+      wasm: `${base}ort-wasm-simd-threaded.asyncify.wasm`,
+    };
+    // 계산을 별도 작업 스레드(Web Worker)로 보내 학생 화면이 멈추지 않게 한다.
+    onnxWasm.proxy = true;
+    // 교차 출처 격리(COOP/COEP)가 되어 있으면 여러 코어를 쓴다.
+    const g = globalThis as { crossOriginIsolated?: boolean; navigator?: { hardwareConcurrency?: number } };
+    if (g.crossOriginIsolated) onnxWasm.numThreads = Math.max(1, Math.min(4, (g.navigator?.hardwareConcurrency ?? 2) - 1));
+  }
   const pipe = await tf.pipeline("text-generation", modelPath, {
     device,
-    dtype: dtype as "q4" | "q4f16",
+    dtype: dtype as "q4" | "q4f16" | "int8",
+    ...(externalData === false ? { use_external_data_format: false } : {}),
     progress_callback: (p: unknown) => onProgress?.(p as LoadProgress),
   });
   return (messages, genOpts) => (pipe as unknown as Generator)(messages, genOpts);
@@ -99,8 +116,9 @@ export class TransformersLocalRuntime implements LocalModelRuntime {
       const factory = this.opts.pipelineFactory ?? defaultFactory(this.opts);
       const modelPath = this.opts.modelBaseUrl ? this.opts.model.id : this.opts.model.hfRepo;
       const tryDevice = async (device: LocalDevice) => {
-        const dtype = device === "webgpu" ? this.opts.model.webgpu.dtype : this.opts.model.wasm.dtype;
-        this.gen = await factory({ modelPath, device, dtype, onProgress: this.opts.onProgress });
+        const spec = device === "webgpu" ? this.opts.model.webgpu : this.opts.model.wasm;
+        const externalData = "externalData" in spec ? spec.externalData : undefined;
+        this.gen = await factory({ modelPath, device, dtype: spec.dtype, externalData, onProgress: this.opts.onProgress });
         this.device = device;
       };
       try {

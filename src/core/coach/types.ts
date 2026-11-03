@@ -24,9 +24,10 @@ export type CoachOutput = z.infer<typeof CoachOutputSchema>;
 
 // 내장 초소형 모델용: 빠진 필드는 기본값으로 채운다(형식을 완벽히 지키지 못하는 경우가 많음).
 export const CoachOutputLenientSchema = z.object({
-  reply: z.string().min(1),
-  questions: z.array(z.string()).default([]),
-  highlights: CoachOutputSchema.shape.highlights.default([]),
+  reply: z.string().catch("").default(""), // 내장 모델에는 질문만 요청한다(말머리는 검증된 문장 은행에서)
+  // 초소형 모델은 질문 목록 대신 문자열 하나를 주기도 한다 → 목록으로 바꿔 받는다.
+  questions: z.preprocess((v) => (typeof v === "string" ? [v] : v), z.array(z.string())).catch([]).default([]),
+  highlights: CoachOutputSchema.shape.highlights.catch([]).default([]),
   flag: CoachOutputSchema.shape.flag.catch("none").default("none"),
 });
 

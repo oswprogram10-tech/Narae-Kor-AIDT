@@ -76,3 +76,10 @@ return Response.json(outcome.body, { status: outcome.status });
 - 과제의 코치 AI가 `local`이면 기기가 준비되지 않았을 때도 외부 AI로 보내지 않고 모의 코치가 답합니다(개인정보 보호).
 - 모델 파일 배포: `npm run model:fetch -- <id>`로 받은 `public/models/<id>/` 폴더를 모듈과 함께 배포하거나, 호스트가 제공하는 주소를 `NARAE_LOCAL_MODEL_BASE_URL`로 지정합니다. 학생 기기에는 처음 한 번 내려받아 브라우저 캐시에 저장됩니다.
 - 안드로이드·윈도우 앱이 네이티브 추론을 쓰려면 `globalThis.__NARAE_LOCAL_PIPELINE_FACTORY__`에 `PipelineFactory`(`src/core/local/runtime.ts`)를 주입하면 됩니다.
+
+### 내장 AI 화면에 필요한 것(호스트 체크리스트)
+
+1. **교차 출처 격리 헤더**: 내장 AI를 쓰는 페이지에 `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`. 없으면 CPU 코어 하나만 써서 2~3배 느려집니다(실측 45초 → 19초). 다른 출처의 이미지·스크립트를 쓰는 화면이라면 그 자원에 `Cross-Origin-Resource-Policy` 헤더가 필요합니다.
+2. **실행 엔진 파일**: `public/ort/`(설치 시 `scripts/copy-ort.mjs`가 복사)을 함께 제공합니다. 없으면 외부 CDN에서 받으려다 학교 방화벽·오프라인에서 실패합니다.
+3. **모델 파일**: `public/models/<id>/`. WebGPU 기기용과 일반 기기용 형식을 모두 넣어야 모든 기기를 지원합니다(`npm run model:fetch -- gemma-3-1b q4f16,int8`).
+4. 실측 결과와 한계: `docs/local-model-eval.md`.

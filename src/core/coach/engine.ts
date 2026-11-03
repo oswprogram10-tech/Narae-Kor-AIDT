@@ -10,6 +10,7 @@ import {
   studentCorpus,
 } from "./guard";
 import { mockCoach } from "./mock";
+import { recoverQuestions, shapeLocalOutput } from "./local-shape";
 import { buildCompactUserTurn, buildUserTurn, LOCAL_SYSTEM_PROMPT, POLICY_VERSION, SYSTEM_PROMPT } from "./policy";
 import { CoachOutputLenientSchema, CoachOutputSchema, type CoachContext, type CoachOutput, type CoachResult, type ProviderAttempt } from "./types";
 
@@ -39,14 +40,14 @@ export async function runCoachEngine(
       const out = await p.generateJson({
         system: isLocal ? LOCAL_SYSTEM_PROMPT : SYSTEM_PROMPT,
         user: isLocal ? buildCompactUserTurn(ctx) : buildUserTurn(ctx),
-        maxTokens: isLocal ? 256 : undefined,
+        maxTokens: isLocal ? 120 : undefined,
         schema: (isLocal ? CoachOutputLenientSchema : CoachOutputSchema) as typeof CoachOutputSchema,
         schemaName: "coach_output",
         purpose: "coach",
-        plainTextFallback: isLocal ? (text: string) => ({ reply: text.slice(0, 300) }) : undefined,
+        plainTextFallback: isLocal ? recoverQuestions : undefined,
       });
       if (out) {
-        raw = out;
+        raw = isLocal ? shapeLocalOutput(out, ctx, inputFlags) : out;
         used = p;
         base.attempts.push({ provider: p.id, model: p.model, outcome: "ok" });
         break;

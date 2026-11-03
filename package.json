@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "eval:coach": "tsx --conditions=react-server scripts/eval-coach.ts",
-    "model:fetch": "node scripts/fetch-model.mjs"
+    "model:fetch": "node scripts/fetch-model.mjs",
+    "postinstall": "node scripts/copy-ort.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

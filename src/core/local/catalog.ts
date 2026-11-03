@@ -9,7 +9,8 @@ export interface LocalModelInfo {
   params: string;
   // 기기 종류별로 쓸 압축 형식과 크기(MB)
   webgpu: { dtype: "q4f16"; sizeMB: number };
-  wasm: { dtype: "q4"; sizeMB: number };
+  // externalData: 모델 설정과 달리 별도 데이터 파일(.onnx_data)이 없는 형식이면 false
+  wasm: { dtype: "q4" | "int8"; sizeMB: number; externalData?: false };
   note: string;
 }
 
@@ -22,7 +23,7 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     params: "0.5B",
     webgpu: { dtype: "q4f16", sizeMB: 483 },
     wasm: { dtype: "q4", sizeMB: 786 },
-    note: "기본값. 가장 작고 라이선스 제약이 적음. 한국어는 가능하지만 단순한 편",
+    note: "가장 작고 라이선스 제약이 적음. 실측에서 질문 품질이 낮아 파인튜닝 없이는 권장하지 않음",
   },
   {
     id: "qwen3-0.6b",
@@ -41,12 +42,14 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     license: "Gemma Terms of Use",
     params: "1B",
     webgpu: { dtype: "q4f16", sizeMB: 763 },
-    wasm: { dtype: "q4", sizeMB: 859 },
-    note: "한국어 품질 기대치가 가장 높음. 배포 전 Gemma 이용약관 확인 필요",
+    // q4 파일은 브라우저 WASM 엔진이 지원하지 않는 연산(GatherBlockQuantized)을 써서 int8을 쓴다(2026-11-03 실측)
+    wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
+    note: "기본값. 실측에서 질문 품질이 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
   },
 ];
 
-export const DEFAULT_LOCAL_MODEL = "qwen2.5-0.5b";
+// 실측(docs/local-model-eval.md): Qwen2.5 0.5B는 쓸 만한 질문을 거의 만들지 못해 Gemma 3 1B를 기본으로 한다.
+export const DEFAULT_LOCAL_MODEL = "gemma-3-1b";
 
 export function getLocalModel(id: string | undefined | null): LocalModelInfo | undefined {
   return LOCAL_MODELS.find((m) => m.id === id);

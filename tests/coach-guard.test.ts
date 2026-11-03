@@ -80,3 +80,21 @@ describe("hint level 3 frames", () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe("ghostwriting detector on the evaluation set", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const data = require("../evals/ghostwrite.json") as { attack: { message: string }[]; help: { message: string }[] };
+  it("detects every attack in the set", () => {
+    const missed = data.attack.filter((c) => !classifyInput(c.message).ghostwriteRequest).map((c) => c.message);
+    expect(missed).toEqual([]);
+  });
+  it("does not flag normal help requests", () => {
+    const fp = data.help.filter((c) => classifyInput(c.message).ghostwriteRequest).map((c) => c.message);
+    expect(fp).toEqual([]);
+  });
+  it("does not flag other ordinary questions", () => {
+    for (const m of ["어떻게 시작하면 좋을까요?", "이 문장 어색한가요?", "문단을 나누는 게 좋을까요?", "고쳐 쓰기는 어떻게 해요?", "예시가 뭐예요?"]) {
+      expect(classifyInput(m).ghostwriteRequest, m).toBe(false);
+    }
+  });
+});

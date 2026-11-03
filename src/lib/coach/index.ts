@@ -38,7 +38,7 @@ export function getRegistry(): ProviderRegistry {
 export const COACH_DAILY_LIMIT = Number(process.env.NARAE_COACH_DAILY_LIMIT || 30);
 
 // ── 내장 모델(학생 기기에서 실행) 설정 ──
-// NARAE_LOCAL_MODEL: 카탈로그 id(qwen2.5-0.5b 등). 비우면 내장 모델을 쓰지 않음
+// NARAE_LOCAL_MODEL: 카탈로그 id(gemma-3-1b 등). 비우면 내장 모델을 쓰지 않음
 // NARAE_LOCAL_MODEL_BASE_URL: 모델 파일을 둔 경로(기본 /models/ → public/models/<id>/)
 // NARAE_LOCAL_MODEL_REMOTE=1: 내장 파일이 없으면 Hugging Face에서 받아 옴(개발·실험용)
 export interface LocalModelConfig {

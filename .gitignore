@@ -49,3 +49,4 @@ next-env.d.ts
 
 # 내장 모델 파일(수백 MB, scripts/fetch-model.mjs로 받음)
 /public/models/
+/public/ort/

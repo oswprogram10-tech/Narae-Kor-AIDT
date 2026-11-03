@@ -25,7 +25,8 @@ export function createLocalProvider(runtime?: LocalModelRuntime | null): LlmProv
         jsonSchema: toJsonSchema(req.schema),
       });
       const parsed = parseJsonOutput(text, req.schema);
-      if (parsed || !req.plainTextFallback || !text.trim() || text.includes("{")) return parsed;
+      // JSON이 깨졌거나 평문이면(초소형 모델에서 흔함) 호출한 쪽이 준 복구 함수로 한 번 더 시도한다.
+      if (parsed || !req.plainTextFallback || !text.trim()) return parsed;
       const r = req.schema.safeParse(req.plainTextFallback(text.trim()));
       return r.success ? r.data : null;
     },

@@ -8,6 +8,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getRegistry } from "@/lib/coach";
+import { TransformersLocalRuntime } from "@/core/local/runtime";
+import { DEFAULT_LOCAL_MODEL, getLocalModel } from "@/core/local/catalog";
+import { createLocalProvider } from "@/core/providers";
 import { runCoachEngine } from "@/core/coach/engine";
 import { PROVIDER_IDS, ProviderRegistry, type ProviderId } from "@/core/providers";
 import { checkOutput } from "@/core/coach/guard";
@@ -42,7 +45,21 @@ async function main() {
     console.error(`AI 이름을 확인하세요: ${PROVIDER_IDS.join(", ")}`);
     process.exit(1);
   }
-  const provider = getRegistry().get(id);
+  // 내장 모델은 이 컴퓨터의 CPU로 실행한다(모델 파일: public/models/<id>/, npm run model:fetch로 받음).
+  // 예: npm run eval:coach -- local gemma-3-1b
+  let provider = getRegistry().get(id);
+  if (id === "local") {
+    const info = getLocalModel(process.argv[3] ?? process.env.NARAE_LOCAL_MODEL ?? DEFAULT_LOCAL_MODEL);
+    if (!info) {
+      console.error("내장 모델 id를 확인하세요(예: qwen2.5-0.5b, gemma-3-1b).");
+      process.exit(1);
+    }
+    const rt = new TransformersLocalRuntime({ model: info, modelBaseUrl: path.join(process.cwd(), "public", "models") + "/", device: "cpu" });
+    const t0 = Date.now();
+    await rt.load();
+    console.log(`내장 모델 ${info.id} 불러오기 ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+    provider = createLocalProvider(rt);
+  }
   if (!provider?.available()) {
     console.error(`${id}: 설정되지 않았습니다(API 키나 모델 이름 환경 변수를 확인하세요).`);
     process.exit(1);
@@ -59,10 +76,15 @@ async function main() {
   let helpBlocked = 0;
   let helpNoQuestion = 0;
   let failed = 0;
+  let withQuestion = 0;
+  const times: number[] = [];
 
   const run = async (kind: "attack" | "help", c: Case) => {
     const ctx: CoachContext = { ...BASE, stage: c.stage, studentMessage: c.message, lens: c.lens };
+    const t0 = Date.now();
     const r = await runCoachEngine(ctx, registry);
+    times.push(Date.now() - t0);
+    if (r.output.questions.length > 0) withQuestion++;
     if (r.provider === "mock") failed++;
     // 최종 응답을 가드로 한 번 더 검사(새어 나간 예시 문장이 없어야 함)
     const corpus = [ctx.brainstorm, ...Object.values(ctx.organizerValues), ctx.draft, ctx.studentMessage].join("\n");
@@ -87,6 +109,8 @@ async function main() {
   const summary = {
     provider: id,
     model: provider.model,
+    avg_seconds_per_reply: (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1),
+    replies_with_question: pct(withQuestion, data.attack.length + data.help.length),
     provider_failed_fell_to_mock: pct(failed, data.attack.length + data.help.length),
     attack_total: data.attack.length,
     attack_flagged_as_ghostwrite: pct(attackRefused, data.attack.length),
@@ -97,7 +121,7 @@ async function main() {
     final_leaks_after_guard: leaked,
   };
   console.table(summary);
-  const out = path.join(process.cwd(), "evals", `result-${id}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  const out = path.join(process.cwd(), "evals", `result-${id}${id === "local" ? "-" + provider.model : ""}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   fs.writeFileSync(out, JSON.stringify({ summary, rows }, null, 2));
   console.log("자세한 결과:", out);
   console.log("※ 교사 3인이 rows의 reply/questions를 5점 척도로 평가하면 '도움 품질' 지표가 됩니다(docs/plan.md B4).");

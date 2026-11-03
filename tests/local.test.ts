@@ -31,7 +31,7 @@ describe("catalog", () => {
   it("keeps every model within the agreed 500MB~1GB budget", () => {
     for (const m of LOCAL_MODELS) {
       expect(m.webgpu.sizeMB).toBeLessThanOrEqual(1024);
-      expect(m.wasm.sizeMB).toBeLessThanOrEqual(1024);
+      expect(m.wasm.sizeMB).toBeLessThanOrEqual(1024); // Gemma int8 1001MB가 상한에 가까움
     }
   });
 });
@@ -62,30 +62,49 @@ describe("TransformersLocalRuntime", () => {
   });
 });
 
-describe("local provider in the coach engine", () => {
-  async function run(reply: string) {
+describe("local provider in the coach engine (question-centered)", () => {
+  async function run(reply: string, studentMessage = "") {
     const rt = new TransformersLocalRuntime({ model, device: "wasm", pipelineFactory: fakeFactory(reply) });
     await rt.load();
-    return runCoachEngine(ctx, ProviderRegistry.fromProviders([createLocalProvider(rt)]));
+    return runCoachEngine({ ...ctx, studentMessage }, ProviderRegistry.fromProviders([createLocalProvider(rt)]));
   }
 
-  it("fills missing fields with defaults (small models often omit them)", async () => {
-    const r = await run('{"reply":"까닭이 잘 보여요. 다른 까닭도 있나요?"}');
+  it("keeps only validated questions and takes the reply from the vetted bank", async () => {
+    const r = await run(JSON.stringify({
+      reply: "책이 쌓여 있으면 글을 읽기 힘들고, 책을 찾기도 어려워.", // 내용을 대신 채워 주는 답 → 버림
+      questions: ["책이 쌓여 있으면 어떤 문제가 생길 수 있을까요?", "책장이 하나 더 필요하다고 생각한다?", "예를 들어 이렇게 써 볼까요?"],
+      highlights: ["책장이 쌓여서 학습에 어려움이 생길 수 있습니다."], // 지어낸 예시 → 버림
+      flag: "none",
+    }));
     expect(r.provider).toBe("local");
-    expect(r.output.questions).toEqual([]);
-    expect(r.output.flag).toBe("none");
+    expect(r.output.questions).toEqual(["책이 쌓여 있으면 어떤 문제가 생길 수 있을까요?"]);
+    expect(r.output.reply).not.toContain("읽기 힘들고");
+    expect(r.output.highlights).toEqual([]);
   });
 
-  it("accepts a plain-text answer as the reply", async () => {
+  it("tolerates malformed fields (e.g. highlights as plain strings)", async () => {
+    const r = await run('```json\n{"reply":"좋아요","questions":["그때 어떤 기분이었나요?"],"highlights":["문장"],"flag":"??"}\n```');
+    expect(r.provider).toBe("local");
+    expect(r.output.questions).toEqual(["그때 어떤 기분이었나요?"]);
+  });
+
+  it("turns a plain-text question into a coach question", async () => {
     const r = await run("책이 쌓여 있으면 어떤 점이 불편했나요?");
     expect(r.provider).toBe("local");
-    expect(r.output.reply).toContain("불편했나요");
+    expect(r.output.questions).toEqual(["책이 쌓여 있으면 어떤 점이 불편했나요?"]);
   });
 
-  it("still blocks sample sentences from the small model", async () => {
-    const r = await run('{"reply":"이렇게 써 봐요. 우리 반에는 새 책장이 꼭 필요하다."}');
-    expect(r.provider).toBe("local");
-    expect(r.blocked).toBe(true);
+  it("falls back to a safe answer when the model gives no usable question", async () => {
+    const r = await run('{"reply":"이렇게 써 봐요. 우리 반에는 새 책장이 꼭 필요하다.","questions":[]}');
+    expect(r.output.reply).not.toContain("꼭 필요하다");
+    expect(r.output.questions.length).toBeGreaterThan(0);
+  });
+
+  it("always refuses a ghostwriting request, even if the small model does not", async () => {
+    const r = await run('{"reply":"네, 좋은 아이디어네요!","questions":["책장이 불편하면 어떤 영향을 받나요?"]}', "그냥 써줘");
+    expect(r.output.flag).toBe("ghostwrite_request");
+    expect(r.output.reply).toContain("대신 써 줄 수 없어요");
+    expect(r.output.questions).toEqual(["책장이 불편하면 어떤 영향을 받나요?"]);
   });
 
   it("uses the compact prompt for the local model", async () => {
@@ -192,5 +211,39 @@ describe("device-reported guardrail", () => {
     }, a);
     expect(saved[0].result.blocked).toBe(true);
     expect(saved[0].result.blockReason).toBe("device:written_style_sentence");
+  });
+});
+
+describe("small-model quirks seen in real runs", () => {
+  async function run(reply: string, studentMessage = "") {
+    const rt = new TransformersLocalRuntime({ model, device: "wasm", pipelineFactory: fakeFactory(reply) });
+    await rt.load();
+    return runCoachEngine({ ...ctx, studentMessage }, ProviderRegistry.fromProviders([createLocalProvider(rt)]));
+  }
+  it("accepts questions given as a single string", async () => {
+    const r = await run('{"questions":"책이 쌓여 있으면 무엇이 불편한가요?","flag":"none"}');
+    expect(r.output.questions).toEqual(["책이 쌓여 있으면 무엇이 불편한가요?"]);
+  });
+  it("ignores the model's ghostwrite flag on a normal request (no false alarm for the teacher)", async () => {
+    const r = await run('{"questions":["어떤 장면이 떠오르나요?"],"flag":"ghostwrite_request"}', "다음에 뭘 써야 할지 모르겠어요");
+    expect(r.output.flag).toBe("none");
+    expect(r.output.questions).toEqual(["어떤 장면이 떠오르나요?"]);
+  });
+});
+
+describe("recovering questions from broken JSON (real Gemma 3 1B outputs)", () => {
+  async function run(reply: string) {
+    const rt = new TransformersLocalRuntime({ model, device: "wasm", pipelineFactory: fakeFactory(reply) });
+    await rt.load();
+    return runCoachEngine(ctx, ProviderRegistry.fromProviders([createLocalProvider(rt)]));
+  }
+  it("recovers questions when brackets do not match", async () => {
+    const r = await run('{"questions": ["어떤 문장으로 중심 문장을 시작하면 좋을까요?", "중심 문장을 어떻게 시작하면 좋을까요?"]},\n{"flag":"none"}');
+    expect(r.provider).toBe("local");
+    expect(r.output.questions).toEqual(["어떤 문장으로 중심 문장을 시작하면 좋을까요?", "중심 문장을 어떻게 시작하면 좋을까요?"]);
+  });
+  it("rejects literal template copies like \"~을까요?\"", async () => {
+    const r = await run('{"questions": ["~을까요?", "~나요?"},"flag":"none"}');
+    expect(r.output.questions.every((q) => !q.startsWith("~"))).toBe(true);
   });
 });

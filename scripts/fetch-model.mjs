@@ -32,8 +32,22 @@ const dtypes = dtypesArg.split(",").map((s) => s.trim());
 const outDir = path.join(process.cwd(), "public", "models", id);
 const hf = "https://huggingface.co";
 
+// 429(요청 과다)·5xx는 잠시 기다렸다가 다시 시도한다(2·4·8·16초).
+async function fetchRetry(url) {
+  for (let i = 0; ; i++) {
+    const r = await fetch(url);
+    if ((r.status === 429 || r.status >= 500) && i < 4) {
+      const wait = Number(r.headers.get("retry-after")) * 1000 || 2000 * 2 ** i;
+      console.log(`    (서버가 잠시 기다리라고 해요: ${r.status}, ${Math.round(wait / 1000)}초 뒤 다시 시도)`);
+      await new Promise((res) => setTimeout(res, wait));
+      continue;
+    }
+    return r;
+  }
+}
+
 const tree = async (sub) => {
-  const r = await fetch(`${hf}/api/models/${repo}/tree/main${sub ? "/" + sub : ""}`);
+  const r = await fetchRetry(`${hf}/api/models/${repo}/tree/main${sub ? "/" + sub : ""}`);
   if (!r.ok) throw new Error(`목록을 가져오지 못했어요(${r.status})`);
   return r.json();
 };
@@ -54,7 +68,7 @@ for (const f of wanted) {
   }
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   try {
-    const r = await fetch(`${hf}/${repo}/resolve/main/${f.path}`);
+    const r = await fetchRetry(`${hf}/${repo}/resolve/main/${f.path}`);
     if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
     await pipeline(Readable.fromWeb(r.body), fs.createWriteStream(dest + ".part"));
   } catch (err) {

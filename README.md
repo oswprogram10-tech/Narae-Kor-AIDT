@@ -36,15 +36,19 @@
 
 ## 내장 AI(2단계)
 
-- 모델 후보: Qwen2.5 0.5B(기본, Apache 2.0, WebGPU용 483MB / 일반 786MB), Qwen3 0.6B(Apache 2.0), Gemma 3 1B(Gemma 약관) — `src/core/local/catalog.ts`
+- 모델 후보: **Gemma 3 1B(기본, Gemma 약관, WebGPU용 763MB / 일반 1,001MB)**, Qwen2.5 0.5B(Apache 2.0), Qwen3 0.6B(Apache 2.0) — `src/core/local/catalog.ts`
+- **실측 결과**: [docs/local-model-eval.md](docs/local-model-eval.md). 안전(유출 0건)은 지켜지지만, 파인튜닝 전에는 질문 품질·브라우저 속도(CPU 평균 36초)가 수업에 쓰기에 부족합니다.
+- 내장 AI는 질문만 만들고, 말머리는 검증된 문장 은행에서 가져옵니다(질문 중심 설계).
 - 실행: transformers.js(ONNX Runtime Web). WebGPU가 있으면 그래픽 가속, 없으면 WASM. 웹·안드로이드 WebView·윈도우(Electron/Tauri) 공통
 - 흐름: 서버가 자료를 주고(prepare) → 기기 안에서 답을 만들고 → 서버가 다시 검사해 저장(record). 기기에서 온 답도 서버가 가드레일로 다시 확인합니다.
 - 호스트 앱이 자체 실행기(예: 안드로이드 네이티브 추론)를 쓰려면 `globalThis.__NARAE_LOCAL_PIPELINE_FACTORY__`로 주입할 수 있습니다.
 - **학교 기기 측정**: 교사 화면의 ‘내장 AI 측정’(`/teacher/lab/local-model`)을 학생 기기에서 열면 불러오기 시간, 응답 시간, 형식 성공률을 보여 줍니다.
 
 ```bash
-npm run model:fetch -- qwen2.5-0.5b
+npm run model:fetch -- gemma-3-1b q4f16,int8
 ```
+
+브라우저 실행 엔진 파일(`public/ort/`)은 `npm install` 때 자동으로 복사됩니다. 내장 AI 화면에는 교차 출처 격리 헤더가 필요합니다(이 앱은 `next.config.ts`에 설정됨).
 
 ## 내 컴퓨터에서 실행하기
 

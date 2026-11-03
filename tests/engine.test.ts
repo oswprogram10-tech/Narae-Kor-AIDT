@@ -55,11 +55,12 @@ describe("runCoachEngine", () => {
     expect(none.fellBack).toBe(false);
   });
 
-  it("applies the same guardrail to every provider", async () => {
+  it("never lets a sample sentence through, whichever provider answers", async () => {
     for (const id of ["local", "claude", "gemini", "openai"] as const) {
       const r = await runCoachEngine(ctx, ProviderRegistry.fromProviders([fake(id, "leak")]));
-      expect(r.blocked, id).toBe(true);
-      expect(r.output.reply).not.toContain("꼭 필요하다");
+      // 외부 AI는 가드레일이 막고, 내장 모델은 질문 중심 다듬기에서 reply를 버린다.
+      if (id !== "local") expect(r.blocked, id).toBe(true);
+      expect(r.output.reply, id).not.toContain("꼭 필요하다");
     }
   });
 
