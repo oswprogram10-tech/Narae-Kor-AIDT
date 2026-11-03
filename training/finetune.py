@@ -30,7 +30,9 @@ def load_jsonl(path):
 
 
 def pick_dtype():
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+    # is_bf16_supported()는 T4(compute 7.5)에서도 True(흉내 내기)를 돌려줘서, TRL 학습 커널이
+    # "bf16은 compute 8.0 이상만" 오류로 멈춘다. 그래서 실제 하드웨어 능력(8.0 이상, A100·L4 등)으로 판단한다.
+    if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
         return torch.bfloat16
     # T4 등은 bf16이 없다. Gemma 3는 fp16에서 값이 넘칠 수 있어 fp32로 학습한다(1B라 T4 16GB에 충분).
     return torch.float32
