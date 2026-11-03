@@ -49,7 +49,7 @@ export interface SentenceBuildItem extends ItemBase {
 
 export interface AgreementFixItem extends ItemBase {
   type: "agreement-fix";
-  category: "honorific" | "adverb-predicate" | "subject-predicate" | "tense";
+  category: "honorific" | "adverb-predicate" | "subject-predicate" | "tense" | "spelling" | "spacing";
   /** 문장을 어절로 나눈 것. 문장부호는 어절에 붙여 둔다 */
   tokens: string[];
   /** 어색한 어절 하나의 자리 */
@@ -60,11 +60,25 @@ export interface AgreementFixItem extends ItemBase {
   correctOption: number;
 }
 
-export type GrammarItem = SentenceBuildItem | AgreementFixItem;
+/** 보기 중 하나를 고르는 문제(낱말 관계·사전 기본형 등) */
+export interface ChoiceItem extends ItemBase {
+  type: "choice";
+  /** 문제 위에 보여 주는 문장(선택). 낱말의 뜻이나 꼴을 문장 속에서 묻을 때 쓴다 */
+  context?: string;
+  /** context 안에서 굵게 보여 줄 낱말(선택). context에 그대로 들어 있어야 한다 */
+  target?: string;
+  /** 보기(3~4개, 서로 달라야 한다) */
+  options: string[];
+  /** options에서 정답의 자리(정답은 하나) */
+  correctOption: number;
+}
+
+export type GrammarItem = SentenceBuildItem | AgreementFixItem | ChoiceItem;
 
 export type GrammarAnswer =
   | { type: "sentence-build"; order: string[] }
-  | { type: "agreement-fix"; index: number; option: number };
+  | { type: "agreement-fix"; index: number; option: number }
+  | { type: "choice"; option: number };
 
 export interface GrammarActivity {
   id: string;

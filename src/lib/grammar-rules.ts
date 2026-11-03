@@ -4,7 +4,8 @@ import { getActivity, getItem, type Block, type GrammarAnswer, type GrammarItem 
 /** 학생 화면에 보내는 문제. 정답·설명·원리·힌트는 들어 있지 않다(오답/정답 뒤 서버가 따로 보낸다). */
 export type StudentItem =
   | { id: string; type: "sentence-build"; prompt: string; standardCode: string; blocks: Pick<Block, "id" | "text">[] }
-  | { id: string; type: "agreement-fix"; prompt: string; standardCode: string; tokens: string[]; options: string[] };
+  | { id: string; type: "agreement-fix"; prompt: string; standardCode: string; tokens: string[]; options: string[] }
+  | { id: string; type: "choice"; prompt: string; standardCode: string; context?: string; target?: string; options: string[] };
 
 export function toStudentItem(item: GrammarItem): StudentItem {
   if (item.type === "sentence-build") {
@@ -14,6 +15,17 @@ export function toStudentItem(item: GrammarItem): StudentItem {
       prompt: item.prompt,
       standardCode: item.standardCode,
       blocks: item.blocks.map((b) => ({ id: b.id, text: b.text })),
+    };
+  }
+  if (item.type === "choice") {
+    return {
+      id: item.id,
+      type: "choice",
+      prompt: item.prompt,
+      standardCode: item.standardCode,
+      ...(item.context !== undefined ? { context: item.context } : {}),
+      ...(item.target !== undefined ? { target: item.target } : {}),
+      options: [...item.options],
     };
   }
   return {
@@ -52,6 +64,12 @@ export function parseAnswer(item: GrammarItem, raw: unknown): GrammarAnswer | nu
       seen.add(x);
     }
     return { type: "sentence-build", order: [...(a.order as string[])] };
+  }
+  if (item.type === "choice") {
+    if (a.type !== "choice" || !Number.isInteger(a.option)) return null;
+    const o = a.option as number;
+    if (o < 0 || o >= item.options.length) return null;
+    return { type: "choice", option: o };
   }
   if (a.type !== "agreement-fix") return null;
   const { index, option } = a;

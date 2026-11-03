@@ -38,6 +38,11 @@ export function gradeAnswer(item: GrammarItem, answer: GrammarAnswer): GradeResu
     const soft = item.awkward.some((a) => a.length === answer.order.length && a.every((id, i) => id === answer.order[i]));
     return soft ? { correct: false, reason: "awkward" } : { correct: false, reason: "wrong-order" };
   }
+  if (item.type === "choice") {
+    if (answer.type !== "choice") return { correct: false, reason: "type-mismatch" };
+    if (answer.option !== item.correctOption) return { correct: false, reason: "wrong-option" };
+    return { correct: true, reason: "ok" };
+  }
   if (answer.type !== "agreement-fix") return { correct: false, reason: "type-mismatch" };
   if (answer.index !== item.wrongIndex) return { correct: false, reason: "wrong-position" };
   if (answer.option !== item.correctOption) return { correct: false, reason: "wrong-option" };
@@ -58,7 +63,9 @@ export function feedbackFor(item: GrammarItem, wrongCount: number): GrammarFeedb
   const reveal: GrammarAnswer =
     item.type === "sentence-build"
       ? { type: "sentence-build", order: [...item.answers[0]] }
-      : { type: "agreement-fix", index: item.wrongIndex, option: item.correctOption };
+      : item.type === "choice"
+        ? { type: "choice", option: item.correctOption }
+        : { type: "agreement-fix", index: item.wrongIndex, option: item.correctOption };
   return { level: "reveal", message: item.explanation, reveal };
 }
 
@@ -77,6 +84,9 @@ export function renderAnswer(item: GrammarItem, answer: GrammarAnswer): string {
     if (answer.type !== "sentence-build") return "";
     const byId = new Map(item.blocks.map((b) => [b.id, b.text]));
     return `${answer.order.map((id) => byId.get(id) ?? "").join(" ")}.`;
+  }
+  if (item.type === "choice") {
+    return answer.type === "choice" ? (item.options[answer.option] ?? "") : "";
   }
   if (answer.type !== "agreement-fix") return "";
   return item.tokens

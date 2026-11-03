@@ -36,6 +36,10 @@ describe("문제 은행", () => {
       ["sentence-structure", 16],
       ["honorific", 12],
       ["agreement", 12],
+      ["word-relations", 10],
+      ["dictionary-form", 10],
+      ["time-expression", 10],
+      ["spelling-spacing", 10],
     ]);
     for (const a of GRAMMAR_ACTIVITIES) {
       for (const id of a.itemIds) {
@@ -44,12 +48,12 @@ describe("문제 은행", () => {
         expect(item?.standardCode).toBe(a.standardCode);
       }
     }
-    expect(GRAMMAR_ITEMS.length).toBe(40);
+    expect(GRAMMAR_ITEMS.length).toBe(80);
   });
 
   it("학년에 맞는 활동을 골라 줘요", () => {
-    expect(activitiesForGrade(3).map((a) => a.id)).toEqual(["sentence-structure", "honorific"]);
-    expect(activitiesForGrade(6).map((a) => a.id)).toEqual(["agreement"]);
+    expect(activitiesForGrade(3).map((a) => a.id)).toEqual(["sentence-structure", "honorific", "word-relations", "dictionary-form"]);
+    expect(activitiesForGrade(6).map((a) => a.id)).toEqual(["agreement", "time-expression", "spelling-spacing"]);
     expect(getActivity("agreement")?.gradeBand).toBe("5-6");
     expect(getActivity("nope")).toBeUndefined();
   });
@@ -116,6 +120,10 @@ describe("renderAnswer", () => {
   });
   it("모든 문제의 첫 정답이 문장으로 만들어져요", () => {
     for (const i of GRAMMAR_ITEMS) {
+      if (i.type === "choice") {
+        expect(renderAnswer(i, { type: "choice", option: i.correctOption })).toBe(i.options[i.correctOption]);
+        continue;
+      }
       const s =
         i.type === "sentence-build"
           ? renderAnswer(i, { type: "sentence-build", order: i.answers[0] })

@@ -1,6 +1,7 @@
 // 문법 활동 문제 은행. 문제를 추가하면 tests/grammar.test.ts가 validateItem으로 검사한다.
 
 import type { AgreementFixItem, GrammarItem, SentenceBuildItem } from "./types";
+import { DICTIONARY_FORM, SPELLING_SPACING, TIME_EXPRESSION, WORD_RELATIONS } from "./items-batch2";
 
 const SB_PROMPT = "낱말 블록을 눌러서 알맞은 순서로 놓아, 자연스러운 문장을 만들어 보세요.";
 const SC = "4국04-03";
@@ -429,7 +430,15 @@ const AGREEMENT: AgreementFixItem[] = [
   },
 ];
 
-export const GRAMMAR_ITEMS: readonly GrammarItem[] = [...SENTENCE_BUILD, ...HONORIFIC, ...AGREEMENT];
+export const GRAMMAR_ITEMS: readonly GrammarItem[] = [
+  ...SENTENCE_BUILD,
+  ...HONORIFIC,
+  ...AGREEMENT,
+  ...WORD_RELATIONS,
+  ...DICTIONARY_FORM,
+  ...TIME_EXPRESSION,
+  ...SPELLING_SPACING,
+];
 
 export function getItem(id: string): GrammarItem | undefined {
   return GRAMMAR_ITEMS.find((i) => i.id === id);

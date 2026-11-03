@@ -49,6 +49,18 @@ export function validateItem(item: GrammarItem): string[] {
       if (seen.has(key)) p.push(`순서 [${key}]이(가) 정답과 어색한 순서에 모두 있어요`);
       soft.add(key);
     }
+  } else if (item.type === "choice") {
+    const { options, context, target } = item;
+    if (options.length < 3 || options.length > 4) p.push(`보기는 3~4개여야 해요(${options.length}개)`);
+    if (new Set(options).size !== options.length) p.push("보기가 겹쳐요");
+    if (options.some((o) => !o.trim())) p.push("빈 보기가 있어요");
+    if (target !== undefined && context === undefined) p.push("target만 있고 context가 없어요");
+    if (target !== undefined && !target.trim()) p.push("target이 비었어요");
+    if (context !== undefined && !context.trim()) p.push("context가 비었어요");
+    if (context !== undefined && target !== undefined && !context.includes(target)) p.push("target이 context 안에 없어요");
+    const correct = options[item.correctOption];
+    if (!Number.isInteger(item.correctOption) || correct === undefined) p.push("correctOption이 범위를 벗어나요");
+    else p.push(...leakProblems(item, correct));
   } else {
     const { tokens, options } = item;
     if (tokens.length < 2) p.push("어절이 너무 적어요");
@@ -63,17 +75,24 @@ export function validateItem(item: GrammarItem): string[] {
       p.push("correctOption이 범위를 벗어나요");
     } else {
       if (correct === tokens[item.wrongIndex]) p.push("정답 보기가 틀린 어절과 같아요");
-      const leaks = [correct, stripEnd(correct)].filter((s) => s.length > 0);
-      const fields: [string, string][] = [
-        ["prompt", item.prompt],
-        ["principle", item.principle],
-        ["hints[0]", item.hints[0]],
-        ["hints[1]", item.hints[1]],
-      ];
-      for (const [name, text] of fields) {
-        if (leaks.some((s) => text.includes(s))) p.push(`${name}에 정답 보기(${correct})가 그대로 들어 있어요`);
-      }
+      p.push(...leakProblems(item, correct));
     }
   }
   return p;
+}
+
+/** 안내 문구(prompt·원리·힌트)에 정답 보기가 그대로 들어 있는지 찾는다. */
+function leakProblems(item: GrammarItem, correct: string): string[] {
+  const leaks = [correct, stripEnd(correct)].filter((s) => s.length > 0);
+  const fields: [string, string][] = [
+    ["prompt", item.prompt],
+    ["principle", item.principle],
+    ["hints[0]", item.hints[0]],
+    ["hints[1]", item.hints[1]],
+  ];
+  const out: string[] = [];
+  for (const [name, text] of fields) {
+    if (leaks.some((s) => text.includes(s))) out.push(`${name}에 정답 보기(${correct})가 그대로 들어 있어요`);
+  }
+  return out;
 }

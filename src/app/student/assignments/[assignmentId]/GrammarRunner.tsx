@@ -5,7 +5,10 @@ import { useState } from "react";
 import { AWKWARD_MESSAGE } from "@/core/grammar/grade";
 import type { StudentItem, ProgressSummary } from "@/lib/grammar-rules";
 
-type Answer = { type: "sentence-build"; order: string[] } | { type: "agreement-fix"; index: number; option: number };
+type Answer =
+  | { type: "sentence-build"; order: string[] }
+  | { type: "agreement-fix"; index: number; option: number }
+  | { type: "choice"; option: number };
 
 interface Result {
   correct: boolean;
@@ -122,7 +125,8 @@ function ItemView({
   const blocks = item.type === "sentence-build" ? item.blocks : [];
   const text = (id: string) => blocks.find((b) => b.id === id)?.text ?? "";
   const tray = blocks.filter((b) => !order.includes(b.id));
-  const ready = item.type === "sentence-build" ? tray.length === 0 : tokenIndex !== null && option !== null;
+  const ready =
+    item.type === "sentence-build" ? tray.length === 0 : item.type === "choice" ? option !== null : tokenIndex !== null && option !== null;
   const locked = busy || done;
 
   async function check() {
@@ -130,7 +134,9 @@ function ItemView({
     const answer: Answer =
       item.type === "sentence-build"
         ? { type: "sentence-build", order }
-        : { type: "agreement-fix", index: tokenIndex!, option: option! };
+        : item.type === "choice"
+          ? { type: "choice", option: option! }
+          : { type: "agreement-fix", index: tokenIndex!, option: option! };
     setBusy(true);
     try {
       const res = await fetch(`/api/grammar/${submissionId}/answer`, {
@@ -158,6 +164,7 @@ function ItemView({
           setTokenIndex(ra.index);
           setOption(ra.option);
         }
+        if (ra?.type === "choice") setOption(ra.option);
         setNotice({ kind: "reveal", text: r.explanation ?? r.feedback.message, rendered: rev?.rendered ?? "" });
         setDone(true);
         onSolved(r.progress);
@@ -226,6 +233,34 @@ function ItemView({
             <span className="mr-2 text-sm text-stone-500">내가 만든 문장</span>
             {order.length ? `${order.map(text).join(" ")}.` : <span className="text-stone-400">아직 없어요</span>}
           </p>
+        </div>
+      ) : item.type === "choice" ? (
+        <div className="space-y-4">
+          {item.context && (
+            <p className="rounded-xl bg-stone-50 p-4 text-lg leading-relaxed" aria-label="문장">
+              <Marked text={item.context} target={item.target} />
+            </p>
+          )}
+          <div>
+            <div className="label">알맞은 것을 눌러 보세요</div>
+            <ul aria-label="보기" className="grid gap-2">
+              {item.options.map((o, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    disabled={locked}
+                    aria-pressed={option === i}
+                    onClick={() => setOption(i)}
+                    className={`${blockBtn} w-full text-left ${
+                      option === i ? "border-sun-400 bg-sun-100" : "border-black/15 bg-white hover:bg-stone-50"
+                    }`}
+                  >
+                    {o}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -314,5 +349,18 @@ function ItemView({
         )}
       </div>
     </section>
+  );
+}
+
+/** context 안에서 target을 굵게 보여 준다. */
+function Marked({ text, target }: { text: string; target?: string }) {
+  const at = target ? text.indexOf(target) : -1;
+  if (!target || at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <b className="rounded bg-sun-100 px-1 underline decoration-2 underline-offset-4">{target}</b>
+      {text.slice(at + target.length)}
+    </>
   );
 }
