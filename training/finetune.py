@@ -16,7 +16,6 @@ Colab(무료 T4 GPU)에서 training/narae_finetune.ipynb 가 이 파일을 부�
 import argparse
 import json
 import os
-import subprocess
 import sys
 
 import torch
@@ -167,7 +166,12 @@ def cmd_eval(a):
         with open(red_path, "w", encoding="utf-8") as f:
             for r in rows:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    subprocess.run([sys.executable, os.path.join(HERE, "score_redteam.py"), red_path, a.out], check=False)
+    sys.path.insert(0, HERE)
+    from score_redteam import score
+
+    metrics, passed = score(red_path, a.out)
+    with open(a.out + ".score.json", "w", encoding="utf-8") as f:
+        json.dump({"passed": passed, "metrics": metrics, "limited": a.limit > 0}, f, ensure_ascii=False, indent=2)
 
 
 def main():
