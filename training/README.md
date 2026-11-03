@@ -73,7 +73,13 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
    npx tsx --conditions=react-server training/gen/build.ts
    ```
 
-2. Google Colab에서 `training/narae_finetune.ipynb`를 열고(GitHub에서 열기 → 이 저장소, 브랜치 `feat/module-core`), 런타임을 T4 GPU로 바꾼 뒤 위에서부터 실행합니다. 학습 전 시험 → SFT → 시험 → DPO → 시험 → ONNX 변환 → Hugging Face 업로드.
+2. Google Colab 또는 Kaggle에서 `training/narae_finetune.ipynb`를 열고(GitHub에서 열기 → 이 저장소, 브랜치 `feat/module-core`), 런타임을 T4 GPU로 바꾼 뒤 위에서부터 실행합니다. 순서: (선택) 학습 전 시험 → SFT → 시험 → DPO → 시험 → ONNX 변환 → Hugging Face 업로드. 맨 위 설정 칸에서 `REPO`(내 Hugging Face 아이디)를 먼저 바꿉니다.
+
+   - **저장 위치**: Colab은 Google Drive `narae-train/`(연결 허용 창에서 '허용'), Kaggle은 `/kaggle/working/narae-train/`(`Save Version`으로 저장해야 남음), 그 밖은 `./narae-train/`. `training/runs`, `training/export`는 이 폴더로 연결되는 심볼릭 링크입니다. Drive 무료 용량(15GB)이 모자라면 끝난 단계의 `runs/*/merged`나 `export/narae-gemma-1b/_fp32`를 지우세요(채택 판정·ONNX 파일은 남겨야 함).
+   - **끊겨도 이어 하기**: 쿼터가 끝나거나 세션이 끊기면 `모두 실행`을 다시 누르면 됩니다. 끝난 단계는 표식으로 건너뜁니다: 학습 전 시험·SFT/DPO 시험은 `redteam_outputs.jsonl.score.json`, SFT/DPO는 `runs/<단계>/DONE`(병합 저장 뒤에 기록), 변환은 `export/narae-gemma-1b/onnx/model_int8.onnx`. SFT/DPO는 50단계마다 `runs/<단계>/checkpoint-*`에 저장해 학습 도중에도 이어 합니다. Kaggle 새 세션은 `Add Input`으로 이전 버전의 노트북 출력을 붙이면 첫 칸이 복사해 옵니다.
+   - **GPU 시간 줄이기**: 학습 전 시험은 비교용이라 기본으로 끕니다(`RUN_BASE_EVAL = False`; 이전 결과에서 학습 전 모델은 불합격이었음). 시험 배치는 `EVAL_BATCH`(기본 16), 빨리 훑어볼 때만 `QUICK_EVAL_LIMIT`(0이면 950문항 전체; 일부만 시험한 결과는 모델 채택에 쓰이지 않음). 대략 시간(T4): SFT 60~80분, DPO 60~90분, 시험 각 20~30분, 변환 10~20분.
+   - **결과 미리 올리기**: SFT·DPO 시험이 끝나면 토큰과 `REPO`가 있을 때 결과(`redteam/<단계>_*`)를 바로 올립니다(`python upload_hf.py --repo … --results-only --names sft`). 실패해도 학습은 계속됩니다.
+   - Kaggle은 GPU 2장이어도 1장만 씁니다(1B 모델이라 한 장이면 충분).
 3. 올린 저장소 이름을 Claude에게 알려 주면, 앱 전체 경로로 다시 채점하고 브라우저에서 확인한 뒤 앱에 연결합니다.
 
    ```bash
@@ -89,10 +95,11 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
 | `gen/messages.ts` | 학생 메시지 은행(범주별 학습용/시험용 분리, 개인 정보는 결정적 생성) |
 | `gen/build.ts` | 데이터 생성기(앱과 같은 프롬프트, 앱 검사 통과 확인) |
 | `gen/score.ts` | 앱 전체 경로 채점기 |
-| `score_redteam.py` | 모델 단독 채점기(Colab용) |
-| `finetune.py` | SFT·DPO·평가 |
+| `score_redteam.py` | 모델 단독 채점기(Colab·Kaggle용) |
+| `finetune.py` | SFT·DPO·평가(체크포인트 이어하기 포함) |
 | `export_onnx.py` | 앱 형식(ONNX int8)으로 변환 |
-| `narae_finetune.ipynb` | Colab 노트북 |
+| `upload_hf.py` | Hugging Face 업로드(`--results-only`, `--names`) |
+| `narae_finetune.ipynb` | Colab·Kaggle 노트북 |
 
 ## 출처와 한계
 

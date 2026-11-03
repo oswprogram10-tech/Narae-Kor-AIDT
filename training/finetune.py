@@ -1,6 +1,7 @@
 """국어나래 내장 코치 모델 파인튜닝(SFT → DPO), 레드팀 평가, 병합.
 
-Colab(무료 T4 GPU)에서 training/narae_finetune.ipynb 가 이 파일을 부른다. CPU에서도 --max-steps 로 짧게 시험할 수 있다.
+Colab·Kaggle(무료 T4 GPU)에서 training/narae_finetune.ipynb 가 이 파일을 부른다.
+sft/dpo는 50단계마다 체크포인트를 저장하고, 다시 실행하면 마지막 체크포인트부터 이어 한다. 끝나면 <out>/DONE 을 쓴다. CPU에서도 --max-steps 로 짧게 시험할 수 있다.
 
 단계
   sft    : 좋은 답(질문만, 정해진 JSON)을 따라 하도록 학습. 손실은 답 부분에만 건다.
@@ -46,7 +47,8 @@ def load_model(name, dtype=None):
         name,
         dtype=dtype or pick_dtype(),
         attn_implementation="eager",  # Gemma 3 학습 권장 설정
-        device_map="auto" if torch.cuda.is_available() else None,
+        # GPU가 2개(Kaggle T4 x2)여도 1B 모델은 한 장이면 충분하다. "auto"는 두 장에 쪼개 느려지므로 0번에 고정한다.
+        device_map={"": 0} if torch.cuda.is_available() else None,
     )
     return model, tok
 
@@ -65,9 +67,33 @@ def lora_config(r):
 
 def merge_and_save(trainer_model, tok, out_dir):
     merged = trainer_model.merge_and_unload()
+    # 원본 Gemma 가중치가 bf16이라 bf16으로 저장해도 손실이 거의 없고, 크기가 절반(약 2GB)이 된다(무료 Google 드라이브 15GB 고려).
+    # 불러올 때는 load_model이 기기에 맞는 형식(T4는 fp32)으로 바꾼다.
+    merged = merged.to(torch.bfloat16)
     merged.save_pretrained(out_dir, safe_serialization=True)
     tok.save_pretrained(out_dir)
     print("병합 모델 저장:", out_dir)
+
+
+def has_checkpoint(out_dir):
+    # resume_from_checkpoint=True 는 checkpoint-* 폴더가 없으면 오류가 나므로, 있을 때만 True로 쓴다.
+    if not os.path.isdir(out_dir):
+        return False
+    return any(d.startswith("checkpoint-") and os.path.isdir(os.path.join(out_dir, d)) for d in os.listdir(out_dir))
+
+
+def train_resumable(trainer, out_dir):
+    if has_checkpoint(out_dir):
+        print("이어서 학습해요(마지막 체크포인트부터):", out_dir)
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
+
+
+def mark_done(out_dir):
+    # 병합 저장까지 끝난 뒤에만 쓴다. 노트북이 이 파일을 보고 단계를 건너뛴다.
+    with open(os.path.join(out_dir, "DONE"), "w", encoding="utf-8") as f:
+        f.write("ok\n")
 
 
 def cmd_sft(a):
@@ -92,7 +118,9 @@ def cmd_sft(a):
         warmup_steps=0.05,  # transformers 5.x: 1보다 작은 값은 전체 단계에 대한 비율
         logging_steps=10 if a.max_steps <= 0 else 1,
         eval_strategy="epoch" if a.max_steps <= 0 else "no",
-        save_strategy="no",
+        save_strategy="steps",  # 세션이 끊겨도 이어 하도록 50단계마다 저장(LoRA라 작음)
+        save_steps=50,
+        save_total_limit=2,
         max_length=1024,
         gradient_checkpointing=torch.cuda.is_available(),
         bf16=pick_dtype() == torch.bfloat16,
@@ -100,10 +128,11 @@ def cmd_sft(a):
         seed=20261103,
     )
     trainer = SFTTrainer(model=model, args=cfg, train_dataset=train, eval_dataset=val, processing_class=tok, peft_config=lora_config(a.lora_r))
-    trainer.train()
+    train_resumable(trainer, a.out)
     if a.max_steps <= 0:
         print("검증 손실:", trainer.evaluate())
     merge_and_save(trainer.model, tok, os.path.join(a.out, "merged"))
+    mark_done(a.out)
 
 
 def cmd_dpo(a):
@@ -127,7 +156,9 @@ def cmd_dpo(a):
         lr_scheduler_type="cosine",
         warmup_steps=0.05,  # transformers 5.x: 1보다 작은 값은 전체 단계에 대한 비율
         logging_steps=10 if a.max_steps <= 0 else 1,
-        save_strategy="no",
+        save_strategy="steps",
+        save_steps=50,
+        save_total_limit=2,
         max_length=1024,
         gradient_checkpointing=torch.cuda.is_available(),
         bf16=pick_dtype() == torch.bfloat16,
@@ -136,8 +167,9 @@ def cmd_dpo(a):
     )
     # LoRA를 쓰면 기준 모델(ref)은 어댑터를 끈 같은 모델(=SFT 결과)이 된다 → 메모리를 아낀다.
     trainer = DPOTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok, peft_config=lora_config(a.lora_r))
-    trainer.train()
+    train_resumable(trainer, a.out)
     merge_and_save(trainer.model, tok, os.path.join(a.out, "merged"))
+    mark_done(a.out)
 
 
 @torch.no_grad()

@@ -5,6 +5,7 @@
 
     HF_TOKEN=... python upload_hf.py --repo 내아이디/narae-coach-gemma3-1b
     HF_TOKEN=... python upload_hf.py --repo 내아이디/narae-coach-gemma3-1b --results-only   # 시험 결과만(불합격 분석용)
+    HF_TOKEN=... python upload_hf.py --repo 내아이디/narae-coach-gemma3-1b --results-only --names sft   # 일부 단계만
 """
 
 import argparse
@@ -19,7 +20,9 @@ def main() -> None:
     ap.add_argument("--folder", default="export/narae-gemma-1b")
     ap.add_argument("--private", action="store_true")
     ap.add_argument("--results-only", action="store_true", help="모델 없이 안전 시험 결과·학습 기록만 올림")
+    ap.add_argument("--names", default="base,sft,dpo", help="올릴 시험 결과 단계(쉼표로 구분). 기본: base,sft,dpo")
     args = ap.parse_args()
+    names = [n.strip() for n in args.names.split(",") if n.strip()]
 
     token = os.environ.get("HF_TOKEN", "").strip()
     if not token:
@@ -39,11 +42,13 @@ def main() -> None:
         sys.exit(f"토큰이 올바르지 않아요: {e}")
     print("로그인:", who.get("name"))
 
+    # 이미 있는 저장소는 공개 여부를 바꾸지 않는다(private 값은 새로 만들 때만 쓰인다).
     api.create_repo(args.repo, private=args.private, exist_ok=True)
+    print("저장소:", f"https://huggingface.co/{args.repo}")
     if not args.results_only:
         api.upload_folder(repo_id=args.repo, folder_path=args.folder, commit_message="국어나래 코치 모델(ONNX int8)")
     # 시험 결과도 함께 올린다(앱과 같은 코드로 다시 채점하기 위해)
-    for name in ["base", "sft", "dpo"]:
+    for name in names:
         for fname in ["redteam_outputs.jsonl", "redteam_outputs.jsonl.score.json"]:
             p = f"runs/{name}/{fname}"
             if os.path.exists(p):
