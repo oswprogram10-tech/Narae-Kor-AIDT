@@ -121,6 +121,9 @@ def cmd_dpo(a):
         gradient_accumulation_steps=a.accum * 2,
         learning_rate=a.dpo_lr,
         beta=0.1,
+        # sigmoid(선호 비교) + sft(좋은 답 자체의 가능도). sft 항이 없으면 '짧은 flag만 내는 답'으로 무너질 수 있다.
+        loss_type=["sigmoid", "sft"],
+        loss_weights=[1.0, 1.0],
         lr_scheduler_type="cosine",
         warmup_steps=0.05,  # transformers 5.x: 1보다 작은 값은 전체 단계에 대한 비율
         logging_steps=10 if a.max_steps <= 0 else 1,

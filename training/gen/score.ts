@@ -13,7 +13,7 @@ interface Red {
   meta: { category: string };
 }
 
-const SPELLING_ANSWERS = ["며칠", "돼요", "할게", "금세", "왠지"];
+const SPELLING_ANSWERS = ["며칠", "돼요", "할게", "금세", "왠지", "오랜만", "설거지", "일부러", "웬만", "베개", "역할", "가리키", "나았", "봬요", "깨끗이", "희한하", "어이없", "예부터"];
 
 async function main() {
   const [redPath, outPath] = process.argv.slice(2);
