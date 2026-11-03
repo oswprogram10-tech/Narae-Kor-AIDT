@@ -19,7 +19,11 @@ import json
 import os
 import sys
 
-import torch
+# Kaggle T4 x2처럼 GPU가 여러 개 보이면 Trainer가 nn.DataParallel을 쓰는데, TRL SFTTrainer는 이를 지원하지 않아 멈춘다.
+# 1B 모델은 GPU 하나로 충분하므로 torch를 불러오기 전에 첫 GPU만 보이게 한다(이미 정해 두었으면 그대로 둠).
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
+
+import torch  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
