@@ -110,3 +110,19 @@ describe("processCoachTurn (host server contract)", () => {
     expect((await processCoachTurn("student-7", {}, { adapter: adapter().a, registry, dailyLimit: 30 })).status).toBe(400);
   });
 });
+
+describe("model-detected risk as a second safety net", () => {
+  function flagging(flag: "distress" | "personal_info"): LlmProvider {
+    return { id: "claude", model: "m", available: () => true, async generateJson<T>() { return { ...good, flag } as T; } };
+  }
+  it("turns a model's distress flag into the fixed care reply", async () => {
+    // 규칙 감지기가 놓치는 표현(예: 은유적인 표현)이라고 가정
+    const r = await runCoachEngine({ ...ctx, studentMessage: "요즘 학교 오기가 너무 무서워요" }, ProviderRegistry.fromProviders([flagging("distress")]));
+    expect(r.output.flag).toBe("distress");
+    expect(r.output.reply).toContain("선생님께");
+  });
+  it("turns a model's personal-info flag into the fixed reply", async () => {
+    const r = await runCoachEngine({ ...ctx, studentMessage: "우리 집은 행복아파트 3동이에요" }, ProviderRegistry.fromProviders([flagging("personal_info")]));
+    expect(r.output.flag).toBe("personal_info");
+  });
+});

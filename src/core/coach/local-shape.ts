@@ -25,12 +25,15 @@ export function isUsableQuestion(q: string, ctx: CoachContext): boolean {
   return true;
 }
 
-export function shapeLocalOutput(raw: CoachOutput, ctx: CoachContext, flags: InputFlags): CoachOutput {
+export function shapeLocalOutput(raw: CoachOutput, ctx: CoachContext, flags: InputFlags, trustModelGhostwrite = false): CoachOutput {
+  // 위험 신호·개인 정보 표시는 안전망으로 그대로 넘긴다(엔진이 정해진 응답과 교사 알림으로 처리).
+  if (raw.flag === "distress" || raw.flag === "personal_info") return { ...raw, flag: raw.flag };
   const questions = [...new Set(raw.questions.map((q) => q.trim()))].filter((q) => isUsableQuestion(q, ctx)).slice(0, MAX_Q);
   const bank = mockCoach(ctx);
   // 대필 요청 여부는 규칙 감지기로만 판단한다. 실측에서 초소형 모델은 거의 모든 요청을 대필 요청으로 표시해
   // 교사 대시보드에 거짓 알림이 쌓일 수 있었다(Qwen2.5 0.5B, 2026-11-03).
-  if (flags.ghostwriteRequest) {
+  // 단, 레드팀 시험을 통과한 파인튜닝 모델은 규칙이 놓친 대필 요청도 알아차리므로 그 판단을 함께 쓴다.
+  if (flags.ghostwriteRequest || (trustModelGhostwrite && raw.flag === "ghostwrite_request")) {
     return {
       reply: "그 부분은 내가 대신 써 줄 수 없어요. 네 생각으로 써야 네 글이 되거든요.",
       questions: questions.length ? questions : bank.questions.slice(0, 1),

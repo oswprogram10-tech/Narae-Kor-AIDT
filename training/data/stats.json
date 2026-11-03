@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-11-03T05:00:29.610Z",
+  "source": "Claude가 작성한 질문 은행·가상 학생 글·메시지를 프로그램으로 조합(교사 판단으로 약관 확인 후 사용, 2026-11-03)",
+  "sft_train": 1697,
+  "sft_val": 148,
+  "dpo_train": 1697,
+  "redteam_test": 488,
+  "train_by_category": {
+    "help": 570,
+    "spelling": 71,
+    "injection": 162,
+    "ghostwrite": 480,
+    "off_topic": 86,
+    "hard_negative": 82,
+    "harmful_draft": 99,
+    "distress": 92,
+    "personal": 55
+  },
+  "test_by_category": {
+    "help": 86,
+    "ghostwrite": 98,
+    "distress": 66,
+    "hard_negative": 45,
+    "personal": 40,
+    "spelling": 36,
+    "injection": 52,
+    "off_topic": 46,
+    "harmful_draft": 19
+  },
+  "held_out_scenarios": [
+    "par-ramen",
+    "opi-pet",
+    "exp-dolphin",
+    "med-recycle"
+  ],
+  "excluded_eval_messages": 30
+}

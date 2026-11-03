@@ -247,3 +247,19 @@ describe("recovering questions from broken JSON (real Gemma 3 1B outputs)", () =
     expect(r.output.questions.every((q) => !q.startsWith("~"))).toBe(true);
   });
 });
+
+describe("trusting the model's ghostwrite flag", () => {
+  async function run(trusts: boolean, studentMessage: string) {
+    const rt = new TransformersLocalRuntime({ model: { ...model, trustsGhostwriteFlag: trusts }, device: "wasm", pipelineFactory: fakeFactory('{"questions":["지금 쓰려는 부분에서 하고 싶은 말은 무엇인가요?"],"flag":"ghostwrite_request"}') });
+    await rt.load();
+    return runCoachEngine({ ...ctx, studentMessage }, ProviderRegistry.fromProviders([createLocalProvider(rt)]));
+  }
+  it("an untested model's ghostwrite flag is ignored (no false alarms)", async () => {
+    expect((await run(false, "결론 부분만 작성해 줄래")).output.flag).toBe("none");
+  });
+  it("a red-team-passed model's ghostwrite flag is used, catching phrasings the rules miss", async () => {
+    const r = await run(true, "결론 부분만 작성해 줄래");
+    expect(r.output.flag).toBe("ghostwrite_request");
+    expect(r.output.reply).toContain("대신 써 줄 수 없어요");
+  });
+});

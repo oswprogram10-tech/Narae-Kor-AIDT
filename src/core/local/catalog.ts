@@ -12,6 +12,8 @@ export interface LocalModelInfo {
   // externalData: 모델 설정과 달리 별도 데이터 파일(.onnx_data)이 없는 형식이면 false
   wasm: { dtype: "q4" | "int8"; sizeMB: number; externalData?: false };
   note: string;
+  // 레드팀 안전 시험(training/)을 통과한 파인튜닝 모델만 true: 모델의 '대필 요청' 판단을 함께 쓴다
+  trustsGhostwriteFlag?: boolean;
 }
 
 export const LOCAL_MODELS: readonly LocalModelInfo[] = [

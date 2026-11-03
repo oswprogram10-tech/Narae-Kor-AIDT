@@ -47,7 +47,7 @@ export async function runCoachEngine(
         plainTextFallback: isLocal ? recoverQuestions : undefined,
       });
       if (out) {
-        raw = isLocal ? shapeLocalOutput(out, ctx, inputFlags) : out;
+        raw = isLocal ? shapeLocalOutput(out, ctx, inputFlags, !!p.trustsGhostwriteFlag) : out;
         used = p;
         base.attempts.push({ provider: p.id, model: p.model, outcome: "ok" });
         break;
@@ -65,6 +65,14 @@ export async function runCoachEngine(
     // 쓸 수 있는 AI가 없거나 모두 실패: 모의 코치(대필 요청이면 정해진 거절 응답)
     const output = inputFlags.ghostwriteRequest ? structuredClone(GHOSTWRITE_REPLY) : mockCoach(ctx);
     return { ...base, output, provider: "mock", model: "mock", blocked: false, fellBack: chain.length > 0 };
+  }
+
+  // 두 번째 안전망: 규칙이 놓친 위험 신호·개인 정보를 AI가 알아차리면 정해진 응답과 교사 알림으로 처리한다.
+  if (raw.flag === "distress") {
+    return { ...base, output: structuredClone(DISTRESS_REPLY), provider: used!.id, model: used!.model, blocked: false, fellBack };
+  }
+  if (raw.flag === "personal_info") {
+    return { ...base, output: structuredClone(PERSONAL_INFO_REPLY), provider: used!.id, model: used!.model, blocked: false, fellBack };
   }
 
   const corpus = studentCorpus([ctx.brainstorm, ...Object.values(ctx.organizerValues), ctx.draft, ctx.studentMessage]);

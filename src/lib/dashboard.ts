@@ -50,8 +50,12 @@ export async function assignmentStatus(assignmentId: number, classId: number): P
       if (flags?.ghostwriteRequest) a.ghost++;
       if (flags?.distress) a.alert = "distress";
       else if (flags?.personalInfo && a.alert !== "distress") a.alert = "personal_info";
-    } else if (m.blocked) {
-      a.blocked++;
+    } else {
+      if (m.blocked) a.blocked++;
+      // AI가 알아차린 위험 신호·개인 정보도 알림(규칙이 놓친 경우의 두 번째 안전망)
+      const flag = (m.meta as { flag?: string } | null)?.flag;
+      if (flag === "distress") a.alert = "distress";
+      else if (flag === "personal_info" && a.alert !== "distress") a.alert = "personal_info";
     }
     agg.set(m.submissionId, a);
   }

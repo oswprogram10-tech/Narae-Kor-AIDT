@@ -94,6 +94,7 @@ export function extractAssistantText(out: unknown): string {
 
 export class TransformersLocalRuntime implements LocalModelRuntime {
   readonly modelId: string;
+  readonly trustsGhostwriteFlag: boolean;
   private gen: Generator | null = null;
   private loading: Promise<void> | null = null;
   device: LocalDevice | null = null;
@@ -102,6 +103,7 @@ export class TransformersLocalRuntime implements LocalModelRuntime {
 
   constructor(private readonly opts: LocalRuntimeOptions) {
     this.modelId = opts.model.id;
+    this.trustsGhostwriteFlag = !!opts.model.trustsGhostwriteFlag;
   }
 
   isReady(): boolean {

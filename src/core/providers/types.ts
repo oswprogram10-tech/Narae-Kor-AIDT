@@ -28,6 +28,8 @@ export interface JsonRequest<T> {
 export interface LlmProvider {
   readonly id: ProviderId;
   readonly model: string;
+  // 이 AI의 '대필 요청' 판단을 믿을지. 레드팀 시험(정상 요청 오판 5% 이하)을 통과한 내장 모델만 true.
+  readonly trustsGhostwriteFlag?: boolean;
   available(): boolean;
   generateJson<T>(req: JsonRequest<T>): Promise<T | null>;
 }
