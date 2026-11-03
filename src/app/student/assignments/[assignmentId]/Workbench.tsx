@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { REVISION_LENSES, STAGES, STAGE_LABELS, type LensKey, type OrganizerField, type Stage } from "@/core/data/genres";
 import { lintKorean } from "@/core/lint";
+import { runCoachEngine } from "@/core/coach/engine";
+import type { CoachContext } from "@/core/coach/types";
+import { LocalModelPanel } from "@/components/local/LocalModelPanel";
+import { localModelName, localRegistry, type LocalModelClientConfig } from "@/components/local/localModel";
 
 export interface CoachMessageView {
   id: number;
@@ -19,6 +23,8 @@ interface Props {
   initial: { stage: Stage; status: string; brainstorm: string; organizerValues: Record<string, string>; draft: string };
   comments: { id: number; content: string }[];
   messages: CoachMessageView[];
+  // 과제의 코치 AI 설정과(있으면) 이 기기에서 쓸 내장 모델
+  coach: { preferredProvider: string; local: LocalModelClientConfig | null };
 }
 
 type SaveState = "saved" | "dirty" | "saving" | "error";
@@ -30,7 +36,7 @@ const STAGE_GUIDE: Record<Stage, string> = {
   revise: "렌즈를 하나씩 골라 내 글을 살펴보고 직접 고쳐요. 다 고쳤으면 제출해요.",
 };
 
-export function Workbench({ submissionId, assignment, initial, comments, messages: initialMessages }: Props) {
+export function Workbench({ submissionId, assignment, initial, comments, messages: initialMessages, coach }: Props) {
   const [stage, setStage] = useState<Stage>(initial.stage);
   const [status, setStatus] = useState(initial.status);
   const [brainstorm, setBrainstorm] = useState(initial.brainstorm);
@@ -309,6 +315,7 @@ export function Workbench({ submissionId, assignment, initial, comments, message
           messages={messages}
           setMessages={setMessages}
           beforeAsk={flush}
+          coach={coach}
         />
       </div>
     </div>
@@ -393,7 +400,9 @@ function CoachPanel({
   messages,
   setMessages,
   beforeAsk,
+  coach,
 }: {
+  coach: Props["coach"];
   submissionId: number;
   enabled: boolean;
   stage: Stage;
@@ -406,6 +415,7 @@ function CoachPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const listRef = useRef<HTMLOListElement>(null);
+  const localAllowed = !!coach.local && (coach.preferredProvider === "local" || coach.preferredProvider === "auto");
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -418,11 +428,32 @@ function CoachPanel({
     setError("");
     await beforeAsk(); // 코치가 최신 글을 보도록 먼저 저장
     try {
-      const res = await fetch(`/api/submissions/${submissionId}/coach`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, lens }),
-      });
+      const url = `/api/submissions/${submissionId}/coach`;
+      const post = (body: object) =>
+        fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      let res: Response | null = null;
+      // 내장 모델이 준비되어 있고 과제가 허용하면(내장 모델 또는 자동) 이 기기 안에서 답을 만든다.
+      const reg = localAllowed ? localRegistry(coach.local!) : null;
+      if (reg) {
+        const prep = await post({ mode: "prepare" });
+        if (prep.ok) {
+          const { context } = (await prep.json()) as { context: Omit<CoachContext, "studentMessage" | "lens"> };
+          const result = await runCoachEngine({ ...context, studentMessage: input, lens }, reg);
+          if (result.provider === "local" || result.provider === "rule") {
+            res = await post({
+              mode: "record",
+              message: input,
+              lens,
+              output: result.output,
+              model: localModelName(),
+              deviceBlocked: result.blocked,
+              deviceBlockReason: result.blockReason,
+            });
+          }
+        }
+      }
+      // 내장 모델을 못 쓰면 서버로 보낸다(교사가 '내장 모델'을 고른 과제라면 서버는 외부 AI 없이 모의 코치로 답함).
+      res ??= await post({ message: input, lens });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "코치가 대답하지 못했어요.");
@@ -460,6 +491,7 @@ function CoachPanel({
           </li>
         ))}
       </ol>
+      {enabled && localAllowed && <LocalModelPanel config={coach.local!} />}
       {enabled ? (
         <form onSubmit={ask} className="space-y-2">
           <textarea

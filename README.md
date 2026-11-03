@@ -11,13 +11,13 @@
 
 | AI | 위치 | 설정 |
 | --- | --- | --- |
-| 내장 모델(0.5B~1B급) | 학생 기기 안 | 2단계에서 연결 예정(`src/core/providers/local.ts`) |
+| 내장 모델(0.5B~1B급) | 학생 기기 안 | `NARAE_LOCAL_MODEL` + 모델 파일(`npm run model:fetch -- qwen2.5-0.5b`). 학생 화면의 ‘내장 AI 준비하기’로 기기에 한 번 받음 |
 | Claude | 호스트 서버 | `ANTHROPIC_API_KEY` (기본 모델 `claude-haiku-5-5`) |
 | Gemini | 호스트 서버 | `GEMINI_API_KEY` + `NARAE_GEMINI_MODEL` |
 | ChatGPT | 호스트 서버 | `OPENAI_API_KEY` + `NARAE_OPENAI_MODEL` |
 | 모의 코치 | 어디서나 | 설정 없음. 다른 AI가 모두 없거나 실패할 때 답함 |
 
-교사는 과제마다 코치 AI를 고를 수 있고(기본: 자동), 고른 AI가 실패하면 다음 AI → 모의 코치 순서로 넘어갑니다. 어떤 AI가 답하든 같은 대필 금지 정책과 가드레일이 적용되며, 교사 화면에 어느 AI가 답했는지 기록됩니다.
+교사는 과제마다 코치 AI를 고를 수 있고(기본: 자동). ‘내장 모델’을 고른 과제는 학생 글을 외부 AI로 보내지 않습니다(기기가 준비되지 않았으면 모의 코치가 답함). 고른 AI가 실패하면 다음 AI → 모의 코치 순서로 넘어갑니다. 어떤 AI가 답하든 같은 대필 금지 정책과 가드레일이 적용되며, 교사 화면에 어느 AI가 답했는지 기록됩니다.
 
 ## 주요 기능 (1단계)
 
@@ -33,6 +33,18 @@
 2. 같은 단계에서 도움을 여러 번 요청하면 힌트를 1단계(열린 질문) → 2단계(선택지) → 3단계(빈칸 문장 틀)로 조금씩 구체화합니다.
 3. 모델 지시(`src/lib/coach/policy.ts`)와 별개로, 출력 가드레일(`src/lib/coach/guard.ts`)이 해라체 예시 문장·따옴표 예문·"다음과 같이 써 보세요" 같은 응답을 막습니다.
 4. API 키가 없거나 호출이 실패하면 모의 코치(`src/lib/coach/mock.ts`)가 대신 응답해 수업이 멈추지 않습니다. 교사 화면에 어떤 모델이 응답했는지 기록됩니다.
+
+## 내장 AI(2단계)
+
+- 모델 후보: Qwen2.5 0.5B(기본, Apache 2.0, WebGPU용 483MB / 일반 786MB), Qwen3 0.6B(Apache 2.0), Gemma 3 1B(Gemma 약관) — `src/core/local/catalog.ts`
+- 실행: transformers.js(ONNX Runtime Web). WebGPU가 있으면 그래픽 가속, 없으면 WASM. 웹·안드로이드 WebView·윈도우(Electron/Tauri) 공통
+- 흐름: 서버가 자료를 주고(prepare) → 기기 안에서 답을 만들고 → 서버가 다시 검사해 저장(record). 기기에서 온 답도 서버가 가드레일로 다시 확인합니다.
+- 호스트 앱이 자체 실행기(예: 안드로이드 네이티브 추론)를 쓰려면 `globalThis.__NARAE_LOCAL_PIPELINE_FACTORY__`로 주입할 수 있습니다.
+- **학교 기기 측정**: 교사 화면의 ‘내장 AI 측정’(`/teacher/lab/local-model`)을 학생 기기에서 열면 불러오기 시간, 응답 시간, 형식 성공률을 보여 줍니다.
+
+```bash
+npm run model:fetch -- qwen2.5-0.5b
+```
 
 ## 내 컴퓨터에서 실행하기
 

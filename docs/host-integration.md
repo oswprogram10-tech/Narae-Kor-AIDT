@@ -63,6 +63,16 @@ return Response.json(outcome.body, { status: outcome.status });
 - 어떤 AI가 답하든 같은 대필 금지 정책(`src/core/coach/policy.ts`)과 가드레일(`src/core/coach/guard.ts`)이 적용됩니다. 호스트가 이 단계를 건너뛰지 않도록 `processCoachTurn`(또는 `runCoachEngine`)을 거쳐 호출하세요.
 - 학생 실명을 모듈에 넘기지 않습니다. `studentKey`는 호스트의 익명 ID면 충분합니다.
 
-## 다음 단계(2단계): 내장 모델
+## 내장 모델(학생 기기에서 실행)
 
-`src/core/providers/local.ts`의 `LocalModelRuntime` 규약에 맞춘 실행기를 화면 모듈 쪽에 붙입니다(0.5B~1B급 공개 모델, 4비트 압축 약 400~800MB, WebGPU 우선·WASM 대체). 연결 전까지 `local`은 자동으로 건너뜁니다.
+```
+학생 기기                                   호스트 서버
+ ├─ POST {mode:"prepare"}  ─────────────▶  prepareCoachTurn: 권한 확인, 자료(context) 반환
+ ├─ runCoachEngine(context, 내장 모델)       (외부로 나가는 것 없음)
+ └─ POST {mode:"record", output, …} ────▶  recordLocalCoachTurn: 입력 분류·형식·가드레일 재검사 후 저장
+```
+
+- 서버는 기기에서 온 답을 그대로 믿지 않습니다. 위험 신호·개인 정보는 서버 규칙이 처리하고, 예시 문장이 섞이면 서버가 다시 교체합니다.
+- 과제의 코치 AI가 `local`이면 기기가 준비되지 않았을 때도 외부 AI로 보내지 않고 모의 코치가 답합니다(개인정보 보호).
+- 모델 파일 배포: `npm run model:fetch -- <id>`로 받은 `public/models/<id>/` 폴더를 모듈과 함께 배포하거나, 호스트가 제공하는 주소를 `NARAE_LOCAL_MODEL_BASE_URL`로 지정합니다. 학생 기기에는 처음 한 번 내려받아 브라우저 캐시에 저장됩니다.
+- 안드로이드·윈도우 앱이 네이티브 추론을 쓰려면 `globalThis.__NARAE_LOCAL_PIPELINE_FACTORY__`에 `PipelineFactory`(`src/core/local/runtime.ts`)를 주입하면 됩니다.

@@ -10,8 +10,8 @@ import {
   studentCorpus,
 } from "./guard";
 import { mockCoach } from "./mock";
-import { buildUserTurn, POLICY_VERSION, SYSTEM_PROMPT } from "./policy";
-import { CoachOutputSchema, type CoachContext, type CoachOutput, type CoachResult, type ProviderAttempt } from "./types";
+import { buildCompactUserTurn, buildUserTurn, LOCAL_SYSTEM_PROMPT, POLICY_VERSION, SYSTEM_PROMPT } from "./policy";
+import { CoachOutputLenientSchema, CoachOutputSchema, type CoachContext, type CoachOutput, type CoachResult, type ProviderAttempt } from "./types";
 
 // 코치 엔진: 어떤 AI가 답하든 같은 정책·가드레일을 적용한다.
 // 순서: (위험 신호·개인 정보 → 규칙 응답) → 지정한 AI → 나머지 AI(기본 순서) → 모의 코치.
@@ -35,12 +35,15 @@ export async function runCoachEngine(
   let used: LlmProvider | null = null;
   for (const p of chain) {
     try {
+      const isLocal = p.id === "local";
       const out = await p.generateJson({
-        system: SYSTEM_PROMPT,
-        user: buildUserTurn(ctx),
-        schema: CoachOutputSchema,
+        system: isLocal ? LOCAL_SYSTEM_PROMPT : SYSTEM_PROMPT,
+        user: isLocal ? buildCompactUserTurn(ctx) : buildUserTurn(ctx),
+        maxTokens: isLocal ? 256 : undefined,
+        schema: (isLocal ? CoachOutputLenientSchema : CoachOutputSchema) as typeof CoachOutputSchema,
         schemaName: "coach_output",
         purpose: "coach",
+        plainTextFallback: isLocal ? (text: string) => ({ reply: text.slice(0, 300) }) : undefined,
       });
       if (out) {
         raw = out;

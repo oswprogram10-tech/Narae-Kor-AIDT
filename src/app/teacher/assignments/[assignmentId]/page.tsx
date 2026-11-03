@@ -6,7 +6,7 @@ import { TeacherHeader } from "@/components/TeacherHeader";
 import { assignmentStatus } from "@/lib/dashboard";
 import { setAssignmentOpen, setCoachEnabled, setCoachProvider } from "@/app/actions/teacher";
 import { getGenre } from "@/core/data/genres";
-import { getRegistry } from "@/lib/coach";
+import { assignableProviders } from "@/lib/coach";
 import { PROVIDER_IDS, PROVIDER_LABELS } from "@/core/providers";
 import { LiveStatus } from "./LiveStatus";
 
@@ -19,7 +19,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
   const rows = await assignmentStatus(id, klass.id);
-  const available = getRegistry().available();
+  const available = assignableProviders();
 
   return (
     <>
@@ -57,7 +57,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
             {PROVIDER_IDS.map((p) => (
               <option key={p} value={p} disabled={!available.includes(p)}>
                 {PROVIDER_LABELS[p]}
-                {available.includes(p) ? "" : p === "local" ? " (2단계에서 연결)" : " (서버에 API 키 없음)"}
+                {available.includes(p) ? (p === "local" ? " — 학생 기기 안에서만, 외부로 보내지 않음" : "") : p === "local" ? " (서버에 내장 모델 설정 없음)" : " (서버에 API 키 없음)"}
               </option>
             ))}
           </select>

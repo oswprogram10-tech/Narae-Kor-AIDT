@@ -10,11 +10,13 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "eval:coach": "tsx --conditions=react-server scripts/eval-coach.ts"
+    "eval:coach": "tsx --conditions=react-server scripts/eval-coach.ts",
+    "model:fetch": "node scripts/fetch-model.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
     "@electric-sql/pglite": "^0.5.14",
+    "@huggingface/transformers": "^4.3.2",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "jose": "^6.2.15",

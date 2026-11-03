@@ -24,7 +24,10 @@ export function createLocalProvider(runtime?: LocalModelRuntime | null): LlmProv
         maxTokens: req.maxTokens ?? 512,
         jsonSchema: toJsonSchema(req.schema),
       });
-      return parseJsonOutput(text, req.schema);
+      const parsed = parseJsonOutput(text, req.schema);
+      if (parsed || !req.plainTextFallback || !text.trim() || text.includes("{")) return parsed;
+      const r = req.schema.safeParse(req.plainTextFallback(text.trim()));
+      return r.success ? r.data : null;
     },
   };
 }

@@ -43,6 +43,9 @@ export default async function TeacherHome() {
             </Link>
           ))}
         </div>
+        <p className="text-sm text-stone-500">
+          <a className="underline" href="/teacher/lab/local-model">내장 AI 측정</a> — 학교 기기에서 내장 AI 속도를 시험해 보세요.
+        </p>
         <section className="card max-w-md">
           <h2 className="mb-3 font-bold">새 학급 만들기</h2>
           <CreateClassForm />

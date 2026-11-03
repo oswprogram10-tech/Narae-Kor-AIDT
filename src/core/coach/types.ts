@@ -22,6 +22,14 @@ export const CoachOutputSchema = z.object({
 });
 export type CoachOutput = z.infer<typeof CoachOutputSchema>;
 
+// 내장 초소형 모델용: 빠진 필드는 기본값으로 채운다(형식을 완벽히 지키지 못하는 경우가 많음).
+export const CoachOutputLenientSchema = z.object({
+  reply: z.string().min(1),
+  questions: z.array(z.string()).default([]),
+  highlights: CoachOutputSchema.shape.highlights.default([]),
+  flag: CoachOutputSchema.shape.flag.catch("none").default("none"),
+});
+
 export interface CoachHistoryItem {
   role: "student" | "coach";
   content: string;

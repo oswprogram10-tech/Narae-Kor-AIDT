@@ -11,4 +11,13 @@ export * from "./data/standards";
 export * from "./data/genres";
 export * from "./providers";
 export * from "./host/adapter";
-export { processCoachTurn, type CoachTurnOptions, type CoachTurnOutcome } from "./host/coach-turn";
+export {
+  processCoachTurn,
+  prepareCoachTurn,
+  recordLocalCoachTurn,
+  type CoachTurnOptions,
+  type CoachTurnOutcome,
+  type PrepareOutcome,
+} from "./host/coach-turn";
+export * from "./local/catalog";
+export { TransformersLocalRuntime, detectDevice, type LocalRuntimeOptions, type LoadProgress, type LocalDevice } from "./local/runtime";

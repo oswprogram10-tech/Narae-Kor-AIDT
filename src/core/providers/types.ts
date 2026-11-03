@@ -19,6 +19,8 @@ export interface JsonRequest<T> {
   schemaName: string;
   purpose: "coach" | "rubric";
   maxTokens?: number;
+  // 모델이 JSON 대신 평범한 문장으로 답했을 때 결과로 바꾸는 함수(내장 초소형 모델용, 선택)
+  plainTextFallback?: (text: string) => unknown;
 }
 
 // 모든 AI가 따르는 공통 규약: 정해진 형식(JSON 스키마)의 결과를 돌려주거나, 못 하면 null.

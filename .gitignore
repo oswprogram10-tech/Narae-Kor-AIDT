@@ -46,3 +46,6 @@ next-env.d.ts
 
 # 평가 실행 결과(학생 데이터 아님, 필요하면 커밋)
 /evals/result-*.json
+
+# 내장 모델 파일(수백 MB, scripts/fetch-model.mjs로 받음)
+/public/models/

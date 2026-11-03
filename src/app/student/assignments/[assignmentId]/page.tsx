@@ -5,6 +5,7 @@ import { requireStudent } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { coachHistory, getOrCreateSubmission, isStage } from "@/lib/submissions";
 import { Workbench, type CoachMessageView } from "./Workbench";
+import { getLocalModelConfig } from "@/lib/coach";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { studentId, classId } = await requireStudent();
@@ -50,6 +51,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
       }}
       comments={comments}
       messages={messages}
+      coach={{ preferredProvider: assignment.coachProvider, local: getLocalModelConfig() }}
     />
   );
 }
