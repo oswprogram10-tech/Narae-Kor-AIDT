@@ -6,6 +6,9 @@ import { getDb, schema } from "@/lib/db";
 import { coachHistory, getOrCreateSubmission, isStage } from "@/lib/submissions";
 import { Workbench, type CoachMessageView } from "./Workbench";
 import { getLocalModelConfig } from "@/lib/coach";
+import { progress, studentItems } from "@/lib/grammar";
+import { progressSummary } from "@/lib/grammar-rules";
+import { GrammarRunner } from "./GrammarRunner";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { studentId, classId } = await requireStudent();
@@ -22,6 +25,22 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const db = await getDb();
+  if (assignment.kind === "grammar") {
+    if (submission.stage !== "grammar") {
+      await db.update(schema.submissions).set({ stage: "grammar" }).where(eq(schema.submissions.id, submission.id));
+    }
+    const prog = await progress(submission.id, assignment.activityId);
+    return (
+      <GrammarRunner
+        submissionId={submission.id}
+        title={assignment.title}
+        isOpen={assignment.isOpen}
+        items={studentItems(assignment.activityId ?? "")}
+        solvedIds={prog.filter((p) => p.solved).map((p) => p.itemId)}
+        initialSummary={progressSummary(prog)}
+      />
+    );
+  }
   const comments = await db
     .select({ id: schema.teacherComments.id, content: schema.teacherComments.content })
     .from(schema.teacherComments)

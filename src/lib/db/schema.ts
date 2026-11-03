@@ -47,6 +47,9 @@ export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  // writing(글쓰기) | grammar(문법·어휘 활동). grammar면 activityId에 활동 id를 둔다.
+  kind: text("kind").$type<"writing" | "grammar">().notNull().default("writing"),
+  activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),
   prompt: text("prompt").notNull(),
@@ -112,6 +115,23 @@ export const coachMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("coach_messages_submission").on(t.submissionId)],
+);
+
+// 문법 활동의 문제별 시도 기록(연구용). feedbackLevel: 정답이면 null, 아니면 principle|hint1|hint2|reveal|awkward
+export const grammarAttempts = pgTable(
+  "grammar_attempts",
+  {
+    id: serial("id").primaryKey(),
+    submissionId: integer("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
+    itemId: text("item_id").notNull(),
+    attemptNo: integer("attempt_no").notNull(),
+    correct: boolean("correct").notNull(),
+    reason: text("reason").notNull(),
+    feedbackLevel: text("feedback_level"),
+    answer: jsonb("answer").$type<unknown>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("grammar_attempts_submission").on(t.submissionId)],
 );
 
 export const teacherComments = pgTable("teacher_comments", {

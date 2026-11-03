@@ -5,6 +5,7 @@ import { getDb, schema } from "@/lib/db";
 import { TeacherHeader } from "@/components/TeacherHeader";
 import { genresForGrade } from "@/core/data/genres";
 import { getStandard } from "@/core/data/standards";
+import { activitiesForGrade } from "@/core/grammar";
 import { NewAssignmentForm } from "./NewAssignmentForm";
 
 export default async function NewAssignment({ params }: { params: Promise<{ classId: string }> }) {
@@ -23,6 +24,14 @@ export default async function NewAssignment({ params }: { params: Promise<{ clas
     organizer: g.organizer.map((f) => f.label),
     rubric: g.rubric.map((r) => r.label),
   }));
+  const activities = activitiesForGrade(klass.grade).map((x) => ({
+    id: x.id,
+    title: x.title,
+    description: x.description,
+    standardCode: x.standardCode,
+    statement: getStandard(x.standardCode)?.statement ?? "",
+    itemCount: x.itemIds.length,
+  }));
   return (
     <>
       <TeacherHeader
@@ -33,8 +42,8 @@ export default async function NewAssignment({ params }: { params: Promise<{ clas
         ]}
       />
       <main className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="mb-6 text-2xl font-bold">글쓰기 과제 만들기</h1>
-        <NewAssignmentForm classId={classId} genres={genres} />
+        <h1 className="mb-6 text-2xl font-bold">과제 만들기</h1>
+        <NewAssignmentForm classId={classId} genres={genres} activities={activities} />
       </main>
     </>
   );

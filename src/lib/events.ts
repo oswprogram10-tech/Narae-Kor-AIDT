@@ -13,7 +13,8 @@ export type Verb =
   | "comment"
   | "rubric_ai"
   | "rubric_final"
-  | "return";
+  | "return"
+  | "grammar_answer";
 
 export async function logEvent(
   actor: string,

@@ -14,7 +14,26 @@ interface GenreOption {
   rubric: string[];
 }
 
-export function NewAssignmentForm({ classId, genres }: { classId: number; genres: GenreOption[] }) {
+interface ActivityOption {
+  id: string;
+  title: string;
+  description: string;
+  standardCode: string;
+  statement: string;
+  itemCount: number;
+}
+
+export function NewAssignmentForm({
+  classId,
+  genres,
+  activities,
+}: {
+  classId: number;
+  genres: GenreOption[];
+  activities: ActivityOption[];
+}) {
+  const [kind, setKind] = useState<"writing" | "grammar">("writing");
+  const [activityId, setActivityId] = useState(activities[0]?.id ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(createAssignment, {});
   const [genreId, setGenreId] = useState(genres[0]?.id ?? "");
   const genre = genres.find((g) => g.id === genreId);
@@ -24,6 +43,65 @@ export function NewAssignmentForm({ classId, genres }: { classId: number; genres
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="classId" value={classId} />
+      <input type="hidden" name="kind" value={kind} />
+      <div role="group" aria-label="과제 종류" className="flex gap-2">
+        {([
+          ["writing", "글쓰기 과제"],
+          ["grammar", "문법·어휘 활동"],
+        ] as const).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={kind === k}
+            onClick={() => setKind(k)}
+            className={kind === k ? "btn-primary" : "btn-ghost"}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {kind === "grammar" ? (
+        <>
+          <fieldset className="space-y-2">
+            <legend className="label">1. 활동 고르기</legend>
+            <div className="grid gap-2">
+              {activities.map((x) => (
+                <label
+                  key={x.id}
+                  className={`card flex cursor-pointer gap-3 p-4 ${x.id === activityId ? "border-brand-500 ring-2 ring-brand-100" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="activityId"
+                    value={x.id}
+                    checked={x.id === activityId}
+                    onChange={() => setActivityId(x.id)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="font-semibold">{x.title}</span>
+                    <span className="ml-2 text-sm text-stone-500">문제 {x.itemCount}개</span>
+                    <span className="block text-sm text-stone-600">{x.description}</span>
+                    <span className="mt-1 block text-xs text-stone-500">
+                      [{x.standardCode}] {x.statement}
+                    </span>
+                  </span>
+                </label>
+              ))}
+              {activities.length === 0 && <p className="card text-stone-600">이 학년에 맞는 활동이 아직 없어요.</p>}
+            </div>
+          </fieldset>
+          <div>
+            <label className="label" htmlFor="gtitle">2. 과제 제목 (비워 두면 활동 이름을 써요)</label>
+            <input className="input" id="gtitle" name="title" placeholder={activities.find((x) => x.id === activityId)?.title} />
+          </div>
+          <p className="text-sm text-stone-500">AI 없이 규칙으로 채점해요. 틀리면 원리와 힌트를 차례로 보여 주고, 학생 기록은 문제별로 남아요.</p>
+          <FormMessage state={state} />
+          <button className="btn-primary" disabled={pending || activities.length === 0}>과제 만들기</button>
+        </>
+      ) : (
+      <>
       <fieldset className="space-y-2">
         <legend className="label">1. 성취기준과 글의 종류</legend>
         <div className="grid gap-2">
@@ -97,6 +175,8 @@ export function NewAssignmentForm({ classId, genres }: { classId: number; genres
 
       <FormMessage state={state} />
       <button className="btn-primary" disabled={pending}>과제 만들기</button>
+      </>
+      )}
     </form>
   );
 }

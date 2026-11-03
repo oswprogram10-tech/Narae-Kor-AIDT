@@ -3,6 +3,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { requireStudent } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { studentLogout } from "@/app/actions/student";
+import { activityItems, attemptsFor } from "@/lib/grammar";
+import { summarizeAttempts, progressSummary } from "@/lib/grammar-rules";
 import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 
 export default async function StudentHome() {
@@ -19,6 +21,25 @@ export default async function StudentHome() {
     )
     .where(eq(schema.assignments.classId, classId))
     .orderBy(desc(schema.assignments.createdAt));
+
+  const grammarSubIds = assignments.filter(({ a, s }) => a.kind === "grammar" && s).map(({ s }) => s!.id);
+  const grammarAttempts = await attemptsFor(grammarSubIds);
+  const label = (a: (typeof assignments)[number]["a"], s: (typeof assignments)[number]["s"]): string => {
+    if (a.kind === "grammar") {
+      if (!s) return "시작하기";
+      const ids = activityItems(a.activityId).map((i) => i.id);
+      const sum = progressSummary(summarizeAttempts(ids, grammarAttempts.filter((t) => t.submissionId === s.id)));
+      if (sum.total > 0 && sum.solved === sum.total) return "완료 ✓";
+      return sum.solved === 0 ? "시작하기" : `${sum.solved}/${sum.total} 문제`;
+    }
+    return !s
+      ? "시작하기"
+      : s.status === "submitted"
+        ? "제출 ✓"
+        : s.status === "returned"
+          ? "선생님 코멘트 💬"
+          : STAGE_LABELS[s.stage as Stage];
+  };
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -43,13 +64,7 @@ export default async function StudentHome() {
                   <span className="line-clamp-1 text-sm text-stone-600">{a.prompt}</span>
                 </span>
                 <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-sm">
-                  {!s
-                    ? "시작하기"
-                    : s.status === "submitted"
-                      ? "제출 ✓"
-                      : s.status === "returned"
-                        ? "선생님 코멘트 💬"
-                        : STAGE_LABELS[s.stage as Stage]}
+                  {label(a, s)}
                 </span>
               </Link>
             </li>

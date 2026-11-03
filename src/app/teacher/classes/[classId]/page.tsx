@@ -6,6 +6,7 @@ import { getDb, schema } from "@/lib/db";
 import { TeacherHeader } from "@/components/TeacherHeader";
 import { resetStudentPin } from "@/app/actions/teacher";
 import { getGenre } from "@/core/data/genres";
+import { getActivity } from "@/core/grammar";
 
 export default async function ClassPage({ params }: { params: Promise<{ classId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -34,13 +35,13 @@ export default async function ClassPage({ params }: { params: Promise<{ classId:
             <h1 className="text-2xl font-bold">
               {klass.name} <span className="text-base font-normal text-stone-500">{klass.grade}학년</span>
             </h1>
-            <Link href={`/teacher/classes/${classId}/assignments/new`} className="btn-primary">+ 글쓰기 과제 만들기</Link>
+            <Link href={`/teacher/classes/${classId}/assignments/new`} className="btn-primary">+ 과제 만들기</Link>
           </div>
           {assignments.length === 0 && <p className="card text-stone-600">아직 과제가 없어요.</p>}
           {assignments.map((a) => (
             <Link key={a.id} href={`/teacher/assignments/${a.id}`} className="card block transition hover:shadow-md">
               <div className="flex items-center gap-2 text-sm text-stone-500">
-                <span>{getGenre(a.genreId)?.name}</span>
+                <span>{a.kind === "grammar" ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동") : getGenre(a.genreId)?.name}</span>
                 <span>·</span>
                 <span>{a.standardCodes.map((c) => `[${c}]`).join(" ")}</span>
                 {!a.isOpen && <span className="rounded bg-stone-100 px-2 py-0.5 text-xs">닫힘</span>}

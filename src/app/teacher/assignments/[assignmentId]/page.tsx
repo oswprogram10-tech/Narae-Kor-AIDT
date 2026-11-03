@@ -9,6 +9,9 @@ import { getGenre } from "@/core/data/genres";
 import { assignableProviders } from "@/lib/coach";
 import { PROVIDER_IDS, PROVIDER_LABELS } from "@/core/providers";
 import { LiveStatus } from "./LiveStatus";
+import { GrammarStatus } from "./GrammarStatus";
+import { getActivity } from "@/core/grammar";
+import { grammarStatus } from "@/lib/grammar-dashboard";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -18,7 +21,9 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const { assignment: a, klass } = owned;
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
-  const rows = await assignmentStatus(id, klass.id);
+  const isGrammar = a.kind === "grammar";
+  const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
+  const gStatus = isGrammar ? await grammarStatus(id, klass.id, a.activityId) : null;
   const available = assignableProviders();
 
   return (
@@ -34,15 +39,17 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-sm text-stone-500">
-              {getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}
+              {isGrammar ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동") : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}
             </div>
             <h1 className="text-2xl font-bold">{a.title}</h1>
             <p className="mt-1 max-w-2xl text-stone-600">{a.prompt}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <form action={setCoachEnabled.bind(null, id, !a.coachEnabled)}>
-              <button className="btn-ghost text-sm">{a.coachEnabled ? "🤖 코치 끄기" : "🤖 코치 켜기"}</button>
-            </form>
+            {!isGrammar && (
+              <form action={setCoachEnabled.bind(null, id, !a.coachEnabled)}>
+                <button className="btn-ghost text-sm">{a.coachEnabled ? "🤖 코치 끄기" : "🤖 코치 켜기"}</button>
+              </form>
+            )}
             <form action={setAssignmentOpen.bind(null, id, !a.isOpen)}>
               <button className="btn-ghost text-sm">{a.isOpen ? "과제 닫기" : "과제 다시 열기"}</button>
             </form>
@@ -50,6 +57,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
           </div>
         </div>
         {/* key: 저장 후 새 값으로 다시 그려서, 제출 뒤 폼 초기화로 예전 값이 보이는 문제를 막는다 */}
+        {!isGrammar && (
         <form key={a.coachProvider} action={setCoachProvider.bind(null, id)} className="flex flex-wrap items-center gap-2 text-sm">
           <label htmlFor="coachProvider" className="text-stone-600">코치 AI</label>
           <select id="coachProvider" name="coachProvider" defaultValue={a.coachProvider} className="input w-auto py-1.5 text-sm">
@@ -66,7 +74,8 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
             · 코치 {a.coachEnabled ? "켜짐" : "꺼짐"} · 과제 {a.isOpen ? "열림" : "닫힘"} · 고른 AI가 실패하면 다음 AI, 마지막엔 모의 코치가 답해요.
           </span>
         </form>
-        <LiveStatus assignmentId={id} initial={rows} />
+        )}
+        {gStatus ? <GrammarStatus assignmentId={id} initial={gStatus} /> : <LiveStatus assignmentId={id} initial={rows} />}
       </main>
     </>
   );
