@@ -56,8 +56,8 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     license: "Gemma Terms of Use",
     params: "1B",
     // 내보내기(training/export_onnx.py)는 int8 파일 하나만 올린다. WebGPU(q4f16) 파일은 없다.
-    // 크기 1305MB: 임베딩 표(Gather)를 int8로 줄이지 않아 원본 int8(1001MB)보다 크다(다음 변환에서 줄일 예정).
-    wasm: { dtype: "int8", sizeMB: 1305, externalData: false },
+    // 크기 1003MB: 임베딩과 출력층이 묶인 같은 어휘 표를 한 벌만 둔다(training/dedupe_tied_embedding.py, 이전 1305MB).
+    wasm: { dtype: "int8", sizeMB: 1003, externalData: false },
     note: "기본값. 안전 중심 파인튜닝(SFT→DPO, 2026-11-04). 앱 전체 경로 레드팀 950문항 모든 기준 통과, 브라우저 WASM 평균 22초(원본 36초). 배포 전 Gemma 이용약관 확인 필요",
     // 업로드된 레드팀 결과를 training/gen/score.ts(npm run score:finetuned)로 채점해 모든 기준 통과(2026-11-04 검수) → 모델의 대필 판단을 함께 쓴다.
     trustsGhostwriteFlag: true,

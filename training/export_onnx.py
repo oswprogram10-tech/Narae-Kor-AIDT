@@ -189,6 +189,19 @@ def export(model_dir, out_dir, base):
         use_external_data_format=False,
         extra_options={"EnableSubgraph": True},
     )
+    # Gemma 는 임베딩과 출력층이 묶여 있는데 양자화 결과에는 같은 표가 두 벌(약 302MB씩) 들어 있다. 하나로 줄인다(1305MB -> 약 1003MB).
+    # 기대한 모양이 아니면 줄이지 않고 큰 파일 그대로 둔다.
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from dedupe_tied_embedding import dedupe
+
+        slim_path = int8_path + ".slim"
+        dedupe(int8_path, slim_path)
+        os.replace(slim_path, int8_path)
+    except SystemExit:
+        print("[주의] 중복 표를 줄이지 못했어요(위 메시지 참고). 큰 파일 그대로 계속해요.")
+        if os.path.exists(int8_path + ".slim"):
+            os.remove(int8_path + ".slim")
     size = os.path.getsize(int8_path)
     if size >= 2 * 1024**3 or os.path.exists(int8_path + "_data") or os.path.exists(int8_path + ".data"):
         fail("int8 파일이 2GB를 넘거나 외부 데이터가 생겼어요. 앱은 한 파일만 읽어요.")

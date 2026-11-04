@@ -33,3 +33,19 @@ Colab 파인튜닝이 끝나고 모델이 Hugging Face `LUDICERECIDUL/narae-coac
 - **채점이 "채택 불가"이거나 3~5단계에서 안전 문제(유출, 거짓 위험 알림, 대필 협조)가 보이면**: `trustsGhostwriteFlag`는 `false` 그대로 두고, 기본 모델도 바꾸지 않습니다. 앱은 모델의 대필 판단을 믿지 않고 규칙 감지기와 가드레일로만 동작하므로 학생 화면은 안전합니다.
 - 채점 출력(불합격 기준 이름과 숫자)과 `redteam/*.jsonl`을 분석 담당(메인 세션)에게 보내 원인을 찾습니다. `training/README.md`와 `docs/plan.md`의 1차 결과 기록처럼 데이터·학습 설정을 고쳐 다시 학습합니다.
 - 파일을 받지 못하면(HTTP 401/404) 저장소 이름, 공개 여부, `HF_TOKEN`, `NODE_USE_ENV_PROXY=1`을 확인합니다. 큰 모델 파일은 `*.hf.co` 주소로 내려오므로 네트워크가 막혀 있으면 학교·집 컴퓨터에서 받아 `public/models/narae-coach-1b/`에 복사합니다.
+
+## 기존 업로드 파일 줄이기
+
+Hugging Face에 이미 올라간 `onnx/model_int8.onnx`(1305MB)는 같은 어휘 표가 두 벌 들어 있습니다. 다시 학습하지 않고 `training/dedupe_tied_embedding.py`로 약 1003MB로 줄여 다시 올립니다(`onnx`, `numpy`만 필요, 메모리 약 3GB).
+
+```bash
+# 1) 내려받기(저장소가 비공개이면 HF_TOKEN 필요)
+npm run model:fetch -- narae-coach-1b        # public/models/narae-coach-1b/onnx/model_int8.onnx
+# 2) 줄이기(원본은 그대로 두고 새 파일을 만든다)
+python training/dedupe_tied_embedding.py public/models/narae-coach-1b/onnx/model_int8.onnx /tmp/model_int8.slim.onnx
+# 3) 확인: npm run eval:coach -- local narae-coach-1b (줄인 파일을 위 경로에 넣고 실행)
+# 4) 올리기(쓰기 토큰 필요)
+python -c "from huggingface_hub import HfApi; HfApi().upload_file(path_or_fileobj='/tmp/model_int8.slim.onnx', path_in_repo='onnx/model_int8.onnx', repo_id='LUDICERECIDUL/narae-coach-gemma3-1b', commit_message='int8: 중복 어휘 표 제거(1305MB -> 약 1003MB)')"
+```
+
+줄인 뒤 `src/core/local/catalog.ts`의 `sizeMB`는 1003이어야 하고, 이미 받은 컴퓨터·브라우저 캐시는 파일을 다시 받아야 합니다. 임베딩 값이 한 단계(양자화 단위) 정도 달라지므로 3단계의 앱 전체 경로 실측(유출 0건, 과잉 차단 0건)을 반드시 다시 확인합니다.

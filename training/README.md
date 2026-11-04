@@ -98,6 +98,7 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
 | `score_redteam.py` | 모델 단독 채점기(Colab·Kaggle용) |
 | `finetune.py` | SFT·DPO·평가(체크포인트 이어하기 포함) |
 | `export_onnx.py` | 앱 형식(ONNX int8)으로 변환(`export_env.sh`가 만든 전용 가상환경에서 실행) |
+| `dedupe_tied_embedding.py` | int8 ONNX 에서 중복된 어휘 표(임베딩=출력층)를 하나로 줄임(1305MB → 약 1003MB). `export_onnx.py`가 변환 끝에 자동 호출, 이미 만든 파일에는 `python dedupe_tied_embedding.py in.onnx out.onnx` |
 | `export_env.sh` | ONNX 변환 전용 가상환경(`/tmp/onnxenv`) 만들기 |
 | `upload_hf.py` | Hugging Face 업로드(`--results-only`, `--names`) |
 | `narae_finetune.ipynb` | Colab·Kaggle 노트북 |
@@ -107,4 +108,5 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
 - 질문 은행·가상 학생 글·메시지는 Claude가 작성했고, 교사가 약관을 확인한 뒤 사용을 결정했습니다(2026-11-03).
 - 가상 학생 글 34개와 메시지 약 980개(학습용)를 조합한 데이터라 표현의 다양성에 한계가 있습니다. 실제 수업에서 모은 (익명) 사례와 교사가 쓴 질문을 더하면 품질과 안전이 함께 좋아집니다.
 - **ONNX 변환 환경**: 변환 도구(optimum-onnx 0.1.0)는 transformers 4.57 이하만 지원해서, 학습 환경(transformers 5.x)에 설치하면 huggingface_hub 등이 내려가 충돌합니다. 그래서 노트북은 `bash export_env.sh /tmp/onnxenv`로 시스템 패키지를 쓰지 않는 가상환경(CPU용 torch, transformers 4.57, optimum 2.1, optimum-onnx 0.1.0)을 따로 만들고 `/tmp/onnxenv/bin/python export_onnx.py ...`로 변환합니다. 학습 환경은 바뀌지 않습니다. 변환기는 가중치(`*.safetensors`)만 병합 모델에서 가져오고 config·토크나이저는 기본 모델(`--base`, 기본 `unsloth/gemma-3-1b-it`)의 것을 써서 transformers 5.x↔4.57 저장 형식 차이를 피하며, 가중치가 하나라도 안 맞으면 멈추고, fp32 ONNX의 다음 토큰이 torch와 같은지 확인한 뒤 int8로 줄입니다. 변환이 실패해도 노트북은 멈추지 않고(Kaggle 출력 저장) 모델 업로드만 건너뜁니다. 오류 로그를 Claude에게 알려 주세요.
+- **int8 파일 크기**: Gemma 3 1B는 임베딩과 출력층이 같은 가중치인데 양자화 뒤에는 같은 표가 두 벌(각 302MB) 들어갑니다. `dedupe_tied_embedding.py`가 임베딩 조회를 출력층의 INT8 표(`Gather(axis=1)`→`Transpose`→`DequantizeLinear`)로 바꾸고 UINT8 표를 지웁니다. 기대한 모양이 아니면 아무것도 바꾸지 않고 멈춥니다. 임베딩 값이 uint8(비대칭)에서 int8(대칭)로 한 단계 정도 달라질 수 있으니 변환 뒤 `npm run eval:coach -- local <모델>`로 다시 확인합니다.
 - 학습 스크립트와 ONNX 변환은 이 작업 환경에서 실행 검증을 하지 못했습니다(파이토치 내려받기 주소가 네트워크 정책으로 막힘). Colab 첫 실행에서 오류가 나면 메시지를 알려 주세요.
