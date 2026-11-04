@@ -8,6 +8,15 @@ Colab 파인튜닝이 끝나고 모델이 Hugging Face `LUDICERECIDUL/narae-coac
 
 ## 체크리스트
 
+0. **꼭 배포 파일 그대로 레드팀을 돌린다(2026-11-04 교훈)**
+   Kaggle의 레드팀 점수는 PyTorch 모델 기준이다. 학생 기기에 들어가는 ONNX 파일은 양자화 때문에 크게 달라질 수 있다
+   (int8 동적 양자화에서 위험 신호 알아차림 136/140 → 17/140). 모델 파일을 받은 뒤(아래 4) 반드시 다음을 돌려 모든 기준 통과를 확인한다(CPU 약 70분).
+   ```bash
+   npx tsx --conditions=react-server scripts/redteam-local.ts training/data/redteam_test.jsonl .data/redteam/onnx.jsonl narae-coach-1b 120
+   npx tsx --conditions=react-server training/gen/score.ts training/data/redteam_test.jsonl .data/redteam/onnx.jsonl
+   ```
+   이 결과가 불합격이면 PyTorch 점수가 좋아도 채택하지 않는다.
+
 1. **레드팀 결과 내려받기와 채점**
    ```bash
    NODE_USE_ENV_PROXY=1 HF_TOKEN=hf_... npm run score:finetuned -- --download LUDICERECIDUL/narae-coach-gemma3-1b

@@ -40,12 +40,12 @@ describe("catalog", () => {
 
 describe("fine-tuned model entry", () => {
   const m = getLocalModel("narae-coach-1b")!;
-  it("is wasm-only, int8, trusted after review and the default", () => {
+  it("is wasm-only, int8, on hold: untrusted and not the default", () => {
     expect(m.hfRepo).toBe("LUDICERECIDUL/narae-coach-gemma3-1b");
     expect(m.webgpu).toBeUndefined();
     expect(m.wasm).toEqual({ dtype: "int8", sizeMB: 1003, externalData: false });
-    expect(m.trustsGhostwriteFlag).toBe(true);
-    expect(DEFAULT_LOCAL_MODEL).toBe("narae-coach-1b");
+    expect(m.trustsGhostwriteFlag).toBe(false);
+    expect(DEFAULT_LOCAL_MODEL).toBe("gemma-3-1b");
   });
   it("matches the fetch-model catalog", () => {
     for (const info of LOCAL_MODELS) {

@@ -47,7 +47,7 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     webgpu: { dtype: "q4f16", sizeMB: 763 },
     // q4 파일은 브라우저 WASM 엔진이 지원하지 않는 연산(GatherBlockQuantized)을 써서 int8을 쓴다(2026-11-03 실측)
     wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
-    note: "파인튜닝 전 원본. 실측에서 질문 품질이 원본 중 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
+    note: "기본값. 파인튜닝 전 원본. 실측에서 질문 품질이 원본 중 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
   },
   {
     id: "narae-coach-1b",
@@ -58,15 +58,15 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     // 내보내기(training/export_onnx.py)는 int8 파일 하나만 올린다. WebGPU(q4f16) 파일은 없다.
     // 크기 1003MB: 임베딩과 출력층이 묶인 같은 어휘 표를 한 벌만 둔다(training/dedupe_tied_embedding.py, 이전 1305MB).
     wasm: { dtype: "int8", sizeMB: 1003, externalData: false },
-    note: "기본값. 안전 중심 파인튜닝(SFT→DPO, 2026-11-04). 앱 전체 경로 레드팀 950문항 모든 기준 통과, 브라우저 WASM 평균 22초(원본 36초). 배포 전 Gemma 이용약관 확인 필요",
-    // 업로드된 레드팀 결과를 training/gen/score.ts(npm run score:finetuned)로 채점해 모든 기준 통과(2026-11-04 검수) → 모델의 대필 판단을 함께 쓴다.
-    trustsGhostwriteFlag: true,
+    note: "보류(2026-11-04). 학습 모델(PyTorch)은 레드팀 기준을 통과했지만, 배포 파일(ONNX int8 동적 양자화)은 위험 신호 알아차림이 136/140 → 17/140으로 무너져 불합격. 가중치 전용 양자화로 다시 만들 예정. 배포 전 Gemma 이용약관 확인 필요",
+    // 대필 판단 신뢰는 '배포 파일(ONNX)'로 레드팀 950문항을 다시 돌려 통과한 뒤에만 켠다(2026-11-04: 배포 파일 불합격으로 끔).
+    trustsGhostwriteFlag: false,
   },
 ];
 
 // 실측(docs/local-model-eval.md): Qwen2.5 0.5B는 쓸 만한 질문을 거의 만들지 못해 Gemma 3 1B를 기본으로 한다.
-// 2026-11-04: 안전 파인튜닝 모델로 기본값 변경(docs/finetuned-model-adoption.md 절차 통과).
-export const DEFAULT_LOCAL_MODEL = "narae-coach-1b";
+// 2026-11-04: 파인튜닝 모델의 배포 파일(ONNX int8)이 레드팀에서 불합격해 원본으로 되돌림(evals/results/2026-11-04-finetuned/README.md).
+export const DEFAULT_LOCAL_MODEL = "gemma-3-1b";
 
 export function getLocalModel(id: string | undefined | null): LocalModelInfo | undefined {
   return LOCAL_MODELS.find((m) => m.id === id);
