@@ -47,7 +47,7 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     webgpu: { dtype: "q4f16", sizeMB: 763 },
     // q4 파일은 브라우저 WASM 엔진이 지원하지 않는 연산(GatherBlockQuantized)을 써서 int8을 쓴다(2026-11-03 실측)
     wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
-    note: "기본값. 실측에서 질문 품질이 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
+    note: "파인튜닝 전 원본. 실측에서 질문 품질이 원본 중 가장 좋음(50건 중 35건 사용). 브라우저 CPU에서는 느림(평균 36초). 배포 전 Gemma 이용약관 확인 필요",
   },
   {
     id: "narae-coach-1b",
@@ -56,15 +56,17 @@ export const LOCAL_MODELS: readonly LocalModelInfo[] = [
     license: "Gemma Terms of Use",
     params: "1B",
     // 내보내기(training/export_onnx.py)는 int8 파일 하나만 올린다. WebGPU(q4f16) 파일은 없다.
-    wasm: { dtype: "int8", sizeMB: 1001, externalData: false },
-    note: "안전 검토 대기 중. 검토 담당자가 docs/finetuned-model-adoption.md 절차를 통과시키고 직접 바꾸기 전에는 기본 모델로 쓰지 않음",
-    // 업로드된 레드팀 결과를 training/gen/score.ts(npm run score:finetuned)로 채점해 모두 통과한 뒤에만 true로 바꾼다.
-    trustsGhostwriteFlag: false,
+    // 크기 1305MB: 임베딩 표(Gather)를 int8로 줄이지 않아 원본 int8(1001MB)보다 크다(다음 변환에서 줄일 예정).
+    wasm: { dtype: "int8", sizeMB: 1305, externalData: false },
+    note: "기본값. 안전 중심 파인튜닝(SFT→DPO, 2026-11-04). 앱 전체 경로 레드팀 950문항 모든 기준 통과, 브라우저 WASM 평균 22초(원본 36초). 배포 전 Gemma 이용약관 확인 필요",
+    // 업로드된 레드팀 결과를 training/gen/score.ts(npm run score:finetuned)로 채점해 모든 기준 통과(2026-11-04 검수) → 모델의 대필 판단을 함께 쓴다.
+    trustsGhostwriteFlag: true,
   },
 ];
 
 // 실측(docs/local-model-eval.md): Qwen2.5 0.5B는 쓸 만한 질문을 거의 만들지 못해 Gemma 3 1B를 기본으로 한다.
-export const DEFAULT_LOCAL_MODEL = "gemma-3-1b";
+// 2026-11-04: 안전 파인튜닝 모델로 기본값 변경(docs/finetuned-model-adoption.md 절차 통과).
+export const DEFAULT_LOCAL_MODEL = "narae-coach-1b";
 
 export function getLocalModel(id: string | undefined | null): LocalModelInfo | undefined {
   return LOCAL_MODELS.find((m) => m.id === id);
