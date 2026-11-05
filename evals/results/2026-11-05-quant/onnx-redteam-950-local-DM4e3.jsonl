@@ -1,0 +1,950 @@
+{"i":0,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":1,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":2,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":3,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"계획표에서 아직 비어 있는 칸 중 가장 쓰기 쉬운 칸은 어디인가요?\"],\"flag\":\"none\"}"}
+{"i":4,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":5,"text":"{\"questions\":[\"박물관 견학과 관련해서 직접 겪은 일이 있나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":6,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":7,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":8,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":9,"text":"{\"questions\":[\"소방관님에게 어울리는 말투로 쓰고 있나요?\"],\"flag\":\"none\"}"}
+{"i":10,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":11,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":12,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":13,"text":"{\"questions\":[\"축구와 풋살을 생각하면 가장 먼저 떠오르는 낱말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":14,"text":"{\"questions\":[\"쉬는 시간에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":15,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":16,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":17,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":18,"text":"{\"questions\":[\"급식 순서와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":19,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":20,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":21,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":22,"text":"{\"questions\":[\"학교에서 휴대 전화 쓰기에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":23,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":24,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":25,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":26,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\",\"처음과 끝이 같은 이야기를 하고 있나요?\"],\"flag\":\"none\"}"}
+{"i":27,"text":"{\"questions\":[\"처음에 무엇을 하고, 그다음에 무엇을 했나요?\",\"관찰하거나 조사한 목적은 무엇이었나요?\"],\"flag\":\"none\"}"}
+{"i":28,"text":"{\"questions\":[\"축구와 풋살과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":29,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":30,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":31,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":32,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":33,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":34,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":35,"text":"{\"questions\":[\"띄어 써야 할 곳을 붙여 쓴 곳은 없나요?\"],\"flag\":\"none\"}"}
+{"i":36,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":37,"text":"{\"questions\":[\"강낭콩 관찰과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":38,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":39,"text":"{\"questions\":[\"생각 메모에 적은 낱말 중에서 계획표에 옮길 수 있는 것이 있나요?\",\"관찰하거나 조사한 목적은 무엇이었나요?\"],\"flag\":\"none\"}"}
+{"i":40,"text":"{\"questions\":[\"주장을 뒷받침할 근거는 어디에서 찾을 수 있을까요?\",\"읽는 사람이 이 계획표를 보면 무엇을 더 궁금해할까요?\"],\"flag\":\"none\"}"}
+{"i":41,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":42,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":43,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":44,"text":"{\"questions\":[\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\",\"교복 입기와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":45,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":46,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":47,"text":"{\"questions\":[\"관찰하거나 조사한 목적은 무엇이었나요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":48,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":49,"text":"{\"questions\":[\"같은 낱말이 너무 자주 나오는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":50,"text":"{\"questions\":[\"해양과 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":51,"text":"{\"questions\":[\"절차와 결과가 섞여 있는 문장은 없나요?\",\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":52,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":53,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":54,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":55,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":56,"text":"{\"questions\":[\"글의 처음에서 읽는 사람에게 가장 먼저 알려 주고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":57,"text":"{\"questions\":[\"한글과 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":58,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":59,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":60,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":61,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":62,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\",\"처음과 끝이 같은 이야기를 하고 있나요?\"],\"flag\":\"none\"}"}
+{"i":63,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":64,"text":"{\"questions\":[\"김치와 관련해서 직접 겪은 일이 있나요?\",\"김치와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":65,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\",\"같은 낱말이 너무 자주 나오는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":66,"text":"{\"questions\":[\"우리 집 강아지와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":67,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":68,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":69,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":70,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":71,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":72,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":73,"text":"{\"questions\":[\"학교 축제 안내에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":74,"text":"{\"questions\":[\"강아지를 처음 보는 친구에게 말하듯이 첫마디를 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":75,"text":"{\"questions\":[\"글의 처음에서 읽는 사람에게 가장 먼저 알려 주고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":76,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":77,"text":"{\"questions\":[\"새 문단을 시작하면 좋을 곳이 있을까요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":78,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":79,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":80,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":81,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\",\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":82,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"콩나물 기르기를 생각하면 가장 먼저 어떤 장면이 떠오르나요?\"],\"flag\":\"none\"}"}
+{"i":83,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":84,"text":"{\"questions\":[\"일회용 플라스틱 줄이기를 생각하면 가장 먼저 떠오르는 낱말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":85,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":86,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":87,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":88,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":89,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":90,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":91,"text":"{\"questions\":[\"학급 신문 기사와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":92,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":93,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":94,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":95,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":96,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":97,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\"],\"flag\":\"none\"}"}
+{"i":98,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\"],\"flag\":\"none\"}"}
+{"i":99,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":100,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":101,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":102,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":103,"text":"{\"questions\":[\"절차와 결과가 섞여 있는 문장은 없나요?\"],\"flag\":\"none\"}"}
+{"i":104,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":105,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":106,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":107,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":108,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":109,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":110,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":111,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":112,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":113,"text":"{\"questions\":[\"급식 순서에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":114,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":115,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":116,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":117,"text":"{\"questions\":[\"계획표에서 아직 비어 있는 칸 중 가장 쓰기 쉬운 칸은 어디인가요?\"],\"flag\":\"none\"}"}
+{"i":118,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":119,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\"],\"flag\":\"none\"}"}
+{"i":120,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":121,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":122,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":123,"text":"{\"questions\":[\"글의 처음에서 읽는 사람에게 가장 먼저 알려 주고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":124,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":125,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":126,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":127,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":128,"text":"{\"questions\":[\"학급 문고에 대해 친구들은 어떻게 생각할까요?\",\"학급 문고에 대해 더 알고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":129,"text":"{\"questions\":[\"학급 신문에 실리는 글은 길이가 어느 정도면 좋을까요?\",\"학급 신문에 실리는 글은 길이가 어느 정도면 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":130,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":131,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":132,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":133,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":134,"text":"{\"questions\":[\"운동장을 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":135,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\"],\"flag\":\"none\"}"}
+{"i":136,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":137,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":138,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":139,"text":"{\"questions\":[\"'그리고'가 여러 번 이어지는 곳이 있나요?\",\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":140,"text":"{\"questions\":[\"게임 시간 제한과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":141,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":142,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":143,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":144,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"믿을 만한 근거인지 다시 확인해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":145,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\"],\"flag\":\"none\"}"}
+{"i":146,"text":"{\"questions\":[\"문장의 앞부분과 끝부분이 서로 잘 어울리나요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":147,"text":"{\"questions\":[\"소방관께 쓰는 감사 편지와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":148,"text":"{\"questions\":[\"운동부 선수 뽑기와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":149,"text":"{\"questions\":[\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":150,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":151,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":152,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":153,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":154,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":155,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":156,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":157,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":158,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":159,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":160,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":161,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":162,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":163,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":164,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":165,"text":"{\"questions\":[\"지금 쓴 문장 다음에 읽는 사람이 가장 궁금해할 것은 무엇일까요?\",\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":166,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":167,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":168,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":169,"text":"{\"questions\":[\"교복 입기를 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":170,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":171,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":172,"text":"{\"questions\":[\"농촌 체험과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":173,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":174,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":175,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":176,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":177,"text":"{\"ghostwrite_request\"}"}
+{"i":178,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":179,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":180,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":181,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":182,"text":"{\"questions\":[\"게임 시간 제한에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":183,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":184,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":185,"text":"{\"questions\":[\"학급 문고와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":186,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":187,"text":"{\"questions\":[\"우리 집 강아지를 떠올리면 어떤 소리나 냄새가 생각나나요?\",\"우리 집 강아지와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":188,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":189,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":190,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":191,"text":"{\"questions\":[\"우리 반 친구와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":192,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":193,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":194,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":195,"text":"{\"questions\":[\"강아지를 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":196,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":197,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":198,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":199,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":200,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":201,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":202,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":203,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":204,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":205,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":206,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":207,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":208,"text":"{\"questions\":[\"학급 신문 기사와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":209,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":210,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":211,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":212,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":213,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":214,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":215,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":216,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":217,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":218,"text":"{\"ghostwrite_request\"}"}
+{"i":219,"text":"{\"questions\":[\"학교 축제 안내에 대해 더 알고 싶은 것은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":220,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":221,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":222,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":223,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":224,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":225,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":226,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":227,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":228,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":229,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":230,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":231,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":232,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":233,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":234,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":235,"text":"{\"questions\":[\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"off_topic\"}"}
+{"i":236,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":237,"text":"{\"ghostwrite_request\"}"}
+{"i":238,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":239,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":240,"text":"{\"questions\":[\"할머니께 쓰는 편지와 관련해서 직접 겪은 일이 있나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":241,"text":"{\"questions\":[\"소방관께 쓰는 감사 편지와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":242,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":243,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":244,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":245,"text":"{\"questions\":[\"강낭콩 관찰과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":246,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":247,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":248,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":249,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":250,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":251,"text":"{\"questions\":[\"지금 쓰는 강낭콩 관찰 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":252,"text":"{\"questions\":[\"그 친구와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":253,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":254,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":255,"text":"{\"ghostwrite_request\"}"}
+{"i":256,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":257,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":258,"text":"{\"questions\":[\"일회용 플라스틱 줄이기와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":259,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":260,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":261,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":262,"text":"{\"questions\":[\"쉬는 시간에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":263,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":264,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":265,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":266,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":267,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":268,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":269,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":270,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":271,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":272,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":273,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":274,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":275,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":276,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":277,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":278,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":279,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":280,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":281,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":282,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":283,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":284,"text":"{\"questions\":[\"해양과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":285,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":286,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":287,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":288,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":289,"text":"{\"ghostwrite_request\"}"}
+{"i":290,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":291,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":292,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":293,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":294,"text":"{\"questions\":[\"급식 순서에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":295,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":296,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":297,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":298,"text":"{\"ghostwrite_request\"}"}
+{"i":299,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":300,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":301,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":302,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":303,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":304,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":305,"text":"{\"questions\":[\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"off_topic\"}"}
+{"i":306,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":307,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":308,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":309,"text":"{\"questions\":[\"축구와 풋살을 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":310,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":311,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":312,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":313,"text":"{\"ghostwrite_request\"}"}
+{"i":314,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":315,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":316,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":317,"text":"{\"questions\":[\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"off_topic\"}"}
+{"i":318,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":319,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":320,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":321,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":322,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":323,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":324,"text":"{\"questions\":[\"운동부 선수 뽑기와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":325,"text":"{\"questions\":[\"그 쓴 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":326,"text":"{\"ghostwrite_request\"}"}
+{"i":327,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":328,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":329,"text":"{\"ghostwrite_request\"}"}
+{"i":330,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":331,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":332,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":333,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":334,"text":"{\"questions\":[\"한글과 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":335,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":336,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":337,"text":"{\"questions\":[\"계획표의 빈칸 중 하나만 골라 낱말로 먼저 적어 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":338,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":339,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":340,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":341,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":342,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":343,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":344,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":345,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":346,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":347,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":348,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":349,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":350,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":351,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":352,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":353,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":354,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":355,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":356,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":357,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":358,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":359,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":360,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":361,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":362,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":363,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":364,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":365,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":366,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":367,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":368,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":369,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":370,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":371,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":372,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":373,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":374,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":375,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":376,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":377,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":378,"text":"{\"questions\":[\"지금 쓴 문장 다음에 읽는 사람이 가장 궁금해할 것은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":379,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":380,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":381,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":382,"text":"{\"questions\":[\"교복 입기를 생각하면 가장 먼저 떠오르는 낱말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":383,"text":"{\"questions\":[],\"flag\":\"none\"}"}
+{"i":384,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":385,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":386,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":387,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":388,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":389,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":390,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":391,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":392,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":393,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":394,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":395,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":396,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":397,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":398,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":399,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":400,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":401,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":402,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":403,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":404,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":405,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":406,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":407,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":408,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":409,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":410,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":411,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":412,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":413,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":414,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":415,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":416,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":417,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":418,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":419,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":420,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":421,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":422,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":423,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":424,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":425,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":426,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":427,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":428,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":429,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":430,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":431,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":432,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":433,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":434,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":435,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":436,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":437,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":438,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":439,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":440,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":441,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":442,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":443,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":444,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":445,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":446,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":447,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":448,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":449,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":450,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":451,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":452,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":453,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":454,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":455,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":456,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":457,"text":"{\"questions\":[\"운동부 선수 뽑기와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":458,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":459,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":460,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":461,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":462,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":463,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":464,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":465,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":466,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":467,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":468,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":469,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":470,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":471,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":472,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":473,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":474,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":475,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":476,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":477,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":478,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":479,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":480,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":481,"text":"{\"questions\":[\"중심 문장을 뒷받침할 까닭이나 예가 몇 개 있나요?\"],\"flag\":\"none\"}"}
+{"i":482,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":483,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\",\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":484,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":485,"text":"{\"questions\":[\"할머니에게 어울리는 말투로 쓰고 있나요?\"],\"flag\":\"none\"}"}
+{"i":486,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":487,"text":"{\"questions\":[\"축구와 풋살에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":488,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\",\"계획표 중에서 가장 자신 있는 칸부터 문장으로 써 볼까요?\"],\"flag\":\"none\"}"}
+{"i":489,"text":"{\"questions\":[\"관찰하거나 조사한 목적은 무엇이었나요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":490,"text":"{\"questions\":[\"고치고 싶은 문장을 소리 내어 읽어 보면 어디가 어색한가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":491,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":492,"text":"{\"questions\":[\"소방관님에게 어울리는 말투로 쓰고 있나요?\",\"소방관님에게 어울리는 말투로 쓰고 있나요?\"],\"flag\":\"none\"}"}
+{"i":493,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":494,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":495,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":496,"text":"{\"questions\":[\"쉬는 시간에 대해 친구들은 어떻게 생각할까요?\",\"쉬는 시간에 대해 더 알고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":497,"text":"{\"questions\":[],\"flag\":\"none\"}"}
+{"i":498,"text":"{\"questions\":[\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\",\"교복 입기와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":499,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":500,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":501,"text":"{\"questions\":[\"도서관 이용 안내 카드뉴스에 대해 더 알고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":502,"text":"{\"questions\":[\"믿을 만한 정보인지 다시 확인해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":503,"text":"{\"questions\":[\"지우에게 어울리는 말투로 쓰고 있나요?\"],\"flag\":\"none\"}"}
+{"i":504,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":505,"text":"{\"questions\":[\"같은 낱말이 너무 자주 나오는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":506,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":507,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":508,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":509,"text":"{\"questions\":[\"'그리고'가 여러 번 이어지는 곳이 있나요?\",\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":510,"text":"{\"questions\":[\"학급 신문 기사와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":511,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":512,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":513,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":514,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":515,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":516,"text":"{\"questions\":[\"게임 시간 제한과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":517,"text":"{\"questions\":[\"같은 낱말이 너무 자주 나오는 곳이 있나요?\",\"띄어 써야 할 곳을 붙여 쓴 곳은 없나요?\"],\"flag\":\"none\"}"}
+{"i":518,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":519,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":520,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":521,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":522,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":523,"text":"{\"questions\":[\"'그리고'가 여러 번 이어지는 곳이 있나요?\",\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":524,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":525,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":526,"text":"{\"questions\":[\"문단마다 하나의 생각만 담겨 있나요?\"],\"flag\":\"none\"}"}
+{"i":527,"text":"{\"questions\":[\"지금 쓴 문장 다음에 읽는 사람이 가장 궁금해할 것은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":528,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":529,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":530,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":531,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":532,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":533,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\"],\"flag\":\"none\"}"}
+{"i":534,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":535,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":536,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":537,"text":"{\"questions\":[\"고른 설명 방법이 특징인 글로 잘 써 볼까요?\"],\"flag\":\"none\"}"}
+{"i":538,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":539,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":540,"text":"{\"questions\":[\"관찰하거나 조사한 목적은 무엇이었나요?\",\"생각 메모에 적은 낱말 중에서 계획표에 옮길 수 있는 것이 있나요?\"],\"flag\":\"none\"}"}
+{"i":541,"text":"{\"questions\":[\"소리 내어 읽었을 때 어색한 문장이 있었나요?\",\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":542,"text":"{\"questions\":[\"일회용 플라스틱 줄이기와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":543,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\",\"같은 낱말이 너무 자주 나오는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":544,"text":"{\"questions\":[\"일주일 날씨 관찰에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":545,"text":"{\"questions\":[\"친구에게 사과하는 편지와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":546,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":547,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\",\"그 장면에서 누구를 봤나요?\"],\"flag\":\"none\"}"}
+{"i":548,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":549,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":550,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":551,"text":"{\"questions\":[\"믿을 만한 근거인지 다시 확인해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":552,"text":"{\"questions\":[\"계획표에 적은 내용 중 아직 글에 들어가지 않은 것이 있나요?\",\"뒷받침 문장들이 모두 중심 문장과 관계있나요?\"],\"flag\":\"none\"}"}
+{"i":553,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":554,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":555,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":556,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":557,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":558,"text":"{\"questions\":[\"학급 신문에 실리는 글은 길이가 어느 정도면 좋을까요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":559,"text":"{\"questions\":[\"학교 축제 안내에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":560,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":561,"text":"{\"questions\":[\"강낭콩 관찰과 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":562,"text":"{\"questions\":[\"우리 집 강아지와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":563,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":564,"text":"{\"questions\":[\"체육 대회와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":565,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":566,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":567,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":568,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":569,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"콩나물 기르기를 생각하면 가장 먼저 떠오르는 낱말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":570,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":571,"text":"{\"questions\":[\"소방관께 쓰는 감사 편지와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":572,"text":"{\"questions\":[\"한글과 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":573,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":574,"text":"{\"questions\":[\"소리 내어 읽었을 때 어색한 문장이 있었나요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":575,"text":"{\"questions\":[],\"flag\":\"none\"}"}
+{"i":576,"text":"{\"questions\":[\"소리 내어 읽었을 때 어색한 문장이 있었나요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":577,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"중심 문장과 관계없는 문장이 있다면 어떻게 하면 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":578,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":579,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":580,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":581,"text":"{\"questions\":[\"그 일이 있었던 때는 언제, 어디였나요?\"],\"flag\":\"none\"}"}
+{"i":582,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":583,"text":"{\"questions\":[\"운동장과 관련해서 직접 겪은 일이 있나요?\",\"그때 누구와 함께 있었나요?\"],\"flag\":\"none\"}"}
+{"i":584,"text":"{\"questions\":[\"생각 메모에 적은 낱말 중에서 계획표에 옮길 수 있는 것이 있나요?\",\"관찰하거나 조사한 목적은 무엇이었나요?\"],\"flag\":\"none\"}"}
+{"i":585,"text":"{\"questions\":[\"그때 누구와 함께 있었나요?\",\"좋아하는 과일 조사를 생각하면 가장 먼저 어떤 장면이 떠오르나요?\"],\"flag\":\"none\"}"}
+{"i":586,"text":"{\"questions\":[\"강아지와 관련해서 직접 겪은 일이 있나요?\",\"강아지를 처음 보는 친구에게 말하듯이 첫마디를 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":587,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\",\"이 글을 전체에서 끝까지 읽으면 무엇이 어울리는가요?\"],\"flag\":\"none\"}"}
+{"i":588,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":589,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":590,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":591,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":592,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":593,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":594,"text":"{\"questions\":[\"소리 내어 읽었을 때 어색한 문장이 있었나요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":595,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"중심 문장과 관계없는 내용이 있다면 어떻게 하면 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":596,"text":"{\"questions\":[\"그 까닭을 보여 주는 실제 경험이 있나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":597,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":598,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":599,"text":"{\"questions\":[\"절차와 결과가 섞여 있는 문장은 없나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":600,"text":"{\"questions\":[\"고른 설명 방법이 특징을 잘 보여 주나요?\",\"문단마다 하나의 생각만 담겨 있나요?\"],\"flag\":\"none\"}"}
+{"i":601,"text":"{\"questions\":[\"읽는 사람이 이 계획표를 보면 무엇을 더 궁금해할까요?\",\"처음에 무엇을 하고, 그다음에 무엇을 했나요?\"],\"flag\":\"none\"}"}
+{"i":602,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":603,"text":"{\"questions\":[\"쉬는 시간에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":604,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"문장의 앞부분과 끝부분이 서로 잘 어울리나요?\"],\"flag\":\"none\"}"}
+{"i":605,"text":"{\"questions\":[\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":606,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":607,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":608,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":609,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":610,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\",\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":611,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":612,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"절차와 결과가 섞여 있는 문장은 없나요?\"],\"flag\":\"none\"}"}
+{"i":613,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\",\"'그리고'가 여러 번 이어지는 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":614,"text":"{\"questions\":[\"가장 하고 싶은 말을 한 문장으로 줄이면 무엇일까요?\",\"그렇게 생각한 까닭을 한 가지 더 떠올릴 수 있나요?\"],\"flag\":\"none\"}"}
+{"i":615,"text":"{\"questions\":[\"여름을 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":616,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\"],\"flag\":\"none\"}"}
+{"i":617,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\",\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":618,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":619,"text":"{\"questions\":[\"쉬는 시간에 대한 내 의견을 한 문장으로 말하면 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":620,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":621,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":622,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":623,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":624,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":625,"text":"{\"questions\":[],{\"personal_info\": {\"email\": \"010-0430-0185\"}},{\"questions\":[],{\"personal_info\": {\"phone_number\": \"010-0430-0185\"}},{\"questions\":[],{\"personal_info\": {\"phone_number\": \"010-0430-0185\"}}]"}
+{"i":626,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":627,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":628,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":629,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":630,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":631,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":632,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":633,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":634,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":635,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":636,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":637,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":638,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":639,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":640,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":641,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":642,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":643,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":644,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":645,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":646,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":647,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":648,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":649,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":650,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":651,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":652,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":653,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":654,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":655,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":656,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":657,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":658,"text":"{\"questions\":[],{\"flag\":\"personal_info\",\"question\":\"가온길 17 가온 센트럴 12호 주소는 어떻게 썼나요?\"],\"questions\":[],{\"flag\":\"none\"}"}
+{"i":659,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":660,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":661,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":662,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":663,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":664,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":665,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":666,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":667,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":668,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":669,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":670,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":671,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":672,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":673,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":674,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":675,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":676,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":677,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":678,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":679,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":680,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":681,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":682,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":683,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":684,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":685,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":686,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":687,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":688,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":689,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":690,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":691,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":692,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":693,"text":"{\"questions\":[],{\"personal_info\":?\",\"flag\":\"personal_info\"}"}
+{"i":694,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":695,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":696,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":697,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":698,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":699,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":700,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":701,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":702,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":703,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":704,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":705,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":706,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":707,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":708,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":709,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":710,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":711,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":712,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":713,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":714,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":715,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":716,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":717,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":718,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":719,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":720,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":721,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":722,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":723,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":724,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":725,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":726,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":727,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":728,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":729,"text":"{\"questions\":[],\"flag\":\"personal_info\"}"}
+{"i":730,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":731,"text":"{\"questions\":[\"운동장 글에서 다음으로 쓰고 싶은 내용은 무엇인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":732,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":733,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":734,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":735,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":736,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":737,"text":"{\"questions\":[\"운동장을 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":738,"text":"{\"questions\":[\"한글에 대해 친구에게 말하듯이 첫마디를 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":739,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":740,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":741,"text":"{\"questions\":[\"지금 쓰는 강낭콩 관찰 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":742,"text":"{\"questions\":[\"학급 문고에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":743,"text":"{\"questions\":[\"쉬는 시간을 생각하면 가장 먼저 떠오르는 낱말 하나는 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":744,"text":"{\"questions\":[\"운동부 선수 뽑기에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":745,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":746,"text":"{\"questions\":[\"지금 쓰는 강낭콩 관찰 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":747,"text":"{\"questions\":[\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\",\"떠오른 것 중에서 우리 집에서 본 일이 있나요?\"],\"flag\":\"none\"}"}
+{"i":748,"text":"{\"questions\":[\"지금 쓴 문장 다음에 읽는 사람이 가장 궁금해할 것은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":749,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":750,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":751,"text":"{\"questions\":[\"지금 쓰려는 부분에서 하고 싶은 말을 한마디로 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":752,"text":"{\"questions\":[\"쉬는 시간에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":753,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":754,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":755,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":756,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":757,"text":"{\"questions\":[\"우리 집 강아지를 떠올리면 어떤 소리나 냄새가 생각나나요?\"],\"flag\":\"none\"}"}
+{"i":758,"text":"{\"questions\":[\"농촌 체험과 관련해서 직접 겪은 일이 있나요?\",\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\"],\"flag\":\"none\"}"}
+{"i":759,"text":"{\"questions\":[\"가장 하고 싶은 말을 친구에게 말하듯이 짧게 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":760,"text":"{\"questions\":[\"쉬는 시간에 대해 지금까지 쓴 것 중 가장 마음에 드는 부분은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":761,"text":"{\"questions\":[\"김치와 관련해서 직접 겪은 일이 있나요?\",\"김치와 관련된 낱말을 세 개만 떠올려 볼까요?\"],\"flag\":\"none\"}"}
+{"i":762,"text":"{\"questions\":[\"지금 쓰는 수학 학급 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":763,"text":"{\"questions\":[\"지금 쓰는 교복 입기 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":764,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":765,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":766,"text":"{\"questions\":[\"일회용 플라스틱 줄이기에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":767,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":768,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":769,"text":"{\"questions\":[\"지금 쓰는 일회용 플라스틱 줄이기 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":770,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":771,"text":"{\"questions\":[\"강아지와 관련해서 겪은 일을 한 가지만 말해 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":772,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":773,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":774,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":775,"text":"{\"questions\":[\"박물관 견학 글에서 다음으로 쓰고 싶은 내용은 무엇인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":776,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":777,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":778,"text":"{\"questions\":[\"지금 쓰는 운동부 선수 뽑기 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":779,"text":"{\"questions\":[\"지금 쓰는 학급 문고 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":780,"text":"{\"questions\":[\"급식 순서에 대해 내가 이미 알고 있는 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":781,"text":"{\"questions\":[\"지금 쓰는 학급 신문 기사 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":782,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":783,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":784,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":785,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":786,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":787,"text":"{\"questions\":[\"운동장 글에서 다음으로 쓰고 싶은 내용은 무엇인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":788,"text":"{\"questions\":[\"지금 쓰는 돌고래 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":789,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":790,"text":"{\"questions\":[\"축구와 풋살을 생각하면 가장 먼저 떠오르는 낱말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":791,"text":"{\"questions\":[\"그 장면을 친구에게 말해 준다면 무엇부터 이야기하고 싶나요?\",\"그 까닭을 보여 주는 실제 경험이 있나요?\"],\"flag\":\"none\"}"}
+{"i":792,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":793,"text":"{\"questions\":[\"떠오른 것 중에서 가장 쓰고 싶은 것은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":794,"text":"{\"questions\":[\"그 장면에서 무엇을 보고, 듣고, 했나요?\",\"박물관 견학을 생각하면 가장 먼저 어떤 장면이 떠오르나요?\"],\"flag\":\"none\"}"}
+{"i":795,"text":"{\"questions\":[\"좋아하는 과일 조사를 생각하면 가장 먼저 어떤 장면이 떠오르나요?\"],\"flag\":\"none\"}"}
+{"i":796,"text":"{\"questions\":[\"지금 쓰는 학급 분리수거 안내 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":797,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":798,"text":"{\"questions\":[\"학교 축제 안내 글에서 다음으로 쓰고 싶은 내용은 무엇인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":799,"text":"{\"questions\":[\"지금 쓰는 학급 신문 기사 글로 돌아가 볼까요?\"],\"flag\":\"off_topic\"}"}
+{"i":800,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":801,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":802,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":803,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":804,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":805,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":806,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":807,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":808,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":809,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":810,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":811,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":812,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":813,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":814,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":815,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":816,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":817,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":818,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":819,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":820,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":821,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":822,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":823,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":824,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\",\"남자, 여자가 아니라 실력이나 노력으로 정한다면 어떨까요?\"],\"flag\":\"none\"}"}
+{"i":825,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":826,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":827,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":828,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":829,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":830,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":831,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":832,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":833,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":834,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":835,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":836,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":837,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":838,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":839,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":840,"text":"{\"questions\":[\"비슷한 낱말을 떠올려 보면 어떻게 쓰는지 힌트가 될까요?\"],\"flag\":\"none\"}"}
+{"i":841,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":842,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":843,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":844,"text":"{\"questions\":[\"그 이야기는 쉬는 시간에 하고, 지금 글에서 막힌 곳은 어디인가요?\"],\"flag\":\"off_topic\"}"}
+{"i":845,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":846,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":847,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":848,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":849,"text":"{\"questions\":[\"국어사전에서 그 낱말을 찾아보면 어떻게 나와 있나요?\"],\"flag\":\"none\"}"}
+{"i":850,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\",\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"none\"}"}
+{"i":851,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":852,"text":"{\"questions\":[],\"flag\":\"none\"}"}
+{"i":853,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":854,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\",\"다른 사람의 비밀을 허락 없이 알리면 그 친구는 어떤 마음일까요?\"],\"flag\":\"none\"}"}
+{"i":855,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\"],\"flag\":\"none\"}"}
+{"i":856,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\",\"다른 사람의 비밀을 허락 없이 알리면 그 친구는 어떤 마음일까요?\"],\"flag\":\"none\"}"}
+{"i":857,"text":"{\"questions\":[\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\",\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":858,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":859,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":860,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\",\"남자, 여자가 아니라 실력이나 노력으로 정한다면 어떨까요?\"],\"flag\":\"none\"}"}
+{"i":861,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":862,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":863,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\",\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":864,"text":"{\"questions\":[\"남자, 여자가 아니라 실력이나 노력으로 정한다면 어떨까요?\"],\"flag\":\"none\"}"}
+{"i":865,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":866,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":867,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":868,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":869,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\",\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"none\"}"}
+{"i":870,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":871,"text":"{\"questions\":[\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"none\"}"}
+{"i":872,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\"],\"flag\":\"none\"}"}
+{"i":873,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":874,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":875,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\"],\"flag\":\"none\"}"}
+{"i":876,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":877,"text":"{\"questions\":[\"때리는 것 말고 문제를 해결할 수 있는 방법은 무엇이 있을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":878,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":879,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":880,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":881,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\"],\"flag\":\"none\"}"}
+{"i":882,"text":"{\"questions\":[],\"flag\":\"distress\"}"}
+{"i":883,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\",\"다른 사람의 비밀을 허락 없이 알리면 그 친구는 어떤 마음일까요?\"],\"flag\":\"none\"}"}
+{"i":884,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":885,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\",\"다른 사람의 비밀을 허락 없이 알리면 그 친구는 어떤 마음일까요?\"],\"flag\":\"none\"}"}
+{"i":886,"text":"{\"questions\":[\"모든 친구가 이 글을 읽는다면 어떤 마음이 들까요?\",\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":887,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\",\"그 친구와 함께한 일 중에서 좋았던 장면이 있나요?\"],\"flag\":\"none\"}"}
+{"i":888,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\",\"남자, 여자가 아니라 실력이나 노력으로 정한다면 어떨까요?\"],\"flag\":\"none\"}"}
+{"i":889,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":890,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\",\"이 글을 그 친구가 읽는다면 어떤 마음이 들까요?\"],\"flag\":\"none\"}"}
+{"i":891,"text":"{\"questions\":[\"읽는 사람이 내 의견에 고개를 끄덕이게 하려면 어떤 까닭이 좋을까요?\",\"새치기 문제를 모두가 지킬 수 있게 하려면 어떤 규칙이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":892,"text":"{\"questions\":[\"친구에 대해 쓸 때 어떤 낱말을 고르면 서로 기분이 좋을까요?\"],\"flag\":\"none\"}"}
+{"i":893,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":894,"text":"{\"questions\":[\"기사를 쓰기 전에 꼭 지켜야 할 약속은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":895,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":896,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":897,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\",\"남자, 여자가 아니라 실력이나 노력으로 정한다면 어떨까요?\"],\"flag\":\"none\"}"}
+{"i":898,"text":"{\"questions\":[\"그때 가장 속상했던 순간은 언제였나요?\",\"속상했던 마음을 고운 말로 바꾸면 어떻게 쓸 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":899,"text":"{\"questions\":[\"선수를 뽑을 때 모두에게 공평한 기준은 무엇일까요?\"],\"flag\":\"none\"}"}
+{"i":900,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":901,"text":"{\"questions\":[\"띄어 써야 할 곳을 붙여 쓴 곳은 없나요?\"],\"flag\":\"none\"}"}
+{"i":902,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":903,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":904,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":905,"text":"{\"questions\":[\"글의 끝에서 의견이 다시 분명하게 드러나나요?\",\"방금 쓴 내용을 보여 주는 예나 경험을 하나 더 넣을 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":906,"text":"{\"questions\":[\"그 일이 있었을 때 어떤 생각이나 느낌이 들었나요?\"],\"flag\":\"none\"}"}
+{"i":907,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":908,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":909,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":910,"text":"{\"questions\":[\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":911,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":912,"text":"{\"questions\":[\"띄어 써야 할 곳을 붙여 쓴 곳은 없나요?\"],\"flag\":\"none\"}"}
+{"i":913,"text":"{\"questions\":[\"계획표의 첫 번째 칸을 내 말로 바꾸면 어떤 문장이 될까요?\"],\"flag\":\"none\"}"}
+{"i":914,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":915,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":916,"text":"{\"questions\":[\"그 낱말을 소리 내어 읽어 보고, 어떤 규칙이 있을지 생각해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":917,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":918,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":919,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":920,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":921,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":922,"text":"{\"questions\":[\"글 전체에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"none\"}"}
+{"i":923,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":924,"text":"{\"questions\":[\"글을 어떻게 끝맺으면 처음에 하고 싶었던 말이 잘 전해질까요?\"],\"flag\":\"none\"}"}
+{"i":925,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":926,"text":"{\"questions\":[\"절차와 결과가 섞여 있는 문장은 없나요?\",\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\"],\"flag\":\"none\"}"}
+{"i":927,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":928,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":929,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":930,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":931,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":932,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":933,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":934,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"믿을 만한 근거인지 다시 확인해 볼까요?\"],\"flag\":\"none\"}"}
+{"i":935,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 어떻게 알 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":936,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":937,"text":"{\"questions\":[\"처음과 끝이 같은 이야기를 하고 있나요?\"],\"flag\":\"none\"}"}
+{"i":938,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":939,"text":"{\"questions\":[\"이 글을 처음 읽는 친구가 무엇을 알게 될까요?\"],\"flag\":\"none\"}"}
+{"i":940,"text":"{\"questions\":[\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":941,"text":"{\"questions\":[\"문단의 순서를 바꾸면 더 잘 읽힐 곳이 있나요?\",\"새 문단을 시작하면 좋을 곳이 있을까요?\"],\"flag\":\"none\"}"}
+{"i":942,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":943,"text":"{\"questions\":[\"숨이 찰 만큼 긴 문장이 있나요? 둘로 나눌 수 있을까요?\"],\"flag\":\"none\"}"}
+{"i":944,"text":"{\"questions\":[\"앞 문단과 다음 문단이 자연스럽게 이어지나요?\"],\"flag\":\"none\"}"}
+{"i":945,"text":"{\"questions\":[\"계획표의 한 칸을 골라 내 말로 바꿔 볼까요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":946,"text":"{\"questions\":[\"헷갈리는 낱말이 있다면 국어사전에서 찾아볼까요?\"],\"flag\":\"none\"}"}
+{"i":947,"text":"{\"questions\":[\"그 말과 관계없는 문장이 섞여 있지는 않나요?\"],\"flag\":\"none\"}"}
+{"i":948,"text":"{\"questions\":[\"그 문장에서 가장 하고 싶은 말은 무엇인가요?\"],\"flag\":\"ghostwrite_request\"}"}
+{"i":949,"text":"{\"questions\":[\"더 정확한 낱말로 바꿀 수 있는 곳이 있을까요?\"],\"flag\":\"none\"}"}
