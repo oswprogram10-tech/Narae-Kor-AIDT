@@ -97,8 +97,11 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
 | `gen/score.ts` | 앱 전체 경로 채점기 |
 | `score_redteam.py` | 모델 단독 채점기(Colab·Kaggle용) |
 | `finetune.py` | SFT·DPO·평가(체크포인트 이어하기 포함) |
-| `export_onnx.py` | 앱 형식(ONNX int8)으로 변환(`export_env.sh`가 만든 전용 가상환경에서 실행) |
-| `dedupe_tied_embedding.py` | int8 ONNX 에서 중복된 어휘 표(임베딩=출력층)를 하나로 줄임(1305MB → 약 1003MB). `export_onnx.py`가 변환 끝에 자동 호출, 이미 만든 파일에는 `python dedupe_tied_embedding.py in.onnx out.onnx` |
+| `export_onnx.py` | 앱 형식(ONNX, GPTQ 가중치, 층마다 4/8비트)으로 변환(`export_env.sh`가 만든 전용 가상환경에서 실행). 안에서 `gptq_weight_only.py` → `quantize_weight_only.py`를 차례로 부름. 비트 옵션은 아래 `quant_spec.py` 설명 |
+| `gptq_weight_only.py` | 방식이 GPTQ 인 층의 가중치를 학습 데이터 64문장으로 보정해 4비트(블록 32) 또는 8비트(블록 128)로 줄여 층마다 `.npy`로 저장(torch 필요). 이미 있는 층은 건너뜀 |
+| `quantize_weight_only.py` | fp32 ONNX → 층마다 동적 int8(`MatMulInteger`)·GPTQ 4/8비트(`MatMulNBits`)를 섞은 한 파일(임베딩은 출력층 표 공유). torch 없이 동작 |
+| `quant_spec.py` | 층마다 방식·비트 설정(`--attn-bits --mlp-bits --down-bits --down-edge-layers --edge-layers --lm-head-bits --block --block8 --override`)과 MatMulNBits 저장 모양. 위 두 스크립트가 같이 씀 |
+| `dedupe_tied_embedding.py` | (예전 방식) quantize_dynamic int8 ONNX 의 중복 어휘 표를 하나로 줄임. 새 변환에서는 쓰지 않음(`docs/finetuned-model-adoption.md`의 기존 1305MB 파일 정리용) |
 | `export_env.sh` | ONNX 변환 전용 가상환경(`/tmp/onnxenv`) 만들기 |
 | `upload_hf.py` | Hugging Face 업로드(`--results-only`, `--names`) |
 | `narae_finetune.ipynb` | Colab·Kaggle 노트북 |
@@ -107,6 +110,24 @@ SFT 학습 약 3,500행(그중 8%는 검증용), 시험 950행. 정상 도움과
 
 - 질문 은행·가상 학생 글·메시지는 Claude가 작성했고, 교사가 약관을 확인한 뒤 사용을 결정했습니다(2026-11-03).
 - 가상 학생 글 34개와 메시지 약 980개(학습용)를 조합한 데이터라 표현의 다양성에 한계가 있습니다. 실제 수업에서 모은 (익명) 사례와 교사가 쓴 질문을 더하면 품질과 안전이 함께 좋아집니다.
-- **ONNX 변환 환경**: 변환 도구(optimum-onnx 0.1.0)는 transformers 4.57 이하만 지원해서, 학습 환경(transformers 5.x)에 설치하면 huggingface_hub 등이 내려가 충돌합니다. 그래서 노트북은 `bash export_env.sh /tmp/onnxenv`로 시스템 패키지를 쓰지 않는 가상환경(CPU용 torch, transformers 4.57, optimum 2.1, optimum-onnx 0.1.0)을 따로 만들고 `/tmp/onnxenv/bin/python export_onnx.py ...`로 변환합니다. 학습 환경은 바뀌지 않습니다. 변환기는 가중치(`*.safetensors`)만 병합 모델에서 가져오고 config·토크나이저는 기본 모델(`--base`, 기본 `unsloth/gemma-3-1b-it`)의 것을 써서 transformers 5.x↔4.57 저장 형식 차이를 피하며, 가중치가 하나라도 안 맞으면 멈추고, fp32 ONNX의 다음 토큰이 torch와 같은지 확인한 뒤 int8로 줄입니다. 변환이 실패해도 노트북은 멈추지 않고(Kaggle 출력 저장) 모델 업로드만 건너뜁니다. 오류 로그를 Claude에게 알려 주세요.
-- **int8 파일 크기**: Gemma 3 1B는 임베딩과 출력층이 같은 가중치인데 양자화 뒤에는 같은 표가 두 벌(각 302MB) 들어갑니다. `dedupe_tied_embedding.py`가 임베딩 조회를 출력층의 INT8 표(`Gather(axis=1)`→`Transpose`→`DequantizeLinear`)로 바꾸고 UINT8 표를 지웁니다. 기대한 모양이 아니면 아무것도 바꾸지 않고 멈춥니다. 임베딩 값이 uint8(비대칭)에서 int8(대칭)로 한 단계 정도 달라질 수 있으니 변환 뒤 `npm run eval:coach -- local <모델>`로 다시 확인합니다.
+- **ONNX 변환 환경**: 변환 도구(optimum-onnx 0.1.0)는 transformers 4.57 이하만 지원해서, 학습 환경(transformers 5.x)에 설치하면 huggingface_hub 등이 내려가 충돌합니다. 그래서 노트북은 `bash export_env.sh /tmp/onnxenv`로 시스템 패키지를 쓰지 않는 가상환경(CPU용 torch, transformers 4.57, optimum 2.1, optimum-onnx 0.1.0)을 따로 만들고 `/tmp/onnxenv/bin/python export_onnx.py ...`로 변환합니다. 학습 환경은 바뀌지 않습니다. 변환기는 가중치(`*.safetensors`)만 병합 모델에서 가져오고 config·토크나이저는 기본 모델(`--base`, 기본 `unsloth/gemma-3-1b-it`)의 것을 써서 transformers 5.x↔4.57 저장 형식 차이를 피하며, 가중치가 하나라도 안 맞으면 멈추고, fp32 ONNX의 다음 토큰이 torch와 같은지 확인한 뒤 4비트(가중치만)로 줄입니다. 변환이 실패해도 노트북은 멈추지 않고(Kaggle 출력 저장) 모델 업로드만 건너뜁니다. 오류 로그를 Claude에게 알려 주세요.
+- **양자화 방식(2026-11-05 바뀜)**: 예전 `quantize_dynamic`(층 전체에 배율 하나 + 모든 층의 입력을 실행 때 8비트화)은 배포 파일에서 안전 동작이 무너졌습니다(위험 신호 알아차림 136/140 → 21/140). 원인을 좁혔더니 가중치가 아니라 **MLP `down_proj`의 입력(활성값)을 8비트로 바꾸는 것**이었습니다(채널별 배율로 바꿔도 그대로 10/140, down_proj만 빼면 정상 범위). 지금 기본값은 층마다 방식을 섞습니다(`quant_spec.py`): 어텐션·MLP gate/up·출력층은 채널별 동적 int8(`MatMulInteger`, WASM에서 빠름), `down_proj`는 GPTQ(`gptq_weight_only.py`, 학습 문장 64개로 보정, 레드팀 문항은 쓰지 않음) 가중치만 줄이고 활성값은 fp32(`MatMulNBits` 4비트, 처음·마지막 3층은 8비트). 8비트 `MatMulNBits bits=8`은 fp32 활성값으로 실행되지 않아서(onnxruntime-node 1.30·onnxruntime-web 1.31 모두 "Only 2b and 4b…" 오류) 4비트 `MatMulNBits` 두 개(윗·아랫 4비트)를 더해 같은 값을 만듭니다. 브라우저 WASM이 지원하지 않는 `GatherBlockQuantized`는 쓰지 않고, 임베딩은 출력층의 표에서 낱말 줄을 꺼내 풉니다(표 한 벌). 파일 이름은 앱 카탈로그의 dtype 규칙 때문에 `model_int8.onnx` 그대로입니다. `export_onnx.py` 한 번에 fp32 변환 → GPTQ(down_proj만, CPU 약 10분) → 한 파일이 됩니다.
+  - **실측(2026-11-05)**: 레드팀은 Node CPU(앱과 같은 실행기), 브라우저는 headless Chromium WASM 4코어. `s2` = 도움 160·해로운 글 50·숨은 지시문 50 문항. 원본 fp32 ONNX는 PyTorch와 같은 점수(오판 0.050·존중 0.940·숨은 지시 0.940).
+
+    | 설정 | 크기 | 브라우저 평균 응답 | 위험 신호 /140 (≥133) | 정상 요청 대필 오판 (≤0.05) | 해로운 글 존중 (≥0.9) | 숨은 지시문 (≥0.95) |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | 예전 동적 int8(층 전체 배율) | 1003MB | 22초 | 21/140 | - | - | - |
+    | 전부 채널별 동적 int8 | 1005MB | 20초 | 10/140 | - | - | - |
+    | MatMulNBits 전부 4비트 | 643MB | 115초 | 131 | - | - | - |
+    | 〃 + accuracy_level=4 | 643MB | 106초 | - | - | - | - |
+    | MatMulNBits 전부 8비트(출력층 포함) | 1073MB | 210초 | 136 | 0.044 | 0.940 | 0.940 |
+    | MatMulNBits 어텐션 8·MLP 양끝 8, 나머지 4 | 717MB | - | 136 | 0.075 | 0.860 | 0.960 |
+    | 동적 int8 + down_proj 4비트 | 930MB | 37초 | 132 | - | - | - |
+    | 동적 int8 + down_proj 8비트 | 1019MB | 57초 | - | - | - | - |
+    | **동적 int8 + down_proj 4비트(처음·마지막 3층 8비트) — 기본값** | **951MB** | **36.8초** | **134** | 0.069 | 0.960 | 0.840 |
+
+    기본값은 속도(≤40초)·위험 신호(≥133)·크기(≤1024MB)를 모두 만족하는 유일한 설정이지만 **레드팀 전 항목을 통과하지는 못합니다**: 정상 요청을 대필로 오판하는 비율이 0.069(PyTorch 0.050, 기준에 딱 걸려 있어서 양자화 흔들림에 약함)이고, 숨은 지시문 0.84는 모두 '대필 요청'으로 과잉 표시한 경우입니다(대필 문장 없음, 해롭지 않음). 전 항목을 PyTorch와 같게 하려면 MatMulNBits 전부 8비트(1073MB)가 필요한데 브라우저에서 210초라 쓸 수 없습니다. 동적 int8 층(어텐션·gate/up·출력층)을 GPTQ로 바꾸면 오히려 오차가 늘어서(4비트가 동적 int8보다 나쁨) 8비트로 바꿔야 하고, 그러면 느려집니다. 전체 950문항 재검증은 기본값에 대해 아직 하지 않았습니다.
+  - **WASM 속도**: `MatMulNBits`는 WASM에서 가중치를 매번 fp32로 풀어서 계산해 느립니다(`accuracy_level=4`로도 거의 그대로). 정수 곱(`MatMulInteger`)만 빠릅니다. Node(AVX2)에서는 둘 다 빠릅니다. WebGPU(q4f16, `MatMulNBits`를 GPU가 직접 지원)는 이 앱에 경로가 있지만(`runtime.ts`) narae-coach-1b용 q4f16 파일이 없어 시험하지 않았습니다.
+- **변환 환경 메모리**: GPTQ는 층마다 입력 통계(Hessian)를 모으는데 down_proj 가 층당 약 190MB라서 두 번에 나눠 모읍니다(`--passes`). 시간은 CPU 4코어 기준 GPTQ 약 10~15분(Hessian 모으기가 대부분. 기본값은 down_proj 26개만 계산하고, 설정을 바꿔 다시 돌리면 모자란 층만 계산), fp32 ONNX → 한 파일 약 10분(디스크가 느리면 더 걸림)이며, Kaggle CPU(4코어)에서도 비슷할 것으로 예상하며(미검증), GPU는 쓰지 않습니다. 변환 환경은 RAM 약 10GB, 디스크 약 12GB(fp32 ONNX 5GB 포함)가 필요합니다. 일반 PyPI의 torch(CUDA 포함, 약 4GB)로 대신 설치돼도 동작합니다.
+- **배포 파일 검증**: 변환 뒤 반드시 `scripts/redteam-local.ts`로 배포 파일 그대로 레드팀을 돌려 `score_redteam.py`·`training/gen/score.ts`로 채점합니다(docs/finetuned-model-adoption.md).
 - 학습 스크립트와 ONNX 변환은 이 작업 환경에서 실행 검증을 하지 못했습니다(파이토치 내려받기 주소가 네트워크 정책으로 막힘). Colab 첫 실행에서 오류가 나면 메시지를 알려 주세요.

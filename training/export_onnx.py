@@ -2,7 +2,8 @@
 
 결과 폴더 구조(public/models/<id>/ 와 같음)
   config.json, generation_config.json, tokenizer*.json, ...
-  onnx/model_int8.onnx   ← CPU(WASM) 기기용. 브라우저 엔진이 지원하는 연산만 씀(실측: q4는 GatherBlockQuantized 미지원)
+  onnx/model_int8.onnx   ← CPU(WASM) 기기용. 브라우저 엔진이 지원하는 연산만 씀(실측: q4는 GatherBlockQuantized 미지원).
+                            이름은 앱 카탈로그 규칙(dtype int8)이고, 안은 층마다 다른 방식이다(동적 int8 MatMulInteger / GPTQ 4·8비트 MatMulNBits, quant_spec.py).
 
 사용(변환 전용 가상환경의 파이썬으로 실행):
   bash export_env.sh /tmp/onnxenv
@@ -19,7 +20,10 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 import sys
+
+from quant_spec import add_plan_args
 
 # 기본 모델에서 가져올 파일. (이름, 꼭 필요한가)
 BASE_FILES = [
@@ -32,6 +36,16 @@ BASE_FILES = [
     ("added_tokens.json", False),
     ("chat_template.jinja", False),
 ]
+
+
+def plan_option_list(a):
+    """층별 방식·비트 옵션을 gptq_weight_only.py 에 그대로 넘기는 인자 목록"""
+    opts = ["--attn-bits", a.attn_bits, "--mlp-bits", a.mlp_bits, "--down-bits", a.down_bits, "--down-edge-layers", a.down_edge_layers]
+    opts += ["--down-edge-bits", a.down_edge_bits, "--edge-layers", a.edge_layers, "--edge-bits", a.edge_bits]
+    opts += ["--lm-head-bits", a.lm_head_bits, "--block", a.block, "--block8", a.block8]
+    for o in a.override:
+        opts += ["--override", o]
+    return [str(x) for x in opts]
 
 
 def fail(msg):
@@ -161,14 +175,16 @@ def verify_fp32(model_path, ref):
     return tok
 
 
-def export(model_dir, out_dir, base):
-    from onnxruntime.quantization import QuantType, quantize_dynamic
+def export(a):
     from optimum.exporters.onnx import main_export
 
+    model_dir, out_dir, base = a.model, a.out, a.base
     os.makedirs(out_dir, exist_ok=True)
     stage_dir = os.path.join(out_dir, "_stage")
     fp32_dir = os.path.join(out_dir, "_fp32")
+    gptq_dir = os.path.join(out_dir, "_gptq")
     shutil.rmtree(fp32_dir, ignore_errors=True)  # 이전에 중단된 흔적 정리
+    shutil.rmtree(gptq_dir, ignore_errors=True)
     build_staging(model_dir, base, stage_dir)
     ref = check_weights(stage_dir)
 
@@ -178,41 +194,30 @@ def export(model_dir, out_dir, base):
 
     onnx_dir = os.path.join(out_dir, "onnx")
     os.makedirs(onnx_dir, exist_ok=True)
-    int8_path = os.path.join(onnx_dir, "model_int8.onnx")
-    # 8비트 동적 양자화(가중치 int8). 임베딩(Gather)도 함께 줄인다.
-    # 입력의 외부 데이터(.onnx_data)는 자동으로 읽고, 결과는 외부 데이터 없이 한 파일로 쓴다(use_external_data_format=False, 2GB 미만).
-    quantize_dynamic(
-        os.path.join(fp32_dir, "model.onnx"),
-        int8_path,
-        weight_type=QuantType.QInt8,
-        per_channel=False,
-        use_external_data_format=False,
-        extra_options={"EnableSubgraph": True},
-    )
-    # Gemma 는 임베딩과 출력층이 묶여 있는데 양자화 결과에는 같은 표가 두 벌(약 302MB씩) 들어 있다. 하나로 줄인다(1305MB -> 약 1003MB).
-    # 기대한 모양이 아니면 줄이지 않고 큰 파일 그대로 둔다.
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from dedupe_tied_embedding import dedupe
+    int8_path = os.path.join(onnx_dir, "model_int8.onnx")  # 이름은 앱 카탈로그의 dtype "int8" 규칙이라 그대로 두지만 안은 4~8비트 가중치다.
+    # 대부분의 선형층은 채널별 동적 int8(WASM 에서 빠름), 활성값이 큰 down_proj 는 GPTQ 로 가중치만 줄인다.
+    # 이전의 quantize_dynamic(층 전체 배율 하나, down_proj 포함)은 배포 파일에서 안전 동작이 무너졌다(위험 신호 136/140 -> 21/140). 자세한 내용은 quant_spec.py, gptq_weight_only.py, quantize_weight_only.py.
+    here = os.path.dirname(os.path.abspath(__file__))
+    calib = a.calib or os.path.join(here, "data", "sft_train.jsonl")
+    plan_opts = plan_option_list(a)
+    # 1) GPTQ: 보정 데이터로 층마다 반올림 오차를 줄인 가중치를 만든다(CPU 약 15분, 층별 비트는 plan_opts 대로)
+    subprocess.run([sys.executable, os.path.join(here, "gptq_weight_only.py"), "--model", stage_dir, "--out", gptq_dir, "--calib", calib] + plan_opts, check=True)
+    # 2) fp32 ONNX 의 선형층을 MatMulNBits 로 바꾸고, 임베딩은 출력층 표를 같이 읽게 해서 한 파일로 쓴다
+    sys.path.insert(0, here)
+    from quantize_weight_only import run as quantize_weight_only
 
-        slim_path = int8_path + ".slim"
-        dedupe(int8_path, slim_path)
-        os.replace(slim_path, int8_path)
-    except SystemExit:
-        print("[주의] 중복 표를 줄이지 못했어요(위 메시지 참고). 큰 파일 그대로 계속해요.")
-        if os.path.exists(int8_path + ".slim"):
-            os.remove(int8_path + ".slim")
+    quantize_weight_only(os.path.join(fp32_dir, "model.onnx"), int8_path, gptq_dir, a, embed="tied")
     size = os.path.getsize(int8_path)
     if size >= 2 * 1024**3 or os.path.exists(int8_path + "_data") or os.path.exists(int8_path + ".data"):
-        fail("int8 파일이 2GB를 넘거나 외부 데이터가 생겼어요. 앱은 한 파일만 읽어요.")
-    # int8 은 fp32 와 조금 다를 수 있어서 같은 토큰인지 알려만 준다(실패로 보지 않는다).
+        fail("결과 파일이 2GB를 넘거나 외부 데이터가 생겼어요. 앱은 한 파일만 읽어요.")
+    # 줄인 모델은 fp32 와 조금 다를 수 있어서 같은 토큰인지 알려만 준다(실패로 보지 않는다).
     try:
         import numpy as np
 
         l8 = onnx_next_logits(int8_path, ref["ids"])
-        print(f"[참고] int8 다음 토큰={int(np.argmax(l8))} (torch={ref['token']}; 다를 수 있어요)")
+        print(f"[참고] 줄인 모델의 다음 토큰={int(np.argmax(l8))} (torch={ref['token']}; 다를 수 있어요)")
     except Exception as e:
-        print("[참고] int8 실행 확인은 건너뛰었어요:", type(e).__name__, e)
+        print("[참고] 줄인 모델 실행 확인은 건너뛰었어요:", type(e).__name__, e)
 
     # 설정·토크나이저 복사: 변환기가 쓴 설정(json) 위에 기본 모델의 토크나이저 파일을 덮어쓴다.
     for f in os.listdir(fp32_dir):
@@ -222,13 +227,14 @@ def export(model_dir, out_dir, base):
         src = os.path.join(stage_dir, name)
         if name != "config.json" and os.path.exists(src):
             shutil.copy(src, out_dir)
-    # transformers.js 설정: int8 파일은 별도 데이터 파일(.onnx_data)이 없다.
+    # transformers.js 설정: 결과 파일은 별도 데이터 파일(.onnx_data)이 없다.
     cfg_path = os.path.join(out_dir, "config.json")
     cfg = json.load(open(cfg_path, encoding="utf-8"))
     cfg["transformers.js_config"] = {"use_external_data_format": {"model_int8.onnx": False}}
     json.dump(cfg, open(cfg_path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
     shutil.rmtree(fp32_dir)
     shutil.rmtree(stage_dir)
+    shutil.rmtree(gptq_dir, ignore_errors=True)
     print(f"완료: {out_dir}  (onnx/model_int8.onnx {size / 1e6:.0f}MB)")
 
 
@@ -237,5 +243,6 @@ if __name__ == "__main__":
     p.add_argument("--model", required=True, help="병합한 모델 폴더(예: runs/dpo/merged)")
     p.add_argument("--out", required=True)
     p.add_argument("--base", default="unsloth/gemma-3-1b-it", help="설정·토크나이저를 가져올 기본 모델")
-    a = p.parse_args()
-    export(a.model, a.out, a.base)
+    p.add_argument("--calib", default=None, help="GPTQ 보정용 jsonl(기본 training/data/sft_train.jsonl)")
+    add_plan_args(p)
+    export(p.parse_args())

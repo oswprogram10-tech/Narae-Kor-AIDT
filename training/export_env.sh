@@ -14,7 +14,7 @@ VENV="${1:-/tmp/onnxenv}"
 PY="$VENV/bin/python"
 
 check() {
-  "$PY" -I -c "import torch, transformers, optimum.exporters.onnx, onnxruntime, onnx; assert transformers.__version__.startswith('4.57'), transformers.__version__" >/dev/null 2>&1
+  "$PY" -I -c "import torch, transformers, optimum.exporters.onnx, onnxruntime, onnx, onnx_ir; assert transformers.__version__.startswith('4.57'), transformers.__version__" >/dev/null 2>&1
 }
 
 if [ -x "$PY" ] && check; then
@@ -33,14 +33,18 @@ fi
 "$PY" -m pip install -q -U pip
 
 # 1) torch(CPU 전용). 변환은 CPU에서 하므로 용량이 작은 CPU 빌드를 쓴다. 의존 패키지는 일반 PyPI에서도 받는다.
-"$PY" -m pip install -q "torch>=2.4,<2.10" \
-  --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+#    CPU 인덱스에 접근할 수 없는 환경(일부 사내망·샌드박스)에서는 일반 PyPI의 torch(CUDA 포함, 약 4GB)로 대신한다.
+if ! "$PY" -m pip install -q "torch>=2.4,<2.10" \
+  --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple; then
+  echo "[변환 환경] CPU 전용 torch를 받지 못해 PyPI의 torch로 대신해요(용량이 커요)."
+  "$PY" -m pip install -q "torch>=2.4"
+fi
 
 # 2) 변환 도구. 버전을 고정한다(optimum-onnx 0.1.0 ↔ optimum 2.1 ↔ transformers 4.57).
 #    diffusers 는 일부러 설치하지 않는다. 나머지 의존 패키지(huggingface_hub<1.0 등)는 pip이 맞춰 준다.
 "$PY" -m pip install -q \
   "transformers==4.57.*" "optimum==2.1.*" "optimum-onnx==0.1.0" \
-  onnx onnxruntime safetensors sentencepiece tokenizers "huggingface_hub<1.0" numpy
+  onnx onnxruntime onnx-ir ml_dtypes safetensors sentencepiece tokenizers "huggingface_hub<1.0" numpy
 
 check || { echo "[변환 환경] 설치 후 확인에 실패했어요"; "$PY" -m pip list 2>/dev/null | grep -i -E "torch|transformers|optimum|onnx|huggingface" || true; exit 1; }
 "$PY" -m pip list 2>/dev/null | grep -i -E "^(torch|transformers|optimum|optimum-onnx|onnx|onnxruntime|huggingface-hub) " || true
