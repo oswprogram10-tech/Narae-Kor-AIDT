@@ -19,6 +19,7 @@ def main() -> None:
     ap.add_argument("--repo", required=True)
     ap.add_argument("--folder", default="export/narae-gemma-1b")
     ap.add_argument("--private", action="store_true")
+    ap.add_argument("--message", default="국어나래 코치 모델(ONNX int8)", help="모델 폴더를 올릴 때의 커밋 메시지")
     ap.add_argument("--results-only", action="store_true", help="모델 없이 안전 시험 결과·학습 기록만 올림")
     ap.add_argument("--names", default="base,sft,dpo", help="올릴 시험 결과 단계(쉼표로 구분). 기본: base,sft,dpo")
     args = ap.parse_args()
@@ -46,7 +47,7 @@ def main() -> None:
     api.create_repo(args.repo, private=args.private, exist_ok=True)
     print("저장소:", f"https://huggingface.co/{args.repo}")
     if not args.results_only:
-        api.upload_folder(repo_id=args.repo, folder_path=args.folder, commit_message="국어나래 코치 모델(ONNX int8)")
+        api.upload_folder(repo_id=args.repo, folder_path=args.folder, commit_message=args.message)
     # 시험 결과도 함께 올린다(앱과 같은 코드로 다시 채점하기 위해)
     for name in names:
         for fname in ["redteam_outputs.jsonl", "redteam_outputs.jsonl.score.json"]:
