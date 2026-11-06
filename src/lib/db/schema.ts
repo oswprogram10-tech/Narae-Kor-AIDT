@@ -48,9 +48,9 @@ export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용) | literature(문학 활동, 읽기 화면 재사용) | cardnews(카드뉴스 만들기) | media-diary(매체 이용 성찰 일지).
+  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용) | literature(문학 활동, 읽기 화면 재사용) | cardnews(카드뉴스 만들기) | media-diary(매체 이용 성찰 일지) | impression(인상적인 부분 나누기).
   // grammar·reading·media이면 activityId에 활동 id를 둔다. cardnews·media-diary는 활동 id 없이 제출물의 artifact에 저장한다.
-  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media" | "literature" | "cardnews" | "media-diary">().notNull().default("writing"),
+  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media" | "literature" | "cardnews" | "media-diary" | "impression">().notNull().default("writing"),
   activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),
@@ -162,6 +162,8 @@ export const teacherComments = pgTable("teacher_comments", {
   id: serial("id").primaryKey(),
   submissionId: integer("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  // 교사가 작품 속 인물이 되어 쓴 답장이면 그 인물 id(core/literature/replies.ts), 아니면 null
+  asCharacter: text("as_character"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

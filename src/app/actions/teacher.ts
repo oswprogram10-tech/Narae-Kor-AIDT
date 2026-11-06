@@ -17,11 +17,11 @@ import { getGenre } from "@/core/data/genres";
 import { activitiesForGrade } from "@/core/grammar";
 import { activitiesForGrade as readingActivitiesForGrade } from "@/core/reading";
 import { mediaActivitiesForGrade } from "@/core/media";
-import { literatureActivitiesForGrade } from "@/core/literature";
+import { getReplyCharacter, literatureActivitiesForGrade } from "@/core/literature";
 import { teacherSubmission } from "@/lib/submissions";
 import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
-import { artifactActivity, artifactActivitiesForGrade } from "@/core/artifact";
+import { artifactActivity, artifactActivitiesForGrade, isArtifactKind } from "@/core/artifact";
 import { setShareApproved as approveShare } from "@/lib/artifacts";
 
 export interface FormState {
@@ -97,7 +97,7 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
   const klass = await ownedClass(teacherId, classId);
   if (!klass) return { error: "학급을 찾을 수 없습니다." };
   const kind = String(form.get("kind") ?? "writing");
-  if (kind === "cardnews" || kind === "media-diary") {
+  if (isArtifactKind(kind)) {
     const activity = artifactActivity(kind);
     if (!activity || !artifactActivitiesForGrade(klass.grade).includes(activity)) return { error: "이 활동은 5~6학년 학급에서만 낼 수 있어요." };
     const db = await getDb();
@@ -211,9 +211,13 @@ export async function addComment(_: FormState, form: FormData): Promise<FormStat
   const submissionId = Number(form.get("submissionId"));
   const content = String(form.get("content") ?? "").trim();
   if (!content) return { error: "내용을 입력해 주세요." };
-  if (!(await teacherSubmission(teacherId, submissionId))) return { error: "제출물을 찾을 수 없습니다." };
+  const row = await teacherSubmission(teacherId, submissionId);
+  if (!row) return { error: "제출물을 찾을 수 없습니다." };
+  // 인물 답장: 인물 편지 과제에서만, 알려진 인물일 때만 표시한다.
+  const characterId = String(form.get("asCharacter") ?? "");
+  const asCharacter = characterId && row.assignment.genreId === "character-letter" && getReplyCharacter(characterId) ? characterId : null;
   const db = await getDb();
-  await db.insert(schema.teacherComments).values({ submissionId, content: content.slice(0, 2000) });
+  await db.insert(schema.teacherComments).values({ submissionId, content: content.slice(0, 2000), asCharacter });
   await logEvent(`teacher:${teacherId}`, "comment", "submission", submissionId);
   revalidatePath(`/teacher/submissions/${submissionId}`);
   return { ok: "코멘트를 남겼습니다." };

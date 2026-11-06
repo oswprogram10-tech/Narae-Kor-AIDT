@@ -29,3 +29,14 @@ export {
   type LiteratureGradeResult,
 } from "./grade";
 export { validateLiteratureItem, validateLiteraturePassage } from "./validate";
+export {
+  EXTRA_WORK_NAMES,
+  REPLY_CHARACTERS,
+  REPLY_SAFETY_NOTE,
+  REPLY_SLOTS,
+  REPLY_SLOT_LABELS,
+  getReplyCharacter,
+  guessReplyCharacter,
+  type ReplyCharacter,
+  type ReplySlot,
+} from "./replies";

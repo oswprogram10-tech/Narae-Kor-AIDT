@@ -8,6 +8,7 @@ import { readingActivityItems } from "@/lib/reading";
 import { isReadingHostKind } from "@/lib/activities";
 import { summarizeAttempts, progressSummary } from "@/lib/grammar-rules";
 import { STAGE_LABELS, type Stage } from "@/core/data/genres";
+import { isArtifactKind } from "@/core/artifact";
 
 export default async function StudentHome() {
   const { studentId, classId } = await requireStudent();
@@ -34,9 +35,9 @@ export default async function StudentHome() {
       if (sum.total > 0 && sum.solved === sum.total) return "완료 ✓";
       return sum.solved === 0 ? "시작하기" : `${sum.solved}/${sum.total} 문제`;
     }
-    if (a.kind === "cardnews" || a.kind === "media-diary") {
+    if (isArtifactKind(a.kind)) {
       if (!s) return "시작하기";
-      if (a.kind === "cardnews" && s.shareApproved) return "공유됨 ✓";
+      if ((a.kind === "cardnews" || a.kind === "impression") && s.shareApproved) return "공유됨 ✓";
       return s.status === "submitted" ? "제출 ✓" : "만드는 중";
     }
     return !s

@@ -47,7 +47,8 @@ export function useArtifactSave<T extends Artifact>(submissionId: number, initia
           const saved = new Map(fieldsOf(data.artifact).map((f) => [f.key, f.text]));
           const values: Record<string, string> = {};
           for (const k of data.safety.keys) values[k] = saved.get(k) ?? "";
-          ref.current = withFields(ref.current, values) as T;
+          // 칸 길이로 잘리기 전 원문에서 걸린 경우("raw")는 어느 칸인지 알 수 없으므로 서버에 저장된 글로 되돌린다.
+          ref.current = (data.safety.keys.includes("raw") ? data.artifact : withFields(ref.current, values)) as T;
           setArt(ref.current);
           setSafety(data.safety);
         }

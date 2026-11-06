@@ -14,8 +14,8 @@ import { getActivity } from "@/core/grammar";
 import { findActivity } from "@/lib/activities";
 import { grammarStatus } from "@/lib/grammar-dashboard";
 import { artifactStatus } from "@/lib/artifact-dashboard";
-import { artifactActivity } from "@/core/artifact";
-import { CardnewsTeacher, DiaryTeacher } from "./ArtifactStatus";
+import { artifactActivity, isArtifactKind, type ArtifactKind } from "@/core/artifact";
+import { CardnewsTeacher, DiaryTeacher, ImpressionTeacher } from "./ArtifactStatus";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -25,8 +25,8 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const { assignment: a, klass } = owned;
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
-  const isArtifact = a.kind === "cardnews" || a.kind === "media-diary";
-  const aStatus = isArtifact ? await artifactStatus(id, klass.id, a.kind as "cardnews" | "media-diary") : null;
+  const isArtifact = isArtifactKind(a.kind);
+  const aStatus = isArtifact ? await artifactStatus(id, klass.id, a.kind as ArtifactKind) : null;
   const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media" || a.kind === "literature" || isArtifact;
   const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
   const gStatus = isGrammar && !isArtifact ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" || a.kind === "literature" ? a.kind : "grammar") : null;
@@ -88,7 +88,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         </form>
         )}
         {aStatus ? (
-          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
+          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : a.kind === "impression" ? <ImpressionTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
         ) : gStatus ? (
           <GrammarStatus assignmentId={id} initial={gStatus} />
         ) : (

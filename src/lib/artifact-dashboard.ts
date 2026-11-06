@@ -1,8 +1,9 @@
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
-import { fieldLabel, type Artifact, type SafetyKind } from "@/core/artifact";
+import { fieldLabel, type Artifact, type ArtifactKind, type SafetyKind } from "@/core/artifact";
 import { checkCardnews, STICKER_IDS, type CardnewsArtifact } from "@/core/cardnews";
+import { IMPRESSION_STICKER_IDS, getImpressionWork, sentenceInWork, type ImpressionArtifact } from "@/core/impression";
 import { CATEGORY_IDS, classAverages, summarizeDiary, type DiaryArtifact, type DiarySummary, type Minutes } from "@/core/diary";
 import { storedArtifact } from "@/lib/artifacts";
 
@@ -37,15 +38,26 @@ export interface ArtifactRow {
     reflection: string;
   } | null;
   diary: { artifact: DiaryArtifact; summary: DiarySummary } | null;
+  impression: {
+    artifact: ImpressionArtifact;
+    workTitle: string;
+    sentenceText: string;
+    whyChars: number;
+    lifeChars: number;
+    approved: boolean;
+    reactions: Record<string, number>;
+    reactionTotal: number;
+    reflection: string;
+  } | null;
 }
 
 export interface ArtifactStatus {
-  kind: "cardnews" | "media-diary";
+  kind: ArtifactKind;
   rows: ArtifactRow[];
   classAverage: { students: number; averages: Minutes } | null;
 }
 
-export async function artifactStatus(assignmentId: number, classId: number, kind: "cardnews" | "media-diary"): Promise<ArtifactStatus> {
+export async function artifactStatus(assignmentId: number, classId: number, kind: ArtifactKind): Promise<ArtifactStatus> {
   const db = await getDb();
   const students = await db.select().from(schema.students).where(eq(schema.students.classId, classId)).orderBy(schema.students.number);
   const subs = await db.select().from(schema.submissions).where(eq(schema.submissions.assignmentId, assignmentId));
@@ -79,7 +91,7 @@ export async function artifactStatus(assignmentId: number, classId: number, kind
       }
     }
     const mineRx = s ? rx.filter((r) => r.submissionId === s.id) : [];
-    const reactions: Record<string, number> = Object.fromEntries(STICKER_IDS.map((id) => [id, mineRx.filter((r) => r.stickerId === id).length]));
+    const reactions: Record<string, number> = Object.fromEntries((kind === "impression" ? IMPRESSION_STICKER_IDS : STICKER_IDS).map((id) => [id, mineRx.filter((r) => r.stickerId === id).length]));
     return {
       studentId: st.id,
       number: st.number,
@@ -105,6 +117,23 @@ export async function artifactStatus(assignmentId: number, classId: number, kind
             }
           : null,
       diary: s && art?.kind === "media-diary" ? { artifact: art, summary: summarizeDiary(art) } : null,
+      impression:
+        s && art?.kind === "impression"
+          ? (() => {
+              const work = getImpressionWork(art.workId);
+              return {
+                artifact: art,
+                workTitle: work?.title ?? "",
+                sentenceText: (work && sentenceInWork(work, art.sentenceId)?.text) || "",
+                whyChars: Array.from(art.why.trim()).length,
+                lifeChars: Array.from(art.life.trim()).length,
+                approved: s.shareApproved,
+                reactions,
+                reactionTotal: mineRx.length,
+                reflection: s.reflection,
+              };
+            })()
+          : null,
     };
   });
   const diaries = rows.flatMap((r) => (r.diary ? [r.diary.summary] : []));
@@ -112,7 +141,7 @@ export async function artifactStatus(assignmentId: number, classId: number, kind
 }
 
 // 연구용 익명 CSV: 학생 번호만 쓰고 별명·글 내용은 넣지 않는다.
-export async function artifactCsv(assignmentId: number, classId: number, kind: "cardnews" | "media-diary"): Promise<string> {
+export async function artifactCsv(assignmentId: number, classId: number, kind: ArtifactKind): Promise<string> {
   const { rows } = await artifactStatus(assignmentId, classId, kind);
   const lines: string[] = [];
   if (kind === "cardnews") {
@@ -127,6 +156,26 @@ export async function artifactCsv(assignmentId: number, classId: number, kind: "
           c?.cards ?? 0,
           c?.warningsAtSubmit ?? "",
           c?.revisions ?? 0,
+          c?.approved ? "y" : "n",
+          c?.reactionTotal ?? 0,
+          c && c.reflection.trim() ? "y" : "n",
+          r.alert?.kind ?? "",
+        ].join(","),
+      );
+    }
+  } else if (kind === "impression") {
+    lines.push(["student_number", "status", "max_step", "work_id", "sentence_id", "why_chars", "life_chars", "shared", "reactions_received", "reflection_written", "safety_alert"].join(","));
+    for (const r of rows) {
+      const c = r.impression;
+      lines.push(
+        [
+          r.number,
+          r.status ?? "not_started",
+          r.maxStep,
+          c?.artifact.workId ?? "",
+          c?.artifact.sentenceId ?? "",
+          c?.whyChars ?? 0,
+          c?.lifeChars ?? 0,
           c?.approved ? "y" : "n",
           c?.reactionTotal ?? 0,
           c && c.reflection.trim() ? "y" : "n",

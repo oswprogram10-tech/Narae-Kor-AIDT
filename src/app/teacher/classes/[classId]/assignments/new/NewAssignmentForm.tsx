@@ -24,7 +24,7 @@ interface ActivityOption {
 }
 
 interface ArtifactOption {
-  kind: "cardnews" | "media-diary";
+  kind: "cardnews" | "media-diary" | "impression";
   title: string;
   description: string;
   standardCode: string;
@@ -48,7 +48,7 @@ export function NewAssignmentForm({
   literatureActivities: ActivityOption[];
   artifactActivities: ArtifactOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "literature" | "cardnews" | "media-diary">("writing");
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "literature" | "cardnews" | "media-diary" | "impression">("writing");
   const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities, literature: literatureActivities };
   const artifact = artifactActivities.find((x) => x.kind === kind);
   const activities = kind === "writing" || artifact ? [] : activityMap[kind as "grammar" | "reading" | "media" | "literature"];
@@ -105,6 +105,8 @@ export function NewAssignmentForm({
           <p className="text-sm text-stone-500">
             {artifact.kind === "cardnews"
               ? "정답 채점 없이 단계·스스로 점검·선생님 승인으로 운영해요. 학생이 쓴 모든 글에 위험 신호·개인 정보 점검이 돌아가고, 걸리면 이 화면에 알림이 떠요. 사진은 올리지 않아요."
+              : artifact.kind === "impression"
+              ? "채점하지 않아요. 학생이 작품에서 고른 문장과 쓴 글을 선생님이 읽고 공유를 승인하면, 같은 문장을 고른 친구끼리 모아 보여요. 친구는 정해 둔 스티커로만 반응하고, 글에는 위험 신호·개인 정보 점검이 돌아가요. 5~6학년 학급에서만 낼 수 있어요."
               : "채점하지 않아요. 선생님은 학생별 요약과 학급 평균만 보고, 학생끼리 공유하지 않아요. 자유로 쓴 글에는 위험 신호·개인 정보 점검이 돌아가요."}
           </p>
           <FormMessage state={state} />

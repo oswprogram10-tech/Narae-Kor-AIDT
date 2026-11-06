@@ -17,10 +17,13 @@ describe("standards", () => {
   });
 });
 
+// 문학 성취기준을 쓰기 활동으로 풀어내는 글 종류
+const LITERATURE_GENRE_IDS = new Set(["character-letter", "experience-poem", "experience-story"]);
+
 describe("genres", () => {
-  it("only reference existing writing standards and have 3-level rubrics", () => {
+  it("only reference existing writing (or literature) standards and have 3-level rubrics", () => {
     for (const g of GENRES) {
-      for (const c of g.standardCodes) expect(getStandard(c)?.area, `${g.id}:${c}`).toBe("쓰기");
+      for (const c of g.standardCodes) expect(getStandard(c)?.area, `${g.id}:${c}`).toBe(LITERATURE_GENRE_IDS.has(g.id) ? "문학" : "쓰기");
       expect(g.organizer.length).toBeGreaterThan(0);
       for (const r of g.rubric) expect(r.levels).toHaveLength(3);
     }

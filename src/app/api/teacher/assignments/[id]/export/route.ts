@@ -1,5 +1,6 @@
 import { getSession, ownedAssignment } from "@/lib/auth";
 import { assignmentCsv } from "@/lib/dashboard";
+import { isArtifactKind } from "@/core/artifact";
 import { artifactCsv } from "@/lib/artifact-dashboard";
 import { grammarCsv } from "@/lib/grammar-dashboard";
 
@@ -11,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!owned) return new Response("not found", { status: 404 });
   const kind = owned.assignment.kind;
   const csv =
-    kind === "cardnews" || kind === "media-diary"
+    isArtifactKind(kind)
       ? await artifactCsv(id, owned.klass.id, kind)
       : kind === "grammar" || kind === "reading" || kind === "media" || kind === "literature"
       ? await grammarCsv(id, owned.klass.id, owned.assignment.activityId, kind)

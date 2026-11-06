@@ -5,25 +5,28 @@ import { emptyCardnews, sanitizeCardnews, submitProblems as cardnewsProblems } f
 import type { CardnewsArtifact } from "@/core/cardnews";
 import { emptyDiary, sanitizeDiary, submitProblems as diaryProblems } from "@/core/diary";
 import type { DiaryArtifact } from "@/core/diary";
+import { emptyImpression, sanitizeImpression, submitProblems as impressionProblems } from "@/core/impression";
+import type { ImpressionArtifact } from "@/core/impression";
 
-export type Artifact = CardnewsArtifact | DiaryArtifact;
+export type Artifact = CardnewsArtifact | DiaryArtifact | ImpressionArtifact;
 export type ArtifactKind = Artifact["kind"];
 
-export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary"];
+export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary", "impression"];
 export const isArtifactKind = (x: unknown): x is ArtifactKind => typeof x === "string" && (ARTIFACT_KINDS as readonly string[]).includes(x);
 
 export function emptyArtifact(kind: ArtifactKind): Artifact {
-  return kind === "cardnews" ? emptyCardnews() : emptyDiary();
+  return kind === "cardnews" ? emptyCardnews() : kind === "impression" ? emptyImpression() : emptyDiary();
 }
 
 /** 밖에서 들어온 값을 해당 종류의 안전한 형식으로 고친다. 형식이 맞지 않으면 null. */
 export function sanitizeArtifact(kind: ArtifactKind, raw: unknown, prev?: Artifact | null): Artifact | null {
   if (kind === "cardnews") return sanitizeCardnews(raw, prev?.kind === "cardnews" ? prev : null);
+  if (kind === "impression") return sanitizeImpression(raw, prev?.kind === "impression" ? prev : null);
   return sanitizeDiary(raw, prev?.kind === "media-diary" ? prev : null);
 }
 
 export function submitProblems(a: Artifact): string[] {
-  return a.kind === "cardnews" ? cardnewsProblems(a) : diaryProblems(a);
+  return a.kind === "cardnews" ? cardnewsProblems(a) : a.kind === "impression" ? impressionProblems(a) : diaryProblems(a);
 }
 
 export interface TextField {
@@ -46,6 +49,7 @@ export function fieldsOf(a: Artifact): TextField[] {
     for (const c of a.cards) f.push({ key: `card.${c.id}.title`, text: c.title }, { key: `card.${c.id}.body`, text: c.body });
     return f;
   }
+  if (a.kind === "impression") return [{ key: "why", text: a.why }, { key: "life", text: a.life }];
   const f: TextField[] = [];
   for (const e of a.entries) f.push({ key: `entry.${e.day}.note`, text: e.note });
   f.push({ key: "reflection.good", text: a.reflection.good }, { key: "reflection.change", text: a.reflection.change }, { key: "reflection.promise", text: a.reflection.promise });
@@ -56,6 +60,10 @@ export function fieldsOf(a: Artifact): TextField[] {
 export function withFields(a: Artifact, values: Record<string, string>): Artifact {
   const next = structuredClone(a);
   const set = (key: string, text: string) => {
+    if (next.kind === "impression") {
+      if (key === "why" || key === "life") next[key] = text;
+      return;
+    }
     if (next.kind === "cardnews") {
       const m = /^card\.([a-z0-9]+)\.(title|body)$/.exec(key);
       if (m) {
@@ -147,6 +155,7 @@ export function fieldLabel(a: Artifact, key: string): string {
     if (key.startsWith("plan.source")) return "출처";
     return { "plan.topic": "주제", "plan.audience": "읽을 사람", "plan.keyMessage": "핵심 문장" }[key] ?? "계획";
   }
+  if (a.kind === "impression") return { why: "고른 까닭", life: "내 삶과 이어 본 생각" }[key] ?? "쓴 글";
   const n = /^entry\.(\d)\.note$/.exec(key);
   if (n) return `${n[1]}일째 한 줄 생각`;
   return { "reflection.good": "잘한 점", "reflection.change": "바꾸고 싶은 점", "reflection.promise": "다음 약속" }[key] ?? "성찰";
@@ -175,6 +184,13 @@ export const ARTIFACT_ACTIVITIES: readonly ArtifactActivity[] = [
     title: "매체 이용 성찰 일지",
     description: "일주일 동안 영상·게임·대화·검색·책 읽기에 쓴 시간을 기록하고, 내 매체 이용을 돌아보는 글을 써요. 친구와 공유하지 않아요.",
     standardCode: "6국06-04",
+    minGrade: 5,
+  },
+  {
+    kind: "impression",
+    title: "인상적인 부분 나누기",
+    description: "동화나 시, 이야기를 읽고 가장 인상적인 문장을 하나 골라 까닭과 내 삶과 이어 본 생각을 써요. 선생님이 공유를 허락하면 같은 문장을 고른 친구들의 글을 모아 보고 스티커로 반응을 남겨요.",
+    standardCode: "6국05-04",
     minGrade: 5,
   },
 ];

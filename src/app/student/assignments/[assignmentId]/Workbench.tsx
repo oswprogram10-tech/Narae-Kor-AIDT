@@ -21,7 +21,7 @@ interface Props {
   submissionId: number;
   assignment: { title: string; prompt: string; organizer: OrganizerField[]; coachEnabled: boolean; isOpen: boolean };
   initial: { stage: Stage; status: string; brainstorm: string; organizerValues: Record<string, string>; draft: string };
-  comments: { id: number; content: string }[];
+  comments: { id: number; content: string; characterName: string | null }[];
   messages: CoachMessageView[];
   // 과제의 코치 AI 설정과(있으면) 이 기기에서 쓸 내장 모델
   coach: { preferredProvider: string; local: LocalModelClientConfig | null };
@@ -172,14 +172,21 @@ export function Workbench({ submissionId, assignment, initial, comments, message
 
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_360px]">
         <main className="space-y-4">
-          {comments.length > 0 && (
+          {comments.some((c) => !c.characterName) && (
             <section className="rounded-2xl border border-sun-400/40 bg-sun-100 p-4">
               <h2 className="mb-1 font-bold">💬 선생님 코멘트</h2>
-              {comments.map((c) => (
+              {comments.filter((c) => !c.characterName).map((c) => (
                 <p key={c.id} className="whitespace-pre-wrap">{c.content}</p>
               ))}
             </section>
           )}
+          {comments.filter((c) => c.characterName).map((c) => (
+            <section key={c.id} className="rounded-2xl border border-brand-200 bg-brand-50 p-4" aria-label={`${c.characterName}의 답장`}>
+              <h2 className="mb-1 font-bold">✉️ {c.characterName}의 답장</h2>
+              <p className="whitespace-pre-wrap leading-8">{c.content}</p>
+              <p className="mt-2 text-xs text-stone-500">선생님이 {c.characterName}가 되어 쓴 답장이에요.</p>
+            </section>
+          ))}
           <section className="card">
             <p className="text-sm font-semibold text-brand-700">과제</p>
             <p className="mt-1 text-lg">{assignment.prompt}</p>

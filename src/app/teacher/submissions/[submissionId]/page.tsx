@@ -10,6 +10,8 @@ import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 import { RubricPanel } from "./RubricPanel";
 import { PROVIDER_LABELS } from "@/core/providers";
 import { CommentForm } from "./CommentForm";
+import { CharacterReplyForm } from "./CharacterReplyForm";
+import { getReplyCharacter, guessReplyCharacter } from "@/core/literature/replies";
 
 const fmt = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" });
 
@@ -132,12 +134,19 @@ export default async function SubmissionPage({ params }: { params: Promise<{ sub
             <ul className="space-y-2 text-sm">
               {comments.map((c) => (
                 <li key={c.id} className="rounded-lg bg-sun-100 px-3 py-2">
-                  <div className="text-xs text-stone-500">{fmt.format(c.createdAt)}</div>
+                  <div className="text-xs text-stone-500">
+                    {fmt.format(c.createdAt)}
+                    {c.asCharacter && getReplyCharacter(c.asCharacter) && ` · ${getReplyCharacter(c.asCharacter)?.name}의 답장`}
+                  </div>
                   <p className="whitespace-pre-wrap">{c.content}</p>
                 </li>
               ))}
             </ul>
-            <CommentForm submissionId={id} />
+            {a.genreId === "character-letter" ? (
+              <CharacterReplyForm submissionId={id} defaultCharacterId={guessReplyCharacter(s.organizerValues.character ?? "")} />
+            ) : (
+              <CommentForm submissionId={id} />
+            )}
             <p className="text-xs text-stone-500">코멘트는 학생 글쓰기 화면 위쪽에 보여요.</p>
           </div>
         </aside>

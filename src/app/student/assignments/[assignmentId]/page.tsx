@@ -10,12 +10,15 @@ import { progress, studentItems } from "@/lib/grammar";
 import { progressSummary } from "@/lib/grammar-rules";
 import { GrammarRunner } from "./GrammarRunner";
 import { literatureExtras, readingProgress } from "@/lib/reading";
+import { getReplyCharacter } from "@/core/literature";
 import { studentReadingView } from "@/lib/reading-rules";
 import { isReadingHostKind } from "@/lib/activities";
 import { ReadingRunner } from "./ReadingRunner";
+import { isArtifactKind } from "@/core/artifact";
 import { CardnewsMaker } from "./CardnewsMaker";
 import { DiaryMaker } from "./DiaryMaker";
-import { galleryFor, storedArtifact } from "@/lib/artifacts";
+import { ImpressionMaker } from "./ImpressionMaker";
+import { impressionGalleryFor, galleryFor, storedArtifact } from "@/lib/artifacts";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { studentId, classId } = await requireStudent();
@@ -32,12 +35,29 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const db = await getDb();
-  if (assignment.kind === "cardnews" || assignment.kind === "media-diary") {
+  if (isArtifactKind(assignment.kind)) {
     const art = storedArtifact(submission, assignment.kind);
     if (art.kind === "cardnews") {
       const mine = submission.shareApproved ? (await galleryFor(assignment.id, classId, studentId))?.works.find((w) => w.own) : undefined;
       return (
         <CardnewsMaker
+          submissionId={submission.id}
+          assignmentId={assignment.id}
+          title={assignment.title}
+          prompt={assignment.prompt}
+          isOpen={assignment.isOpen}
+          initial={art}
+          status={submission.status}
+          approved={submission.shareApproved}
+          reactions={mine?.counts ?? {}}
+          reflection={submission.reflection}
+        />
+      );
+    }
+    if (art.kind === "impression") {
+      const mine = submission.shareApproved ? (await impressionGalleryFor(assignment.id, classId, studentId))?.works.find((w) => w.own) : undefined;
+      return (
+        <ImpressionMaker
           submissionId={submission.id}
           assignmentId={assignment.id}
           title={assignment.title}
@@ -93,7 +113,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const comments = await db
-    .select({ id: schema.teacherComments.id, content: schema.teacherComments.content })
+    .select({ id: schema.teacherComments.id, content: schema.teacherComments.content, asCharacter: schema.teacherComments.asCharacter })
     .from(schema.teacherComments)
     .where(eq(schema.teacherComments.submissionId, submission.id))
     .orderBy(asc(schema.teacherComments.createdAt));
@@ -119,7 +139,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
         organizerValues: submission.organizerValues,
         draft: submission.draft,
       }}
-      comments={comments}
+      comments={comments.map((c) => ({ id: c.id, content: c.content, characterName: (c.asCharacter && getReplyCharacter(c.asCharacter)?.name) || null }))}
       messages={messages}
       coach={{ preferredProvider: assignment.coachProvider, local: getLocalModelConfig() }}
     />
