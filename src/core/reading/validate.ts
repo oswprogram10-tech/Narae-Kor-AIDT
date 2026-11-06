@@ -20,6 +20,33 @@ export function validatePassage(passage: Passage): string[] {
     if (para.sentences.length < 2) p.push(`${para.id}에 문장이 둘보다 적어요`);
     for (const s of para.sentences) if (!s.text.trim()) p.push(`${s.id}의 글이 비었어요`);
   }
+  if (passage.page) p.push(...validatePageMeta(passage));
+  return p;
+}
+
+/** 가상 웹 페이지: 첫 문단이 페이지 정보 문단이고, page 정보와 줄이 맞는지 */
+function validatePageMeta(passage: Passage): string[] {
+  const p: string[] = [];
+  const page = passage.page!;
+  const first = passage.paragraphs[0];
+  if (!first || !/(^|-)meta$/u.test(first.id)) {
+    p.push("가상 페이지의 첫 문단은 페이지 정보 문단(meta)이어야 해요");
+    return p;
+  }
+  const lines = first.sentences.map((s) => s.text);
+  const need = (prefix: string, value: string | undefined) => {
+    if (value === undefined) return;
+    if (!lines.includes(`${prefix}: ${value}`)) p.push(`페이지 정보 문단에 '${prefix}: ${value}' 줄이 없어요`);
+  };
+  if (!page.site.trim()) p.push("사이트 이름이 비었어요");
+  if (!page.address.trim()) p.push("주소가 비었어요");
+  need("사이트", page.site);
+  need("주소", page.address);
+  need("글쓴이", page.author);
+  need("날짜", page.date);
+  need("출처", page.sourceNote);
+  if (page.isAd && !lines.some((l) => l.startsWith("광고"))) p.push("광고 페이지인데 '광고' 표시 줄이 없어요");
+  if (!page.isAd && lines.some((l) => l.startsWith("광고:"))) p.push("광고 페이지가 아닌데 '광고' 표시 줄이 있어요");
   return p;
 }
 
@@ -53,7 +80,7 @@ export function validateItem(item: ReadingItem, passage: Passage | undefined = g
   // 지문 쌍(관점 비교): 첫 지문은 passageId와 같고, 문단·문장 id가 두 지문 사이에서도 겹치지 않아야 한다.
   const passages: Passage[] = [passage];
   if (item.passageIds !== undefined) {
-    if (item.passageIds.length < 2 || item.passageIds.length > 2) p.push("passageIds는 지문 둘이어야 해요");
+    if (item.passageIds.length < 2 || item.passageIds.length > 3) p.push("passageIds는 지문 둘(가상 페이지 비교는 셋까지)이어야 해요");
     if (item.passageIds[0] !== item.passageId) p.push("passageIds의 첫 번째가 passageId와 달라요");
     if (new Set(item.passageIds).size !== item.passageIds.length) p.push("passageIds가 겹쳐요");
     for (const id of item.passageIds.slice(1)) {

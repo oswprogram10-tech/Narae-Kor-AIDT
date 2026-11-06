@@ -333,8 +333,19 @@ export const READING_PASSAGES: readonly Passage[] = [
   ], "b-"),
 ];
 
+/** 다른 학습 모듈(미디어 나래 등)이 읽기 핵심부의 채점·검증이 찾을 수 있게 맡기는 지문 */
+const REGISTERED: Passage[] = [];
+
+/** 지문을 읽기 핵심부에 등록한다(같은 id는 한 번만). 읽기 활동 목록(READING_PASSAGES)에는 들어가지 않는다. */
+export function registerPassages(list: readonly Passage[]): void {
+  for (const p of list) {
+    if (READING_PASSAGES.some((x) => x.id === p.id) || REGISTERED.some((x) => x.id === p.id)) continue;
+    REGISTERED.push(p);
+  }
+}
+
 export function getPassage(id: string): Passage | undefined {
-  return READING_PASSAGES.find((p) => p.id === id);
+  return READING_PASSAGES.find((p) => p.id === id) ?? REGISTERED.find((p) => p.id === id);
 }
 
 /** 지문의 모든 문장을 (문단 id와 함께) 펼쳐 준다. */

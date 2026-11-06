@@ -14,6 +14,26 @@ export interface Paragraph {
   sentences: Sentence[];
 }
 
+/** 연습용 가상 웹 페이지의 종류 */
+export type PageKind = "블로그" | "백과" | "공공기관" | "뉴스" | "광고" | "게시판" | "쇼핑";
+
+/**
+ * 가상 웹 페이지 정보(미디어 나래). 호스트는 이 정보로 지문을 가짜 웹 페이지 모양으로 보여 준다.
+ * address는 실제 주소와 겹치지 않도록 ".가상"으로 끝나는 지어낸 주소만 쓴다(예: "haesol-safety.가상").
+ */
+export interface PageMeta {
+  kind: PageKind;
+  /** 사이트 이름(지어낸 이름) */
+  site: string;
+  address: string;
+  author?: string;
+  /** 예: "2026년 3월 12일" */
+  date?: string;
+  /** 출처 표시(예: 어떤 자료에서 가져왔는지) */
+  sourceNote?: string;
+  isAd?: boolean;
+}
+
 export interface Passage {
   /** 예: "mi-cat" */
   id: string;
@@ -21,6 +41,14 @@ export interface Passage {
   genre: Genre;
   gradeBand: "3-4" | "5-6";
   paragraphs: Paragraph[];
+  /**
+   * 가상 웹 페이지일 때만 쓴다. 약속: 첫 문단은 페이지 정보 문단(id가 "meta" 또는 "접두사-meta")이고,
+   * 정보 한 줄이 문장 하나다. 그래서 정보 줄도 문장 고르기·꼬리표·근거 고르기에 그대로 쓸 수 있다.
+   * 줄 모양: "사이트: …", "주소: …", "글쓴이: …", "날짜: …", "출처: …", "광고: …"
+   * (page의 author·date·sourceNote·isAd가 있으면 그 줄이 반드시 있어야 하고, validatePassage가 확인한다.
+   * 글쓴이·날짜·출처가 없는 페이지는 "글쓴이: 밝히지 않았어요"처럼 없다는 사실을 줄로 적을 수 있다.)
+   */
+  page?: PageMeta;
 }
 
 /**
@@ -30,13 +58,13 @@ export interface Passage {
  * choice-with-evidence의 correctOption·evidenceIds.
  * 그리고 principle·hints·explanation은 단계에 맞게 나중에 보여 준다.
  */
-interface ItemBase {
+export interface ItemBase {
   /** 예: "ma-01" */
   id: string;
   /** 문제의 (첫) 지문 */
   passageId: string;
   /**
-   * 지문 둘을 함께 읽는 문제(관점 비교)일 때만 쓴다. 첫 번째는 passageId와 같다.
+   * 지문 둘(미디어 나래의 가상 페이지 비교는 셋까지)을 함께 읽는 문제일 때만 쓴다. 첫 번째는 passageId와 같다.
    * 두 지문의 문장 id·문단 id는 서로 겹치면 안 된다(지문을 만들 때 접두사로 구분하고 validateItem이 확인한다).
    */
   passageIds?: string[];
