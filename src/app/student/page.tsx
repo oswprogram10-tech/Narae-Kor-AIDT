@@ -34,6 +34,11 @@ export default async function StudentHome() {
       if (sum.total > 0 && sum.solved === sum.total) return "완료 ✓";
       return sum.solved === 0 ? "시작하기" : `${sum.solved}/${sum.total} 문제`;
     }
+    if (a.kind === "cardnews" || a.kind === "media-diary") {
+      if (!s) return "시작하기";
+      if (a.kind === "cardnews" && s.shareApproved) return "공유됨 ✓";
+      return s.status === "submitted" ? "제출 ✓" : "만드는 중";
+    }
     return !s
       ? "시작하기"
       : s.status === "submitted"

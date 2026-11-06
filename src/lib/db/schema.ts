@@ -9,6 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { Artifact } from "@/core/artifact";
 import type { OrganizerField, RubricCriterion } from "@/core/data/genres";
 
 // 학생 실명·이메일은 저장하지 않는다(결정 6: 익명 계정). 번호-이름 대응표는 교사가 앱 밖에서 보관한다.
@@ -47,8 +48,9 @@ export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용). grammar·reading·media이면 activityId에 활동 id를 둔다.
-  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media">().notNull().default("writing"),
+  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용) | cardnews(카드뉴스 만들기) | media-diary(매체 이용 성찰 일지).
+  // grammar·reading·media이면 activityId에 활동 id를 둔다. cardnews·media-diary는 활동 id 없이 제출물의 artifact에 저장한다.
+  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media" | "cardnews" | "media-diary">().notNull().default("writing"),
   activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),
@@ -76,11 +78,31 @@ export const submissions = pgTable(
     organizerValues: jsonb("organizer_values").$type<Record<string, string>>().notNull().default({}),
     draft: text("draft").notNull().default(""),
     pasteChars: integer("paste_chars").notNull().default(0),
+    // 학생이 만드는 제작물(카드뉴스·매체 이용 일지)의 내용. 형식은 src/core/artifact.
+    artifact: jsonb("artifact").$type<Artifact>(),
+    // 카드뉴스: 교사가 공유를 승인하면 반 갤러리에 보인다.
+    shareApproved: boolean("share_approved").notNull().default(false),
+    sharedAt: timestamp("shared_at", { withTimezone: true }),
+    // 카드뉴스: 작가가 받은 반응을 보고 '고칠 점'을 한 줄 적는다.
+    reflection: text("reflection").notNull().default(""),
     startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
   },
   (t) => [uniqueIndex("submissions_assignment_student").on(t.assignmentId, t.studentId)],
+);
+
+// 카드뉴스 반응 스티커: 같은 학생이 같은 작품에 같은 스티커를 두 번 남길 수 없다(자유 댓글은 없다).
+export const reactions = pgTable(
+  "reactions",
+  {
+    id: serial("id").primaryKey(),
+    submissionId: integer("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
+    reactorId: integer("reactor_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    stickerId: text("sticker_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("reactions_unique").on(t.submissionId, t.reactorId, t.stickerId), index("reactions_submission").on(t.submissionId)],
 );
 
 // 초고 버전 기록(초고 → 최종본 비교, 연구용 쓰기 과정 분석)

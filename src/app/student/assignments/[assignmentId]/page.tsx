@@ -13,6 +13,9 @@ import { readingProgress } from "@/lib/reading";
 import { studentReadingView } from "@/lib/reading-rules";
 import { isReadingHostKind } from "@/lib/activities";
 import { ReadingRunner } from "./ReadingRunner";
+import { CardnewsMaker } from "./CardnewsMaker";
+import { DiaryMaker } from "./DiaryMaker";
+import { galleryFor, storedArtifact } from "@/lib/artifacts";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { studentId, classId } = await requireStudent();
@@ -29,6 +32,29 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const db = await getDb();
+  if (assignment.kind === "cardnews" || assignment.kind === "media-diary") {
+    const art = storedArtifact(submission, assignment.kind);
+    if (art.kind === "cardnews") {
+      const mine = submission.shareApproved ? (await galleryFor(assignment.id, classId, studentId))?.works.find((w) => w.own) : undefined;
+      return (
+        <CardnewsMaker
+          submissionId={submission.id}
+          assignmentId={assignment.id}
+          title={assignment.title}
+          prompt={assignment.prompt}
+          isOpen={assignment.isOpen}
+          initial={art}
+          status={submission.status}
+          approved={submission.shareApproved}
+          reactions={mine?.counts ?? {}}
+          reflection={submission.reflection}
+        />
+      );
+    }
+    if (art.kind === "media-diary") {
+      return <DiaryMaker submissionId={submission.id} title={assignment.title} prompt={assignment.prompt} isOpen={assignment.isOpen} initial={art} status={submission.status} />;
+    }
+  }
   if (isReadingHostKind(assignment.kind)) {
     if (submission.stage !== "reading") {
       await db.update(schema.submissions).set({ stage: "reading" }).where(eq(schema.submissions.id, submission.id));

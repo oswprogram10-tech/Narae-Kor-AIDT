@@ -23,22 +23,33 @@ interface ActivityOption {
   itemCount: number;
 }
 
+interface ArtifactOption {
+  kind: "cardnews" | "media-diary";
+  title: string;
+  description: string;
+  standardCode: string;
+  statement: string;
+}
+
 export function NewAssignmentForm({
   classId,
   genres,
   activities: grammarActivities,
   readingActivities,
   mediaActivities,
+  artifactActivities,
 }: {
   classId: number;
   genres: GenreOption[];
   activities: ActivityOption[];
   readingActivities: ActivityOption[];
   mediaActivities: ActivityOption[];
+  artifactActivities: ArtifactOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media">("writing");
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "cardnews" | "media-diary">("writing");
   const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities };
-  const activities = kind === "writing" ? [] : activityMap[kind];
+  const artifact = artifactActivities.find((x) => x.kind === kind);
+  const activities = kind === "writing" || artifact ? [] : activityMap[kind as "grammar" | "reading" | "media"];
   const [activityId, setActivityId] = useState(grammarActivities[0]?.id ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(createAssignment, {});
   const [genreId, setGenreId] = useState(genres[0]?.id ?? "");
@@ -70,9 +81,35 @@ export function NewAssignmentForm({
             {label}
           </button>
         ))}
+        {artifactActivities.map((x) => (
+          <button key={x.kind} type="button" aria-pressed={kind === x.kind} onClick={() => setKind(x.kind)} className={kind === x.kind ? "btn-primary" : "btn-ghost"}>
+            {x.title}
+          </button>
+        ))}
       </div>
 
-      {kind !== "writing" ? (
+      {artifact ? (
+        <>
+          <div className="card space-y-1 border-brand-500 ring-2 ring-brand-100">
+            <div className="font-semibold">{artifact.title}</div>
+            <p className="text-sm text-stone-600">{artifact.description}</p>
+            <p className="text-xs text-stone-500">[{artifact.standardCode}] {artifact.statement}</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="atitle">과제 제목 (비워 두면 활동 이름을 써요)</label>
+            <input className="input" id="atitle" name="title" placeholder={artifact.title} />
+          </div>
+          <p className="text-sm text-stone-500">
+            {artifact.kind === "cardnews"
+              ? "정답 채점 없이 단계·스스로 점검·선생님 승인으로 운영해요. 학생이 쓴 모든 글에 위험 신호·개인 정보 점검이 돌아가고, 걸리면 이 화면에 알림이 떠요. 사진은 올리지 않아요."
+              : "채점하지 않아요. 선생님은 학생별 요약과 학급 평균만 보고, 학생끼리 공유하지 않아요. 자유로 쓴 글에는 위험 신호·개인 정보 점검이 돌아가요."}
+          </p>
+          <FormMessage state={state} />
+          <button className="btn-primary" disabled={pending}>과제 만들기</button>
+        </>
+      ) : null}
+
+      {artifact ? null : kind !== "writing" ? (
         <>
           <fieldset className="space-y-2">
             <legend className="label">1. 활동 고르기</legend>

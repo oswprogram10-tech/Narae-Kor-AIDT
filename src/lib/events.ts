@@ -15,7 +15,11 @@ export type Verb =
   | "rubric_final"
   | "return"
   | "grammar_answer"
-  | "reading_answer";
+  | "reading_answer"
+  | "artifact_safety"
+  | "share"
+  | "reaction"
+  | "reflection";
 
 export async function logEvent(
   actor: string,

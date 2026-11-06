@@ -20,6 +20,8 @@ import { mediaActivitiesForGrade } from "@/core/media";
 import { teacherSubmission } from "@/lib/submissions";
 import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
+import { artifactActivity, artifactActivitiesForGrade } from "@/core/artifact";
+import { setShareApproved as approveShare } from "@/lib/artifacts";
 
 export interface FormState {
   error?: string;
@@ -94,6 +96,27 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
   const klass = await ownedClass(teacherId, classId);
   if (!klass) return { error: "학급을 찾을 수 없습니다." };
   const kind = String(form.get("kind") ?? "writing");
+  if (kind === "cardnews" || kind === "media-diary") {
+    const activity = artifactActivity(kind);
+    if (!activity || !artifactActivitiesForGrade(klass.grade).includes(activity)) return { error: "이 활동은 5~6학년 학급에서만 낼 수 있어요." };
+    const db = await getDb();
+    const [a] = await db
+      .insert(schema.assignments)
+      .values({
+        classId,
+        title: (String(form.get("title") ?? "").trim() || activity.title).slice(0, 100),
+        kind,
+        activityId: null,
+        genreId: "",
+        standardCodes: [activity.standardCode],
+        prompt: activity.description,
+        organizer: [],
+        rubric: [],
+        coachEnabled: false,
+      })
+      .returning({ id: schema.assignments.id });
+    redirect(`/teacher/assignments/${a.id}`);
+  }
   if (kind === "grammar" || kind === "reading" || kind === "media") {
     const activities =
       kind === "reading" ? readingActivitiesForGrade(klass.grade) : kind === "media" ? mediaActivitiesForGrade(klass.grade) : activitiesForGrade(klass.grade);
@@ -218,4 +241,10 @@ export async function returnSubmission(submissionId: number): Promise<void> {
   await db.update(schema.submissions).set({ status: "returned" }).where(eq(schema.submissions.id, submissionId));
   await logEvent(`teacher:${teacherId}`, "return", "submission", submissionId);
   revalidatePath(`/teacher/submissions/${submissionId}`);
+}
+
+/** 카드뉴스 공유 승인·승인 취소(승인한 작품만 반 갤러리에 보인다) */
+export async function setShareApproved(submissionId: number, approved: boolean): Promise<void> {
+  const { teacherId } = await requireTeacher();
+  if (await approveShare(teacherId, submissionId, approved)) revalidatePath("/teacher/assignments", "layout");
 }
