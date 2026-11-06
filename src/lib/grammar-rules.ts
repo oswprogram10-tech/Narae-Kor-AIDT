@@ -79,9 +79,12 @@ export function parseAnswer(item: GrammarItem, raw: unknown): GrammarAnswer | nu
   return { type: "agreement-fix", index: index as number, option: option as number };
 }
 
+/** 틀린 횟수에 넣지 않는 reason: 정답, 어색한 순서(문법), 다 고르지 않음·형식 불일치(읽기) */
+const NOT_WRONG = new Set(["ok", "awkward", "incomplete", "type-mismatch"]);
+
 /** 이전 시도의 reason 목록에서 '틀린 횟수'를 센다. 정답("ok")과 어색한 순서("awkward")는 세지 않는다. */
 export function wrongAttemptCount(previousReasons: readonly string[]): number {
-  return previousReasons.filter((r) => r !== "ok" && r !== "awkward").length;
+  return previousReasons.filter((r) => !NOT_WRONG.has(r)).length;
 }
 
 export type HintLevel = "principle" | "hint1" | "hint2" | "reveal";
@@ -94,6 +97,8 @@ export interface AttemptRow {
   correct: boolean;
   feedbackLevel: string | null;
   createdAt: Date;
+  /** 채점 사유(연구용 CSV의 근거 오답 수에 쓴다). 없을 수 있다. */
+  reason?: string;
 }
 
 export interface ItemProgress {

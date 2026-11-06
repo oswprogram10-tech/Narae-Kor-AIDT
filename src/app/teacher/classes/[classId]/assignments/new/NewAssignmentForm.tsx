@@ -26,14 +26,17 @@ interface ActivityOption {
 export function NewAssignmentForm({
   classId,
   genres,
-  activities,
+  activities: grammarActivities,
+  readingActivities,
 }: {
   classId: number;
   genres: GenreOption[];
   activities: ActivityOption[];
+  readingActivities: ActivityOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar">("writing");
-  const [activityId, setActivityId] = useState(activities[0]?.id ?? "");
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading">("writing");
+  const activities = kind === "reading" ? readingActivities : grammarActivities;
+  const [activityId, setActivityId] = useState(grammarActivities[0]?.id ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(createAssignment, {});
   const [genreId, setGenreId] = useState(genres[0]?.id ?? "");
   const genre = genres.find((g) => g.id === genreId);
@@ -48,12 +51,16 @@ export function NewAssignmentForm({
         {([
           ["writing", "글쓰기 과제"],
           ["grammar", "문법·어휘 활동"],
+          ["reading", "읽기 활동"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
             type="button"
             aria-pressed={kind === k}
-            onClick={() => setKind(k)}
+            onClick={() => {
+              setKind(k);
+              if (k !== "writing") setActivityId((k === "reading" ? readingActivities : grammarActivities)[0]?.id ?? "");
+            }}
             className={kind === k ? "btn-primary" : "btn-ghost"}
           >
             {label}
@@ -61,7 +68,7 @@ export function NewAssignmentForm({
         ))}
       </div>
 
-      {kind === "grammar" ? (
+      {kind !== "writing" ? (
         <>
           <fieldset className="space-y-2">
             <legend className="label">1. 활동 고르기</legend>
@@ -96,7 +103,10 @@ export function NewAssignmentForm({
             <label className="label" htmlFor="gtitle">2. 과제 제목 (비워 두면 활동 이름을 써요)</label>
             <input className="input" id="gtitle" name="title" placeholder={activities.find((x) => x.id === activityId)?.title} />
           </div>
-          <p className="text-sm text-stone-500">AI 없이 규칙으로 채점해요. 틀리면 원리와 힌트를 차례로 보여 주고, 학생 기록은 문제별로 남아요.</p>
+          <p className="text-sm text-stone-500">
+            AI 없이 규칙으로 채점해요. 틀리면 원리와 힌트를 차례로 보여 주고, 학생 기록은 문제별로 남아요.
+            {kind === "reading" && " 학생은 지문을 보면서 문제를 풀고, 근거 문장도 함께 골라요."}
+          </p>
           <FormMessage state={state} />
           <button className="btn-primary" disabled={pending || activities.length === 0}>과제 만들기</button>
         </>

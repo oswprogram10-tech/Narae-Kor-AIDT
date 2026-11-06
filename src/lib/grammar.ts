@@ -43,6 +43,7 @@ export async function attemptsFor(submissionIds: number[]): Promise<(AttemptRow 
     correct: r.correct,
     feedbackLevel: r.feedbackLevel,
     createdAt: r.createdAt,
+    reason: r.reason,
   }));
 }
 

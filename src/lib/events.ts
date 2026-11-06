@@ -14,7 +14,8 @@ export type Verb =
   | "rubric_ai"
   | "rubric_final"
   | "return"
-  | "grammar_answer";
+  | "grammar_answer"
+  | "reading_answer";
 
 export async function logEvent(
   actor: string,

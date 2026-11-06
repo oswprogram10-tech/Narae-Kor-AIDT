@@ -11,6 +11,7 @@ import { PROVIDER_IDS, PROVIDER_LABELS } from "@/core/providers";
 import { LiveStatus } from "./LiveStatus";
 import { GrammarStatus } from "./GrammarStatus";
 import { getActivity } from "@/core/grammar";
+import { getActivity as getReadingActivity } from "@/core/reading";
 import { grammarStatus } from "@/lib/grammar-dashboard";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -21,9 +22,9 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const { assignment: a, klass } = owned;
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
-  const isGrammar = a.kind === "grammar";
+  const isGrammar = a.kind === "grammar" || a.kind === "reading";
   const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
-  const gStatus = isGrammar ? await grammarStatus(id, klass.id, a.activityId) : null;
+  const gStatus = isGrammar ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" ? "reading" : "grammar") : null;
   const available = assignableProviders();
 
   return (
@@ -39,7 +40,11 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-sm text-stone-500">
-              {isGrammar ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동") : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}
+              {a.kind === "reading"
+                ? (getReadingActivity(a.activityId ?? "")?.title ?? "읽기 활동")
+                : isGrammar
+                  ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
+                  : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}
             </div>
             <h1 className="text-2xl font-bold">{a.title}</h1>
             <p className="mt-1 max-w-2xl text-stone-600">{a.prompt}</p>

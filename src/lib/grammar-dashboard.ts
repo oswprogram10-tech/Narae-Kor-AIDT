@@ -2,7 +2,9 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getItem } from "@/core/grammar";
+import { getItem as getReadingItem } from "@/core/reading";
 import { activityItems, attemptsFor } from "@/lib/grammar";
+import { readingActivityItems } from "@/lib/reading";
 import { summarizeAttempts, type ItemProgress } from "@/lib/grammar-rules";
 
 export interface GrammarStudentRow {
@@ -35,22 +37,33 @@ export interface GrammarStatus {
   items: GrammarItemRow[];
 }
 
-async function collect(assignmentId: number, classId: number, activityId: string | null) {
+/** 문법·읽기 활동이 같은 화면·계산을 쓴다. kind로 문제 은행만 고른다. */
+export type ActivityKind = "grammar" | "reading";
+
+const itemIdsOf = (kind: ActivityKind, activityId: string | null): string[] =>
+  (kind === "reading" ? readingActivityItems(activityId) : activityItems(activityId)).map((i) => i.id);
+
+async function collect(assignmentId: number, classId: number, activityId: string | null, kind: ActivityKind) {
   const db = await getDb();
   const students = await db.select().from(schema.students).where(eq(schema.students.classId, classId)).orderBy(schema.students.number);
   const subs = await db.select().from(schema.submissions).where(eq(schema.submissions.assignmentId, assignmentId));
-  const itemIds = activityItems(activityId).map((i) => i.id);
+  const itemIds = itemIdsOf(kind, activityId);
   const attempts = await attemptsFor(subs.map((s) => s.id));
   const rows = students.map((st) => {
     const sub = subs.find((s) => s.studentId === st.id) ?? null;
     const prog = summarizeAttempts(itemIds, sub ? attempts.filter((a) => a.submissionId === sub.id) : []);
     return { st, sub, prog };
   });
-  return { itemIds, rows };
+  return { itemIds, rows, attempts };
 }
 
-export async function grammarStatus(assignmentId: number, classId: number, activityId: string | null): Promise<GrammarStatus> {
-  const { itemIds, rows } = await collect(assignmentId, classId, activityId);
+export async function grammarStatus(
+  assignmentId: number,
+  classId: number,
+  activityId: string | null,
+  kind: ActivityKind = "grammar",
+): Promise<GrammarStatus> {
+  const { itemIds, rows } = await collect(assignmentId, classId, activityId, kind);
   const students: GrammarStudentRow[] = rows.map(({ st, sub, prog }) => ({
     studentId: st.id,
     number: st.number,
@@ -81,23 +94,36 @@ export async function grammarStatus(assignmentId: number, classId: number, activ
 }
 
 // 연구용 익명 CSV: 학생 × 문제 한 줄. 별명은 넣지 않는다.
-export async function grammarCsv(assignmentId: number, classId: number, activityId: string | null): Promise<string> {
-  const { rows } = await collect(assignmentId, classId, activityId);
-  const lines = [
-    ["student_number", "item_id", "standard_code", "attempts", "first_try_correct", "revealed", "max_hint_level", "seconds_to_solve"].join(","),
-  ];
-  for (const { st, prog } of rows) {
+// 읽기 활동은 끝에 evidence_wrong_attempts(답은 맞고 근거 문장이 틀린 시도 수) 열이 하나 더 붙는다.
+export async function grammarCsv(
+  assignmentId: number,
+  classId: number,
+  activityId: string | null,
+  kind: ActivityKind = "grammar",
+): Promise<string> {
+  const { rows, attempts } = await collect(assignmentId, classId, activityId, kind);
+  const header = ["student_number", "item_id", "standard_code", "attempts", "first_try_correct", "revealed", "max_hint_level", "seconds_to_solve"];
+  if (kind === "reading") header.push("evidence_wrong_attempts");
+  const lines = [header.join(",")];
+  for (const { st, sub, prog } of rows) {
     for (const p of prog) {
       lines.push(
         [
           st.number,
           p.itemId,
-          getItem(p.itemId)?.standardCode ?? "",
+          (kind === "reading" ? getReadingItem(p.itemId) : getItem(p.itemId))?.standardCode ?? "",
           p.attempts,
           p.firstTryCorrect ? 1 : 0,
           p.revealed ? 1 : 0,
           p.hintsUsed,
           p.secondsToSolve ?? "",
+          ...(kind === "reading"
+            ? [
+                sub
+                  ? attempts.filter((a) => a.submissionId === sub.id && a.itemId === p.itemId && a.reason === "evidence-wrong").length
+                  : 0,
+              ]
+            : []),
         ].join(","),
       );
     }

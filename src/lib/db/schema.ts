@@ -47,8 +47,8 @@ export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  // writing(글쓰기) | grammar(문법·어휘 활동). grammar면 activityId에 활동 id를 둔다.
-  kind: text("kind").$type<"writing" | "grammar">().notNull().default("writing"),
+  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동). grammar·reading이면 activityId에 활동 id를 둔다.
+  kind: text("kind").$type<"writing" | "grammar" | "reading">().notNull().default("writing"),
   activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),
@@ -117,7 +117,9 @@ export const coachMessages = pgTable(
   (t) => [index("coach_messages_submission").on(t.submissionId)],
 );
 
-// 문법 활동의 문제별 시도 기록(연구용). feedbackLevel: 정답이면 null, 아니면 principle|hint1|hint2|reveal|awkward
+// 문법·읽기 활동의 문제별 시도 기록(연구용). 이름은 grammar_attempts지만 읽기 활동도 같은 표를 쓴다
+// (제출물이 어느 종류의 과제인지는 assignments.kind로 알고, itemId는 활동 문제 id, answer는 종류별 답안 JSON).
+// feedbackLevel: 정답이면 null, 아니면 principle|hint1|hint2|reveal|awkward
 export const grammarAttempts = pgTable(
   "grammar_attempts",
   {

@@ -9,6 +9,9 @@ import { getLocalModelConfig } from "@/lib/coach";
 import { progress, studentItems } from "@/lib/grammar";
 import { progressSummary } from "@/lib/grammar-rules";
 import { GrammarRunner } from "./GrammarRunner";
+import { readingProgress } from "@/lib/reading";
+import { studentPassages, studentReadingItems } from "@/lib/reading-rules";
+import { ReadingRunner } from "./ReadingRunner";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { studentId, classId } = await requireStudent();
@@ -25,6 +28,23 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const db = await getDb();
+  if (assignment.kind === "reading") {
+    if (submission.stage !== "reading") {
+      await db.update(schema.submissions).set({ stage: "reading" }).where(eq(schema.submissions.id, submission.id));
+    }
+    const prog = await readingProgress(submission.id, assignment.activityId);
+    return (
+      <ReadingRunner
+        submissionId={submission.id}
+        title={assignment.title}
+        isOpen={assignment.isOpen}
+        items={studentReadingItems(assignment.activityId ?? "")}
+        passages={studentPassages(assignment.activityId ?? "")}
+        solvedIds={prog.filter((p) => p.solved).map((p) => p.itemId)}
+        initialSummary={progressSummary(prog)}
+      />
+    );
+  }
   if (assignment.kind === "grammar") {
     if (submission.stage !== "grammar") {
       await db.update(schema.submissions).set({ stage: "grammar" }).where(eq(schema.submissions.id, submission.id));
