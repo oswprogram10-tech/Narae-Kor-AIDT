@@ -1,5 +1,6 @@
 // 문법 문제 채점과 피드백(규칙 기반, AI 없음).
 
+import { feedbackLevel, type FeedbackLevel } from "@/core/practice/feedback";
 import type { GrammarAnswer, GrammarItem } from "./types";
 
 export type GradeReason =
@@ -50,16 +51,17 @@ export function gradeAnswer(item: GrammarItem, answer: GrammarAnswer): GradeResu
 }
 
 export interface GrammarFeedback {
-  level: "principle" | "hint1" | "hint2" | "reveal";
+  level: FeedbackLevel;
   message: string;
   reveal?: GrammarAnswer;
 }
 
 /** wrongCount: 지금까지 틀린 횟수(이번 오답 포함). 오답 뒤에만 부른다. */
 export function feedbackFor(item: GrammarItem, wrongCount: number): GrammarFeedback {
-  if (wrongCount <= 1) return { level: "principle", message: item.principle };
-  if (wrongCount === 2) return { level: "hint1", message: item.hints[0] };
-  if (wrongCount === 3) return { level: "hint2", message: item.hints[1] };
+  const level = feedbackLevel(wrongCount);
+  if (level === "principle") return { level, message: item.principle };
+  if (level === "hint1") return { level, message: item.hints[0] };
+  if (level === "hint2") return { level, message: item.hints[1] };
   const reveal: GrammarAnswer =
     item.type === "sentence-build"
       ? { type: "sentence-build", order: [...item.answers[0]] }
