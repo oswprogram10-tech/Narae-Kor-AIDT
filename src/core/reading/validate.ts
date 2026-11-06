@@ -2,7 +2,8 @@
 
 import { getStandard } from "@/core/data/standards";
 import { allSentences, getPassage } from "./passages";
-import type { Passage, ReadingItem } from "./types";
+import { groupMatches, normalizeText, paragraphCovered } from "./summary";
+import type { Passage, ReadingItem, SummaryWriteItem } from "./types";
 
 const stripEnd = (s: string) => s.replace(/[.?!,]+$/u, "");
 
@@ -48,10 +49,51 @@ export function validateItem(item: ReadingItem, passage: Passage | undefined = g
     p.push(`지문 ${item.passageId}이(가) 없어요`);
     return p;
   }
-  if (passage.gradeBand === "3-4" ? item.grade > 4 : item.grade < 5) p.push("학년이 지문의 학년군과 맞지 않아요");
 
-  const sentences = new Map(allSentences(passage).map((s) => [s.id, s]));
+  // 지문 쌍(관점 비교): 첫 지문은 passageId와 같고, 문단·문장 id가 두 지문 사이에서도 겹치지 않아야 한다.
+  const passages: Passage[] = [passage];
+  if (item.passageIds !== undefined) {
+    if (item.passageIds.length < 2 || item.passageIds.length > 2) p.push("passageIds는 지문 둘이어야 해요");
+    if (item.passageIds[0] !== item.passageId) p.push("passageIds의 첫 번째가 passageId와 달라요");
+    if (new Set(item.passageIds).size !== item.passageIds.length) p.push("passageIds가 겹쳐요");
+    for (const id of item.passageIds.slice(1)) {
+      const other = getPassage(id);
+      if (!other) p.push(`지문 ${id}이(가) 없어요`);
+      else passages.push(other);
+    }
+    const sids = passages.flatMap((x) => x.paragraphs.flatMap((para) => para.sentences.map((s) => s.id)));
+    if (new Set(sids).size !== sids.length) p.push("지문 쌍의 문장 id가 겹쳐요");
+    const pids = passages.flatMap((x) => x.paragraphs.map((para) => para.id));
+    if (new Set(pids).size !== pids.length) p.push("지문 쌍의 문단 id가 겹쳐요");
+    if (item.type === "slot-paragraphs" || item.type === "sentence-pick" || item.type === "summary-write") {
+      p.push("이 형식은 지문 쌍에 쓸 수 없어요");
+    }
+  }
+  for (const x of passages) {
+    if (x.gradeBand === "3-4" ? item.grade > 4 : item.grade < 5) p.push(`학년이 지문 ${x.id}의 학년군과 맞지 않아요`);
+  }
+
+  // 예측하며 읽기: revealUpTo 문단까지만 보이므로, 근거·고를 문장은 그 안에 있어야 한다.
+  let revealed = passage.paragraphs;
+  if (item.revealUpTo !== undefined) {
+    const at = passage.paragraphs.findIndex((x) => x.id === item.revealUpTo);
+    if (at < 0) p.push(`revealUpTo ${item.revealUpTo}이(가) 지문에 없어요`);
+    else revealed = passage.paragraphs.slice(0, at + 1);
+    if (item.passageIds !== undefined) p.push("revealUpTo는 지문 쌍에 쓸 수 없어요");
+  }
+  const visibleParagraphs = [...revealed, ...passages.slice(1).flatMap((x) => x.paragraphs)];
+  const sentences = new Map(visibleParagraphs.flatMap((para) => para.sentences).map((s) => [s.id, s]));
   const paragraphIds = new Set(passage.paragraphs.map((x) => x.id));
+  if (item.revealUpTo !== undefined) {
+    // 보이지 않는 문단의 글이 문제 글·보기에 그대로 들어 있으면 미리 알려 주는 셈이다.
+    const hiddenSentences = passage.paragraphs.slice(revealed.length).flatMap((para) => para.sentences);
+    const optionTexts = item.type === "choice" || item.type === "choice-with-evidence" ? item.options : [];
+    for (const [name, text] of [["prompt", item.prompt], ["principle", item.principle], ["hints[0]", item.hints[0]], ["hints[1]", item.hints[1]], ...optionTexts.map((o, i) => [`options[${i}]`, o] as const)] as [string, string][]) {
+      for (const h of hiddenSentences) {
+        if (text.includes(stripEnd(h.text))) p.push(`${name}에 아직 보이지 않는 문단의 문장(${h.id})이 그대로 들어 있어요`);
+      }
+    }
+  }
   const guarded: [string, string][] = [
     ["prompt", item.prompt],
     ["principle", item.principle],
@@ -128,6 +170,9 @@ export function validateItem(item: ReadingItem, passage: Passage | undefined = g
     case "choice":
       checkOptions(item.options, item.correctOption);
       break;
+    case "summary-write":
+      p.push(...validateSummary(item, passage));
+      break;
     case "choice-with-evidence": {
       checkOptions(item.options, item.correctOption);
       if (item.evidenceIds.length === 0) p.push("근거 문장이 하나도 없어요");
@@ -141,5 +186,60 @@ export function validateItem(item: ReadingItem, passage: Passage | undefined = g
       break;
     }
   }
+  return p;
+}
+
+/** 요약 쓰기 문제 검사: 문단 구성, 길이 범위, 핵심 낱말 묶음의 품질(다른 문단 글만으로 채워지지 않는지 등) */
+function validateSummary(item: SummaryWriteItem, passage: Passage): string[] {
+  const p: string[] = [];
+  if (!Number.isInteger(item.minChars) || !Number.isInteger(item.maxChars) || item.minChars < 20 || item.maxChars <= item.minChars) {
+    p.push(`글자 수 범위(${item.minChars}~${item.maxChars})가 알맞지 않아요`);
+  }
+  const total = passage.paragraphs.reduce((n, para) => n + para.sentences.reduce((m, s) => m + normalizeText(s.text).length, 0), 0);
+  if (item.maxChars > total * 0.6) p.push("maxChars가 지문 길이의 절반을 많이 넘어요");
+  if (item.paragraphs.map((x) => x.paragraphId).join() !== passage.paragraphs.map((x) => x.id).join()) {
+    p.push("paragraphs가 지문의 모든 문단을 순서대로 담고 있지 않아요");
+    return p;
+  }
+  const guarded: [string, string][] = [
+    ["prompt", item.prompt],
+    ["principle", item.principle],
+    ["hints[0]", item.hints[0]],
+    ["hints[1]", item.hints[1]],
+  ];
+  passage.paragraphs.forEach((para, i) => {
+    const spec = item.paragraphs[i];
+    const no = i + 1;
+    if (spec.keyGroups.length === 0) p.push(`${no}문단의 핵심 낱말 묶음이 없어요`);
+    const seen = new Set<string>();
+    for (const g of spec.keyGroups) {
+      const key = g.map(normalizeText).join("+");
+      if (seen.has(key)) p.push(`${no}문단의 핵심 낱말 묶음이 겹쳐요: ${g.join("+")}`);
+      seen.add(key);
+      const words = g.map(normalizeText);
+      if (words.length === 0 || words.some((w) => w.length === 0)) p.push(`${no}문단에 빈 낱말이 있어요`);
+      // 한 글자 낱말이 홀로 있으면 아무 글에나 맞는다. 두 글자 이상이거나 다른 낱말과 함께 써야 한다.
+      if (words.length === 1 && words[0].length < 2) p.push(`${no}문단의 핵심 낱말 '${g[0]}'이(가) 너무 짧아요`);
+    }
+    if (!spec.topicHint.trim()) p.push(`${no}문단의 topicHint가 비었어요`);
+    p.push(...haeyoProblems(spec.topicHint).map((m) => `${no}문단 topicHint: ${m}`));
+    // 힌트 글(문단 힌트·안내·원리·힌트)에 핵심 낱말이 들어 있으면 내용을 미리 알려 주는 셈
+    for (const [name, text] of [["topicHint", spec.topicHint], ...guarded] as [string, string][]) {
+      const t = normalizeText(text);
+      for (const g of spec.keyGroups) for (const w of g) {
+        const nw = normalizeText(w);
+        if (nw.length >= 2 && t.includes(nw)) p.push(`${no}문단의 핵심 낱말 '${w}'이(가) ${name}에 들어 있어요`);
+      }
+    }
+    // 자기 문단의 글로 채워져야 하고, 다른 문단의 글만으로는 채워지지 않아야 한다.
+    const own = normalizeText(para.sentences.map((s) => s.text).join(""));
+    const others = normalizeText(
+      passage.paragraphs.filter((_, j) => j !== i).flatMap((x) => x.sentences.map((s) => s.text)).join(""),
+    );
+    if (!paragraphCovered(spec, own)) p.push(`${no}문단의 핵심 낱말이 그 문단 글과 맞지 않아요`);
+    for (const g of spec.keyGroups) {
+      if (groupMatches(g, others)) p.push(`${no}문단의 핵심 낱말 묶음 ${g.join("+")}이(가) 다른 문단 글만으로도 채워져요`);
+    }
+  });
   return p;
 }

@@ -17,6 +17,7 @@ import {
   progressSummary,
   studentItems,
   summarizeAttempts,
+  toDisplayAnswer,
   wrongAttemptCount,
   type AttemptRow,
   type HintLevel,
@@ -44,6 +45,7 @@ export async function attemptsFor(submissionIds: number[]): Promise<(AttemptRow 
     feedbackLevel: r.feedbackLevel,
     createdAt: r.createdAt,
     reason: r.reason,
+    answer: r.answer,
   }));
 }
 
@@ -98,7 +100,8 @@ export async function recordAnswer(
     feedback = {
       level: fb.level,
       message: fb.message,
-      reveal: fb.reveal ? { answer: fb.reveal, rendered: renderAnswer(item, fb.reveal) } : undefined,
+      // 화면에는 표시 번호로 돌려주고, 글(rendered)은 원래 보기 글 그대로
+      reveal: fb.reveal ? { answer: toDisplayAnswer(item, fb.reveal), rendered: renderAnswer(item, fb.reveal) } : undefined,
     };
     if (fb.level === "reveal") solved = true;
   } else if (result.reason === "awkward") {
@@ -112,6 +115,7 @@ export async function recordAnswer(
     correct: result.correct,
     reason: result.reason,
     feedbackLevel: level,
+    // 저장하는 답은 원래 보기 번호(섞기 전)
     answer,
   });
   await logEvent(`student:${studentId}`, "grammar_answer", "submission", submission.id, {

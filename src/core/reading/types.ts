@@ -25,7 +25,7 @@ export interface Passage {
 
 /**
  * 문제 공통 필드. 학생 기기로 보낼 때는 정답 필드를 빼야 한다.
- * 정답 필드: sentence-pick의 correctSentenceIds, label-sentences의 answers,
+ * 정답 필드: summary-write의 paragraphs(핵심 낱말·topicHint), sentence-pick의 correctSentenceIds, label-sentences의 answers,
  * slot-paragraphs의 slots[].paragraphIds, choice의 correctOption,
  * choice-with-evidence의 correctOption·evidenceIds.
  * 그리고 principle·hints·explanation은 단계에 맞게 나중에 보여 준다.
@@ -33,7 +33,18 @@ export interface Passage {
 interface ItemBase {
   /** 예: "ma-01" */
   id: string;
+  /** 문제의 (첫) 지문 */
   passageId: string;
+  /**
+   * 지문 둘을 함께 읽는 문제(관점 비교)일 때만 쓴다. 첫 번째는 passageId와 같다.
+   * 두 지문의 문장 id·문단 id는 서로 겹치면 안 된다(지문을 만들 때 접두사로 구분하고 validateItem이 확인한다).
+   */
+  passageIds?: string[];
+  /**
+   * 예측하며 읽기: 이 문제를 풀 때 학생에게 보이는 마지막 문단 id. 그 뒤 문단은 이 문제를 풀기 전까지 학생 기기로 보내지 않는다.
+   * 근거 문장도 보이는 문단 안에서만 고른다. 없으면 지문 전체가 보인다.
+   */
+  revealUpTo?: string;
   /** src/core/data/standards.ts에 있는 성취기준 코드 */
   standardCode: string;
   grade: 3 | 4 | 5 | 6;
@@ -99,12 +110,35 @@ export interface ChoiceWithEvidenceItem extends ItemBase {
   evidenceIds: string[];
 }
 
+export interface SummaryParagraphSpec {
+  paragraphId: string;
+  /**
+   * 핵심 낱말 묶음 여러 개. 묶음 안의 낱말이 모두 요약에 들어 있으면 그 묶음이 맞고,
+   * 묶음 하나라도 맞으면 이 문단이 반영된 것으로 본다(같은 뜻의 다른 표현을 허용하려고 묶음을 여러 개 둔다).
+   * 낱말은 어간·부분 글자도 되지만(띄어쓰기·문장부호는 지우고 비교) 너무 짧아 아무 데나 맞지 않게 쓴다.
+   */
+  keyGroups: string[][];
+  /** 이 문단이 빠졌을 때 보여 줄, 내용을 알려 주지 않는 힌트 한 문장(해요체). 핵심 낱말을 넣지 않는다. */
+  topicHint: string;
+}
+
+/** 학생이 지문을 자기 말로 요약해 쓰는 문제. 정답/오답이 아니라 고쳐 쓰기를 되풀이한다. */
+export interface SummaryWriteItem extends ItemBase {
+  type: "summary-write";
+  /** 지문의 모든 문단을 순서대로 */
+  paragraphs: SummaryParagraphSpec[];
+  /** 공백을 뺀 글자 수의 범위 */
+  minChars: number;
+  maxChars: number;
+}
+
 export type ReadingItem =
   | SentencePickItem
   | LabelSentencesItem
   | SlotParagraphsItem
   | ReadingChoiceItem
-  | ChoiceWithEvidenceItem;
+  | ChoiceWithEvidenceItem
+  | SummaryWriteItem;
 
 export type ReadingAnswer =
   | { type: "sentence-pick"; sentenceId: string }
@@ -112,7 +146,9 @@ export type ReadingAnswer =
   /** placement: 문단 id → 칸 id */
   | { type: "slot-paragraphs"; placement: Record<string, string> }
   | { type: "choice"; option: number }
-  | { type: "choice-with-evidence"; option: number; sentenceId: string };
+  | { type: "choice-with-evidence"; option: number; sentenceId: string }
+  /** submitAsIs: 여러 번 고쳐 쓴 뒤 선생님께 그대로 내기 */
+  | { type: "summary-write"; text: string; submitAsIs?: boolean };
 
 export interface ReadingActivity {
   id: string;

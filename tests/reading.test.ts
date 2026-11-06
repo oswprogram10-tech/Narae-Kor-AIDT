@@ -7,6 +7,8 @@ import {
   READING_PASSAGES,
   activitiesForGrade,
   allSentences,
+  itemPassages,
+  visibleSentences,
   correctAnswerOf,
   correctFeedback,
   feedbackFor,
@@ -45,9 +47,11 @@ describe("지문", () => {
   it("문단마다 문장이 둘 이상이고 ids가 규칙을 따라요", () => {
     for (const p of READING_PASSAGES) {
       p.paragraphs.forEach((para, pi) => {
-        expect(para.id).toBe(`p${pi + 1}`);
+        // 관점 비교 지문 쌍은 id가 겹치지 않도록 a-/b- 접두사를 붙인다
+        const prefix = p.id.startsWith("pv-") ? (p.id.endsWith("-a") ? "a-" : "b-") : "";
+        expect(para.id).toBe(`${prefix}p${pi + 1}`);
         expect(para.sentences.length, `${p.id}/${para.id}`).toBeGreaterThanOrEqual(2);
-        para.sentences.forEach((s, si) => expect(s.id).toBe(`s${pi + 1}-${si + 1}`));
+        para.sentences.forEach((s, si) => expect(s.id).toBe(`${prefix}s${pi + 1}-${si + 1}`));
       });
     }
   });
@@ -108,10 +112,12 @@ describe("문제 은행", () => {
 describe("활동 구성", () => {
   it("활동별 성취기준·학년군·지문·문제 수가 맞아요", () => {
     const want: Record<string, [string, string, number, number]> = {
-      "main-idea": ["4국02-02", "3-4", 2, 10],
+      "main-idea": ["4국02-02", "3-4", 2, 12],
       "fact-opinion": ["4국02-04", "3-4", 2, 8],
-      "text-structure": ["6국02-01", "5-6", 2, 10],
+      "text-structure": ["6국02-01", "5-6", 2, 12],
       inference: ["6국02-02", "5-6", 2, 12],
+      prediction: ["4국02-03", "3-4", 2, 10],
+      perspectives: ["6국02-04", "5-6", 4, 8],
     };
     expect(READING_ACTIVITIES.map((a) => a.id)).toEqual(Object.keys(want));
     for (const [id, [code, band, passages, items]] of Object.entries(want)) {
@@ -125,10 +131,11 @@ describe("활동 구성", () => {
         const item = getItem(itemId)!;
         expect(item.standardCode, itemId).toBe(code);
         expect(a.passageIds, itemId).toContain(item.passageId);
+        for (const pid of item.passageIds ?? []) expect(a.passageIds, itemId).toContain(pid);
         expect(band === "3-4" ? item.grade <= 4 : item.grade >= 5, itemId).toBe(true);
       }
     }
-    expect(READING_ITEMS.length).toBe(40);
+    expect(READING_ITEMS.length).toBe(62);
     const inActivities = READING_ACTIVITIES.flatMap((a) => a.itemIds);
     expect(new Set(inActivities).size).toBe(READING_ITEMS.length);
   });
@@ -136,6 +143,16 @@ describe("활동 구성", () => {
     const types = (id: string) => getActivity(id)!.itemIds.map((i) => getItem(i)!.type);
     expect(types("main-idea").filter((t) => t === "sentence-pick")).toHaveLength(8);
     expect(types("main-idea").filter((t) => t === "choice")).toHaveLength(2);
+    expect(types("main-idea").filter((t) => t === "summary-write")).toHaveLength(2);
+    expect(types("text-structure").filter((t) => t === "summary-write")).toHaveLength(2);
+    // 요약 쓰기는 지문마다 그 지문 문제의 맨 끝에 온다
+    for (const [act, pids] of [["main-idea", ["mi-cat", "mi-signal"]], ["text-structure", ["ts-lunch", "ts-neck"]]] as const) {
+      for (const pid of pids) {
+        const mine = getActivity(act)!.itemIds.map((i) => getItem(i)!).filter((i) => i.passageId === pid);
+        expect(mine.at(-1)!.type, pid).toBe("summary-write");
+        expect(mine.filter((i) => i.type === "summary-write"), pid).toHaveLength(1);
+      }
+    }
     expect(types("fact-opinion").filter((t) => t === "label-sentences")).toHaveLength(4);
     expect(types("text-structure").filter((t) => t === "slot-paragraphs")).toHaveLength(4);
     expect(new Set(types("inference"))).toEqual(new Set(["choice-with-evidence"]));
@@ -146,10 +163,10 @@ describe("활동 구성", () => {
     }
   });
   it("학년에 맞는 활동을 골라 줘요", () => {
-    expect(activitiesForGrade(3).map((a) => a.id)).toEqual(["main-idea", "fact-opinion"]);
-    expect(activitiesForGrade(4).map((a) => a.id)).toEqual(["main-idea", "fact-opinion"]);
-    expect(activitiesForGrade(5).map((a) => a.id)).toEqual(["text-structure", "inference"]);
-    expect(activitiesForGrade(6).map((a) => a.id)).toEqual(["text-structure", "inference"]);
+    expect(activitiesForGrade(3).map((a) => a.id)).toEqual(["main-idea", "fact-opinion", "prediction"]);
+    expect(activitiesForGrade(4).map((a) => a.id)).toEqual(["main-idea", "fact-opinion", "prediction"]);
+    expect(activitiesForGrade(5).map((a) => a.id)).toEqual(["text-structure", "inference", "perspectives"]);
+    expect(activitiesForGrade(6).map((a) => a.id)).toEqual(["text-structure", "inference", "perspectives"]);
     expect(getActivity("nope")).toBeUndefined();
   });
 });
@@ -157,6 +174,7 @@ describe("활동 구성", () => {
 describe("gradeAnswer", () => {
   it("모든 문제의 정답이 정답으로 채점돼요", () => {
     for (const i of READING_ITEMS) {
+      if (i.type === "summary-write") continue; // 요약은 정답이 없다(tests/reading-summary.test.ts)
       expect(gradeAnswer(i, correctAnswerOf(i)), i.id).toEqual({ correct: true, reason: "ok", countsAsWrong: false });
     }
   });
@@ -240,6 +258,7 @@ describe("feedbackFor (찍기 방지)", () => {
   });
   it("원리 → 힌트1 → 힌트2 → 정답 공개 순서예요", () => {
     for (const i of READING_ITEMS) {
+      if (i.type === "summary-write") continue;
       expect(feedbackFor(i, 1)).toEqual({ level: "principle", message: i.principle });
       expect(feedbackFor(i, 2)).toEqual({ level: "hint1", message: i.hints[0] });
       expect(feedbackFor(i, 3)).toEqual({ level: "hint2", message: i.hints[1] });
@@ -325,8 +344,7 @@ describe("내용 점검", () => {
   });
   it("힌트와 원리에 정답 보기·정답 문장이 그대로 들어 있지 않아요", () => {
     for (const i of READING_ITEMS) {
-      const passage = getPassage(i.passageId)!;
-      const text = new Map(allSentences(passage).map((s) => [s.id, s.text]));
+      const text = new Map(itemPassages(i).flatMap((p) => allSentences(p)).map((s) => [s.id, s.text]));
       const secrets: string[] = [];
       if (i.type === "choice" || i.type === "choice-with-evidence") secrets.push(i.options[i.correctOption]);
       if (i.type === "sentence-pick") secrets.push(...i.correctSentenceIds.map((id) => text.get(id)!));
@@ -370,5 +388,118 @@ describe("내용 점검", () => {
     expect(labels("ts-06")).toEqual(["문제", "원인", "해결"]);
     expect(getPassage("ts-lunch")!.genre).toBe("논설문");
     expect(getPassage("ts-neck")!.genre).toBe("설명하는 글");
+  });
+});
+
+describe("예측하며 읽기(prediction) 문제 구성", () => {
+  const pdIds = (pid: string) => getActivity("prediction")!.itemIds.map((i) => getItem(i)!).filter((i) => i.passageId === pid);
+  it("지문마다 문단 수만큼 차례로 열리고(1~5문단), 마지막은 전체 내용 고르기예요", () => {
+    for (const pid of ["pr-jump", "pr-seed"]) {
+      const items = pdIds(pid);
+      expect(getPassage(pid)!.paragraphs).toHaveLength(5);
+      expect(items.map((i) => i.revealUpTo)).toEqual(["p1", "p2", "p3", "p4", "p5"]);
+      expect(items.slice(0, 4).every((i) => i.type === "choice-with-evidence")).toBe(true);
+      expect(items[4].type).toBe("choice");
+    }
+    expect(getPassage("pr-jump")!.genre).toBe("이야기");
+    expect(getPassage("pr-seed")!.genre).toBe("설명하는 글");
+  });
+  it("예측 문제의 근거는 그 문제에서 보이는 문단 안에 있고, 정답 보기는 하나뿐이에요", () => {
+    for (const i of getActivity("prediction")!.itemIds.map((x) => getItem(x)!)) {
+      if (i.type !== "choice-with-evidence") continue;
+      const visible = new Set(visibleSentences(i).map((s) => s.id));
+      for (const e of i.evidenceIds) expect(visible.has(e), `${i.id}/${e}`).toBe(true);
+      // 아직 보이지 않는 문장은 근거로 고를 수 없다
+      const hidden = allSentences(getPassage(i.passageId)!).find((s) => !visible.has(s.id));
+      if (hidden) {
+        expect(gradeAnswer(i, { type: "choice-with-evidence", option: i.correctOption, sentenceId: hidden.id })).toMatchObject({ correct: false, reason: "incomplete", countsAsWrong: false });
+      }
+    }
+  });
+  it("validateItem이 보이지 않는 문단의 근거·미리 알려 주는 보기를 잡아내요", () => {
+    const item = getItem("pr-02") as ChoiceWithEvidenceItem;
+    expect(validateItem({ ...item, evidenceIds: ["s3-3"] }).some((m) => m.includes("s3-3"))).toBe(true);
+    expect(validateItem({ ...item, revealUpTo: "p9" }).some((m) => m.includes("p9"))).toBe(true);
+    const leak = { ...item, options: [...item.options.slice(0, 2), "한참 하늘을 올려다보던 나리는 무언가 생각난 듯 줄넘기 줄을 집어 들었다"] };
+    expect(validateItem(leak).some((m) => m.includes("아직 보이지 않는 문단"))).toBe(true);
+    expect(validateItem({ ...item, hints: ["나리는 마당에서 줄넘기를 했다는 사실을 떠올려 봐요.", item.hints[1]] })).toEqual([]);
+  });
+  it("visibleSentences: revealUpTo까지만, 없으면 전체", () => {
+    const i1 = getItem("pr-01")!;
+    expect(visibleSentences(i1).map((s) => s.id)).toEqual(["s1-1", "s1-2", "s1-3"]);
+    expect(visibleSentences(getItem("pr-05")!)).toHaveLength(allSentences(getPassage("pr-jump")!).length);
+    expect(visibleSentences(getItem("ma-01")!)).toHaveLength(allSentences(getPassage("mi-cat")!).length);
+  });
+});
+
+describe("관점 비교하기(perspectives) 문제 구성", () => {
+  const pv = () => getActivity("perspectives")!.itemIds.map((i) => getItem(i)!);
+  it("모든 문제가 지문 쌍을 쓰고, 쌍의 문장·문단 id가 겹치지 않아요", () => {
+    for (const i of pv()) {
+      expect(i.passageIds, i.id).toHaveLength(2);
+      expect(i.passageIds![0], i.id).toBe(i.passageId);
+      const ps = itemPassages(i);
+      expect(ps).toHaveLength(2);
+      const sids = ps.flatMap((p) => allSentences(p).map((s) => s.id));
+      expect(new Set(sids).size, i.id).toBe(sids.length);
+      const pids = ps.flatMap((p) => p.paragraphs.map((x) => x.id));
+      expect(new Set(pids).size, i.id).toBe(pids.length);
+    }
+  });
+  it("주제마다 문제 네 개(가 관점, 나 관점, 근거 놓기, 해결 방안)이고 지문은 3문단이에요", () => {
+    const items = pv();
+    for (const [pair, ids] of [[["pv-phone-a", "pv-phone-b"], items.slice(0, 4)], [["pv-garden-a", "pv-garden-b"], items.slice(4)]] as const) {
+      expect(ids.map((i) => i.type)).toEqual(["choice-with-evidence", "choice-with-evidence", "label-sentences", "choice"]);
+      for (const i of ids) expect(i.passageIds).toEqual(pair);
+      for (const id of pair) expect(getPassage(id)!.paragraphs).toHaveLength(3);
+    }
+  });
+  it("관점 문제의 근거는 그 글쓴이의 글에서만 인정해요", () => {
+    for (const [id, prefix] of [["pv-01", "a-"], ["pv-02", "b-"], ["pv-05", "a-"], ["pv-06", "b-"]] as const) {
+      const i = getItem(id) as ChoiceWithEvidenceItem;
+      for (const e of i.evidenceIds) expect(e.startsWith(prefix), `${id}/${e}`).toBe(true);
+      // 반대쪽 글의 문장은 근거로 인정하지 않는다
+      const other = prefix === "a-" ? "b-s1-1" : "a-s1-1";
+      expect(gradeAnswer(i, { type: "choice-with-evidence", option: i.correctOption, sentenceId: other })).toMatchObject({ correct: false, reason: "evidence-wrong" });
+    }
+  });
+  it("근거 놓기: 두 글의 문장이 섞여 있고 두 꼬리표가 모두 쓰이며, 꼬리표는 문장이 속한 글의 쪽이에요", () => {
+    for (const id of ["pv-03", "pv-07"]) {
+      const i = getItem(id) as LabelSentencesItem;
+      expect(i.labels).toEqual(["(가)의 근거", "(나)의 근거"]);
+      expect(i.sentenceIds).toHaveLength(4);
+      for (const sid of i.sentenceIds) expect(i.answers[sid], `${id}/${sid}`).toBe(sid.startsWith("a-") ? "(가)의 근거" : "(나)의 근거");
+      expect(i.sentenceIds[0].startsWith("a-")).toBe(false); // 지문 순서대로 늘어놓지 않는다
+      expect(new Set(Object.values(i.answers)).size).toBe(2);
+      expect(gradeAnswer(i, { type: "label-sentences", labels: { ...i.answers } }).correct).toBe(true);
+    }
+  });
+  it("해결 방안 문제는 보기 4개 중 정답이 첫째뿐이에요", () => {
+    for (const id of ["pv-04", "pv-08"]) {
+      const i = getItem(id) as ReadingChoiceItem;
+      expect(i.options).toHaveLength(4);
+      expect(i.options.filter((_, o) => gradeAnswer(i, { type: "choice", option: o }).correct)).toHaveLength(1);
+    }
+  });
+  it("validateItem이 지문 쌍의 잘못을 잡아내요", () => {
+    const item = getItem("pv-01") as ChoiceWithEvidenceItem;
+    expect(validateItem({ ...item, passageIds: ["pv-phone-a"] }).some((m) => m.includes("지문 둘"))).toBe(true);
+    expect(validateItem({ ...item, passageIds: ["pv-phone-b", "pv-phone-a"] }).some((m) => m.includes("첫 번째"))).toBe(true);
+    expect(validateItem({ ...item, passageIds: ["pv-phone-a", "pv-phone-a"] }).some((m) => m.includes("겹쳐요"))).toBe(true);
+    // 같은 접두사를 쓰는 지문 둘(a-/a-)이면 문장 id가 겹친다
+    expect(validateItem({ ...item, passageIds: ["pv-phone-a", "pv-garden-a"] }).some((m) => m.includes("문장 id가 겹쳐요"))).toBe(true);
+    expect(validateItem({ ...item, passageIds: ["pv-phone-a", "없는지문"] }).some((m) => m.includes("없는지문"))).toBe(true);
+    expect(validateItem({ ...item, grade: 4 }).some((m) => m.includes("학년군"))).toBe(true);
+    expect(validateItem({ ...item, evidenceIds: ["a-s9-9"] }).some((m) => m.includes("a-s9-9"))).toBe(true);
+    expect(validateItem({ ...item, revealUpTo: "a-p1" }).some((m) => m.includes("지문 쌍"))).toBe(true);
+    const pick: SentencePickItem = { ...(getItem("ma-01") as SentencePickItem), passageIds: ["mi-cat", "mi-signal"] };
+    expect(validateItem(pick).some((m) => m.includes("지문 쌍에 쓸 수 없어요"))).toBe(true);
+  });
+  it("지문 쌍 문제는 두 지문의 문장을 모두 고를 수 있어요", () => {
+    const i = getItem("pv-02") as ChoiceWithEvidenceItem;
+    expect(gradeAnswer(i, { type: "choice-with-evidence", option: i.correctOption, sentenceId: "b-s1-1" }).correct).toBe(true);
+    expect(gradeAnswer(i, { type: "choice-with-evidence", option: i.correctOption, sentenceId: "a-s1-1" }).reason).toBe("evidence-wrong");
+    expect(gradeAnswer(i, { type: "choice-with-evidence", option: i.correctOption, sentenceId: "s1-1" }).reason).toBe("incomplete");
+    expect(renderAnswer(i, { type: "choice-with-evidence", option: 1, sentenceId: "b-s1-1" })).toContain("(근거) 나는 쉬는 시간에 휴대폰 사용을 제한해야 한다고 생각합니다.");
   });
 });

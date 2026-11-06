@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { displayOptions, toOriginalIndex } from "@/core/practice/shuffle";
 import { GRAMMAR_ACTIVITIES, getItem, type AgreementFixItem, type ChoiceItem, type SentenceBuildItem } from "@/core/grammar";
 import {
   parseAnswer,
@@ -37,7 +38,7 @@ describe("studentItems", () => {
       standardCode: "4국04-01",
       context: full.context,
       target: full.target,
-      options: full.options,
+      options: displayOptions("wr-08", full.options), // 보기는 섞은 순서로 보낸다
     });
     expect(Object.keys(it).sort()).toEqual(["context", "id", "options", "prompt", "standardCode", "target", "type"]);
     const plain = studentItems("dictionary-form").find((x) => x.id === "df-08")!;
@@ -66,7 +67,7 @@ describe("parseAnswer", () => {
 
   it("올바른 모양은 통과", () => {
     expect(parseAnswer(sb, { type: "sentence-build", order: ids })).toEqual({ type: "sentence-build", order: ids });
-    expect(parseAnswer(ag, { type: "agreement-fix", index: 0, option: 0 })).toEqual({ type: "agreement-fix", index: 0, option: 0 });
+    expect(parseAnswer(ag, { type: "agreement-fix", index: 0, option: 0 })).toEqual({ type: "agreement-fix", index: 0, option: toOriginalIndex(ag.id, ag.options.length, 0) });
   });
   it("잘못된 모양은 거부", () => {
     expect(parseAnswer(sb, null)).toBeNull();
@@ -87,8 +88,9 @@ describe("parseAnswer", () => {
 describe("parseAnswer: choice", () => {
   const c = getItem("wr-01") as ChoiceItem;
   it("올바른 모양은 통과, 나머지는 거부", () => {
-    expect(parseAnswer(c, { type: "choice", option: 2 })).toEqual({ type: "choice", option: 2 });
-    expect(parseAnswer(c, { type: "choice", option: 0, extra: 1 })).toEqual({ type: "choice", option: 0 });
+    // 화면에서 온 표시 번호를 원래 번호로 되돌려 돌려준다
+    expect(parseAnswer(c, { type: "choice", option: 2 })).toEqual({ type: "choice", option: toOriginalIndex(c.id, c.options.length, 2) });
+    expect(parseAnswer(c, { type: "choice", option: 0, extra: 1 })).toEqual({ type: "choice", option: toOriginalIndex(c.id, c.options.length, 0) });
     expect(parseAnswer(c, { type: "choice", option: -1 })).toBeNull();
     expect(parseAnswer(c, { type: "choice", option: c.options.length })).toBeNull();
     expect(parseAnswer(c, { type: "choice", option: 1.5 })).toBeNull();

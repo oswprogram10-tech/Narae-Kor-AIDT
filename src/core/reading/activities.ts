@@ -41,6 +41,24 @@ export const READING_ACTIVITIES: readonly ReadingActivity[] = [
     passageIds: ["in-umbrella", "in-mudflat"],
     itemIds: ids("in-", "6국02-02"),
   },
+  {
+    id: "prediction",
+    title: "예측하며 읽기",
+    standardCode: "4국02-03",
+    gradeBand: "3-4",
+    description: "이야기와 설명하는 글을 문단씩 차례로 읽으며, 다음에 나올 내용을 짐작하고 그렇게 생각한 단서를 찾아요.",
+    passageIds: ["pr-jump", "pr-seed"],
+    itemIds: ids("pr-", "4국02-03"),
+  },
+  {
+    id: "perspectives",
+    title: "관점 비교하기",
+    standardCode: "6국02-04",
+    gradeBand: "5-6",
+    description: "같은 문제에 대해 서로 다른 관점의 글 두 편을 나란히 읽고, 글쓴이의 관점과 근거를 찾아 해결 방안을 골라요.",
+    passageIds: ["pv-phone-a", "pv-phone-b", "pv-garden-a", "pv-garden-b"],
+    itemIds: ids("pv-", "6국02-04"),
+  },
 ];
 
 export function getActivity(id: string): ReadingActivity | undefined {

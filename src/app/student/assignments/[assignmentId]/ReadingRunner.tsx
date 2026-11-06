@@ -1,17 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Passage } from "@/core/reading/types";
 import type { ProgressSummary } from "@/lib/grammar-rules";
-import type { StudentReadingItem } from "@/lib/reading-rules";
+import type { LockedReadingItem, StudentReadingItem } from "@/lib/reading-rules";
+
+type Entry = StudentReadingItem | LockedReadingItem;
+type View = { items: Entry[]; passages: Passage[] };
+const isLocked = (e: Entry): e is LockedReadingItem => "locked" in e;
 
 type Answer =
   | { type: "sentence-pick"; sentenceId: string }
   | { type: "label-sentences"; labels: Record<string, string> }
   | { type: "slot-paragraphs"; placement: Record<string, string> }
   | { type: "choice"; option: number }
-  | { type: "choice-with-evidence"; option: number; sentenceId: string };
+  | { type: "choice-with-evidence"; option: number; sentenceId: string }
+  | { type: "summary-write"; text: string; submitAsIs?: boolean };
+
+interface SummaryResult {
+  done: boolean;
+  coverage: number;
+  covered: number;
+  total: number;
+  copied: boolean;
+  length: number;
+  tries: number;
+  canSubmitAsIs: boolean;
+  submittedAsIs: boolean;
+}
 
 interface Result {
   correct: boolean;
@@ -21,6 +38,9 @@ interface Result {
   feedback?: { level: "principle" | "hint1" | "hint2" | "reveal"; message: string; reveal?: { answer: Answer; rendered: string } };
   explanation?: string;
   progress: ProgressSummary;
+  summary?: SummaryResult;
+  safety?: "distress" | "personal_info";
+  view?: View;
 }
 
 type Notice =
@@ -28,35 +48,60 @@ type Notice =
   | { kind: "wrong"; text: string; level: string }
   | { kind: "correct"; text: string; rendered: string }
   | { kind: "reveal"; text: string; rendered: string }
+  | { kind: "summary"; text: string; result: SummaryResult }
+  | { kind: "safety"; text: string }
   | { kind: "error"; text: string };
 
 export function ReadingRunner({
   submissionId,
   title,
   isOpen,
-  items,
-  passages,
+  items: initialItems,
+  passages: initialPassages,
   solvedIds,
   initialSummary,
 }: {
   submissionId: number;
   title: string;
   isOpen: boolean;
-  items: StudentReadingItem[];
+  items: Entry[];
   passages: Passage[];
   solvedIds: string[];
   initialSummary: ProgressSummary;
 }) {
   const [solved, setSolved] = useState<Set<string>>(() => new Set(solvedIds));
   const [summary, setSummary] = useState(initialSummary);
-  const firstOpen = items.findIndex((i) => !solvedIds.includes(i.id));
-  const [index, setIndex] = useState(firstOpen === -1 ? items.length : firstOpen);
+  const [view, setView] = useState<View>({ items: initialItems, passages: initialPassages });
+  // 문단을 차례로 펼치는 활동: 푼 뒤 서버가 보내 준 다음 화면. '다음 문제'를 누르면 적용한다.
+  const [pending, setPending] = useState<View | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const firstOpen = initialItems.findIndex((i) => !solvedIds.includes(i.id));
+  const [index, setIndex] = useState(firstOpen === -1 ? initialItems.length : firstOpen);
   const [passageOpen, setPassageOpen] = useState(true);
 
+  const { items, passages } = view;
   const total = items.length;
   const finished = index >= total;
-  const current = finished ? null : items[index];
-  const passage = current ? passages.find((p) => p.id === current.passageId) : undefined;
+  const currentEntry = finished ? null : items[index];
+  const current = currentEntry && !isLocked(currentEntry) ? currentEntry : null;
+  const itemPassages = current
+    ? (current.passageIds ?? [current.passageId]).map((id) => passages.find((p) => p.id === id)).filter((p): p is Passage => !!p)
+    : [];
+
+  function goNext() {
+    if (pending) {
+      // 새로 열린 문단 표시: 이번에 처음 보이는 문단
+      const had = new Set(passages.flatMap((p) => p.paragraphs.map((x) => `${p.id}/${x.id}`)));
+      const next = new Set<string>();
+      for (const p of pending.passages) for (const x of p.paragraphs) if (!had.has(`${p.id}/${x.id}`)) next.add(`${p.id}/${x.id}`);
+      // 새 지문이 처음 열리는 경우(첫 문단)는 '새 문단'으로 표시하지 않는다
+      const newPassage = pending.passages.some((p) => !passages.some((q) => q.id === p.id));
+      setFresh(newPassage ? new Set() : next);
+      setView(pending);
+      setPending(null);
+    }
+    setIndex((i) => i + 1);
+  }
 
   return (
     <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
@@ -93,20 +138,24 @@ export function ReadingRunner({
         </section>
       ) : !isOpen ? (
         <p className="card text-center">선생님이 이 과제를 닫았어요.</p>
+      ) : !current ? (
+        <p className="card text-center">문제를 불러오지 못했어요. 새로 고침을 눌러 주세요.</p>
       ) : (
         <ItemView
           key={current!.id}
           item={current!}
-          passage={passage}
+          passages={itemPassages}
+          fresh={fresh}
           passageOpen={passageOpen}
           onTogglePassage={() => setPassageOpen((o) => !o)}
           submissionId={submissionId}
           isLast={index === total - 1}
-          onSolved={(s) => {
+          onSolved={(s, next) => {
             setSolved((prev) => new Set(prev).add(current!.id));
             setSummary(s);
+            if (next) setPending(next);
           }}
-          onNext={() => setIndex((i) => i + 1)}
+          onNext={goNext}
         />
       )}
     </main>
@@ -118,7 +167,8 @@ const btn =
 
 function ItemView({
   item,
-  passage,
+  passages,
+  fresh,
   passageOpen,
   onTogglePassage,
   submissionId,
@@ -127,12 +177,13 @@ function ItemView({
   onNext,
 }: {
   item: StudentReadingItem;
-  passage: Passage | undefined;
+  passages: Passage[];
+  fresh: Set<string>;
   passageOpen: boolean;
   onTogglePassage: () => void;
   submissionId: number;
   isLast: boolean;
-  onSolved: (s: ProgressSummary) => void;
+  onSolved: (s: ProgressSummary, next?: View) => void;
   onNext: () => void;
 }) {
   const [sentenceId, setSentenceId] = useState<string | null>(null);
@@ -141,11 +192,13 @@ function ItemView({
   const [heldParagraph, setHeldParagraph] = useState<string | null>(null);
   const [option, setOption] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const locked = busy || done;
+  const passage = passages[0];
 
-  const sentenceText = (id: string) => passage?.paragraphs.flatMap((p) => p.sentences).find((s) => s.id === id)?.text ?? "";
+  const sentenceText = (id: string) => passages.flatMap((p) => p.paragraphs.flatMap((x) => x.sentences)).find((s) => s.id === id)?.text ?? "";
   const paragraphNo = (pid: string) => (passage?.paragraphs.findIndex((p) => p.id === pid) ?? -1) + 1;
 
   const ready =
@@ -157,7 +210,9 @@ function ItemView({
           ? item.paragraphIds.every((id) => placement[id] !== undefined)
           : item.type === "choice"
             ? option !== null
-            : option !== null && sentenceId !== null;
+            : item.type === "summary-write"
+              ? text.trim().length > 0
+              : option !== null && sentenceId !== null;
 
   // 지문에서 문장을 눌러 고를 수 있는 문제만 문장이 버튼이 된다.
   const picking = item.type === "sentence-pick" || item.type === "choice-with-evidence";
@@ -178,10 +233,12 @@ function ItemView({
     }
   }
 
-  async function check() {
+  async function check(submitAsIs = false) {
     if (!ready || locked) return;
     const answer: Answer =
-      item.type === "sentence-pick"
+      item.type === "summary-write"
+        ? { type: "summary-write", text, ...(submitAsIs ? { submitAsIs: true } : {}) }
+        : item.type === "sentence-pick"
         ? { type: "sentence-pick", sentenceId: sentenceId! }
         : item.type === "label-sentences"
           ? { type: "label-sentences", labels }
@@ -203,17 +260,26 @@ function ItemView({
         return;
       }
       const r = data as Result;
-      if (r.incomplete) {
+      if (r.safety) {
+        // 위험 신호·개인 정보: 점검하지 않고 안내만 한다(교사에게는 서버가 알린다)
+        setNotice({ kind: "safety", text: r.message ?? "" });
+      } else if (r.summary) {
+        setNotice({ kind: "summary", text: r.message ?? "", result: r.summary });
+        if (r.summary.done || r.summary.submittedAsIs) {
+          setDone(true);
+          onSolved(r.progress, r.view);
+        }
+      } else if (r.incomplete) {
         setNotice({ kind: "incomplete", text: r.message ?? "아직 다 고르지 않았어요." });
       } else if (r.correct) {
         setNotice({ kind: "correct", text: r.explanation ?? "", rendered: r.rendered });
         setDone(true);
-        onSolved(r.progress);
+        onSolved(r.progress, r.view);
       } else if (r.feedback?.level === "reveal") {
         applyReveal(r.feedback.reveal?.answer);
         setNotice({ kind: "reveal", text: r.explanation ?? r.feedback.message, rendered: r.feedback.reveal?.rendered ?? "" });
         setDone(true);
-        onSolved(r.progress);
+        onSolved(r.progress, r.view);
       } else {
         setNotice({ kind: "wrong", text: r.feedback?.message ?? "", level: r.feedback?.level ?? "principle" });
       }
@@ -243,10 +309,11 @@ function ItemView({
   );
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+    <div className={`grid gap-4 lg:items-start ${passages.length > 1 ? "" : "lg:grid-cols-2"}`}>
       {passage && (
         <PassagePanel
-          passage={passage}
+          passages={passages}
+          fresh={fresh}
           open={passageOpen}
           onToggle={onTogglePassage}
           picking={picking && !locked}
@@ -260,6 +327,12 @@ function ItemView({
       )}
 
       <section className="card space-y-5">
+        {fresh.size > 0 && (
+          <p className="rounded-xl border border-brand-200 bg-brand-50 p-3 text-brand-700" data-testid="self-check">
+            <b className="block">새 문단이 열렸어요.</b>
+            내 예측과 비교해 보세요. 내 생각과 같았나요, 달랐나요? 달랐다면 어떤 단서가 있었는지 다시 찾아봐요.
+          </p>
+        )}
         <p className="text-lg font-semibold">{item.prompt}</p>
 
         {item.type === "sentence-pick" && (
@@ -408,7 +481,44 @@ function ItemView({
           </div>
         )}
 
+        {item.type === "summary-write" && (
+          <div className="space-y-2">
+            <label htmlFor="summary-text" className="label">내 말로 간추려 써요</label>
+            <textarea
+              id="summary-text"
+              className="input min-h-40 w-full text-[18px] leading-[1.7]"
+              rows={6}
+              maxLength={1000}
+              value={text}
+              readOnly={locked}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="글을 다시 읽으며 문단마다 중요한 내용을 짧게 써 보세요."
+              aria-describedby="summary-count"
+            />
+            <SummaryCount text={text} min={item.minChars} max={item.maxChars} />
+          </div>
+        )}
+
         <div aria-live="polite" className="space-y-2">
+          {notice?.kind === "summary" && (
+            <div
+              className={`rounded-xl border p-3 ${notice.result.done ? "border-brand-500 bg-brand-50 text-brand-700" : "border-sun-400 bg-sun-100 text-stone-800"}`}
+              data-testid="summary-feedback"
+            >
+              <b className="block">
+                {notice.result.done ? "잘 간추렸어요! ✓" : notice.result.submittedAsIs ? "선생님께 냈어요." : "한 번 더 고쳐 써 봐요."}
+              </b>
+              <span className="mb-1 block text-sm">
+                문단 {notice.result.total}개 중 {notice.result.covered}개가 들어 있어요 · {notice.result.length}자
+              </span>
+              {notice.text}
+            </div>
+          )}
+          {notice?.kind === "safety" && (
+            <p className="rounded-xl border border-stone-300 bg-stone-50 p-3 text-stone-800" data-testid="summary-safety">
+              {notice.text}
+            </p>
+          )}
           {notice?.kind === "incomplete" && (
             <p className="rounded-xl border border-stone-300 bg-stone-50 p-3 text-stone-800">{notice.text}</p>
           )}
@@ -436,13 +546,23 @@ function ItemView({
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          {!done && notice?.kind === "summary" && notice.result.canSubmitAsIs && (
+            <button
+              type="button"
+              className={`${btn} border-black/15 bg-white hover:bg-stone-50`}
+              disabled={busy}
+              onClick={() => check(true)}
+            >
+              선생님께 그대로 내기
+            </button>
+          )}
           {done ? (
             <button type="button" className="btn-primary min-h-11" onClick={onNext}>
               {isLast ? "결과 보기" : "다음 문제"}
             </button>
           ) : (
-            <button type="button" className="btn-primary min-h-11" disabled={!ready || busy} onClick={check}>
+            <button type="button" className="btn-primary min-h-11" disabled={!ready || busy} onClick={() => check()}>
               {busy ? "확인하는 중…" : "확인"}
             </button>
           )}
@@ -452,8 +572,22 @@ function ItemView({
   );
 }
 
+/** 글자 수(공백 제외)와 알맞은 범위를 보여 준다. */
+function SummaryCount({ text, min, max }: { text: string; min: number; max: number }) {
+  const n = text.replace(/\s/g, "").length;
+  const tone = n === 0 ? "text-stone-500" : n < min ? "text-stone-600" : n <= max ? "text-brand-700" : "text-orange-700";
+  const hint = n === 0 ? "" : n < min ? " · 조금 더 써 봐요" : n <= max ? " · 알맞아요" : " · 조금 줄여 봐요";
+  return (
+    <p id="summary-count" className={`text-sm font-semibold ${tone}`} aria-live="polite" data-testid="summary-count">
+      {n}자 <span className="font-normal text-stone-500">(공백 빼고 {min}자~{max}자)</span>
+      {hint}
+    </p>
+  );
+}
+
 function PassagePanel({
-  passage,
+  passages,
+  fresh,
   open,
   onToggle,
   picking,
@@ -464,7 +598,8 @@ function PassagePanel({
   heldParagraphs,
   onPick,
 }: {
-  passage: Passage;
+  passages: Passage[];
+  fresh: Set<string>;
   open: boolean;
   onToggle: () => void;
   picking: boolean;
@@ -475,13 +610,25 @@ function PassagePanel({
   heldParagraphs: Set<string>;
   onPick: (sentenceId: string) => void;
 }) {
+  // 지문이 둘이면(관점 비교) 휴대폰에서는 탭으로, 넓은 화면에서는 나란히 보여 준다.
+  const [tab, setTab] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  // 새로 열린 문단이 지문 칸 안에서 보이도록 스크롤한다
+  useEffect(() => {
+    const el = scroller.current?.querySelector<HTMLElement>("[data-fresh='true']");
+    if (el && scroller.current) scroller.current.scrollTop = Math.max(0, el.offsetTop - scroller.current.offsetTop - 8);
+  }, []);
+  const pair = passages.length > 1;
+  const tabLabel = (p: Passage, i: number) => (p.title.startsWith("(") ? `${p.title.slice(0, p.title.indexOf(")") + 1)} 글` : `${i + 1}번째 글`);
   return (
     <section
       aria-label="지문"
-      className="sticky top-0 z-10 -mx-4 border-b border-black/10 bg-white px-4 py-2 shadow-sm lg:top-4 lg:mx-0 lg:rounded-2xl lg:border lg:p-5"
+      className={`sticky top-0 z-10 -mx-4 border-b border-black/10 bg-white px-4 py-2 shadow-sm lg:mx-0 lg:rounded-2xl lg:border lg:p-5 ${
+        pair ? "lg:static" : "lg:top-4"
+      }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold">📖 {passage.title}</h2>
+        <h2 className="text-base font-bold">📖 {pair ? "두 글을 함께 읽어요" : passages[0].title}</h2>
         <button
           type="button"
           onClick={onToggle}
@@ -491,75 +638,102 @@ function PassagePanel({
           {open ? "지문 접기" : "지문 펴기"}
         </button>
       </div>
-      <div
-        className={`${open ? "" : "hidden lg:block"} mt-2 max-h-[40vh] space-y-3 overflow-y-auto pr-1 text-[18px] leading-[1.8] lg:max-h-[calc(100vh-8rem)]`}
-      >
-        {passage.paragraphs.map((p, pi) => {
-          const allowed = picking && (!scopeParagraphId || scopeParagraphId === p.id);
-          const scoped = picking && scopeParagraphId === p.id;
-          const dimmed = picking && !!scopeParagraphId && scopeParagraphId !== p.id;
-          return (
-            <div
+      {pair && open && (
+        <div role="tablist" aria-label="글 고르기" className="mt-2 flex gap-2 lg:hidden">
+          {passages.map((p, i) => (
+            <button
               key={p.id}
-              role="group"
-              aria-label={`${pi + 1}문단`}
-              className={`flex gap-2 rounded-lg p-1 ${dimmed ? "opacity-50" : ""} ${
-                scoped || heldParagraphs.has(p.id) ? "bg-sun-100/60 ring-2 ring-sun-400" : ""
+              type="button"
+              role="tab"
+              aria-selected={tab === i}
+              onClick={() => setTab(i)}
+              className={`min-h-11 flex-1 rounded-xl border px-3 text-base font-semibold ${
+                tab === i ? "border-brand-500 bg-brand-100 text-brand-700" : "border-black/15 bg-white"
               }`}
             >
-              <span
-                aria-hidden="true"
-                className="mt-1.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-200 text-sm font-bold text-stone-700"
-              >
-                {pi + 1}
-              </span>
-              {allowed ? (
-                <div className="min-w-0 flex-1">
-                  {p.sentences.map((s) => {
-                    const on = selected.has(s.id);
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        data-sentence={s.id}
-                        aria-pressed={on}
-                        onClick={() => onPick(s.id)}
-                        className={`my-0.5 block min-h-11 w-full rounded-lg border px-2 py-1 text-left ${
-                          on ? "border-sun-400 bg-sun-100 font-semibold" : "border-transparent hover:bg-stone-100"
-                        }`}
-                      >
-                        {s.text}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="min-w-0 flex-1">
-                  {p.sentences.map((s) => {
-                    const on = selected.has(s.id);
-                    const n = targets.get(s.id);
-                    return (
-                      <span
-                        key={s.id}
-                        data-sentence={s.id}
-                        className={`${on ? (done ? "rounded bg-brand-100 font-semibold" : "rounded bg-sun-100 font-semibold") : ""} ${
-                          n ? "underline decoration-brand-500 decoration-2 underline-offset-4" : ""
-                        }`}
-                      >
-                        {n && (
-                          <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 align-middle text-xs font-bold text-brand-700">
-                            {n}
+              {tabLabel(p, i)}
+            </button>
+          ))}
+        </div>
+      )}
+      <div
+        ref={scroller}
+        className={`${open ? "" : "hidden lg:block"} mt-2 max-h-[40vh] overflow-y-auto pr-1 ${pair ? "lg:max-h-[45vh] lg:grid lg:grid-cols-2 lg:gap-6" : "lg:max-h-[calc(100vh-8rem)]"}`}
+      >
+        {passages.map((passage, pidx) => (
+          <div key={passage.id} data-passage={passage.id} className={`space-y-3 text-[18px] leading-[1.8] ${pair && pidx !== tab ? "hidden lg:block" : ""}`}>
+            {pair && <h3 className="hidden text-base font-bold lg:block">{passage.title}</h3>}
+            {passage.paragraphs.map((p, pi) => {
+              const allowed = picking && (!scopeParagraphId || scopeParagraphId === p.id);
+              const scoped = picking && scopeParagraphId === p.id;
+              const dimmed = picking && !!scopeParagraphId && scopeParagraphId !== p.id;
+              const isFresh = fresh.has(`${passage.id}/${p.id}`);
+              return (
+                <div
+                  key={p.id}
+                  role="group"
+                  aria-label={`${pi + 1}문단`}
+                  data-paragraph={p.id}
+                  data-fresh={isFresh ? "true" : undefined}
+                  className={`flex gap-2 rounded-lg p-1 ${dimmed ? "opacity-50" : ""} ${
+                    scoped || heldParagraphs.has(p.id) ? "bg-sun-100/60 ring-2 ring-sun-400" : ""
+                  } ${isFresh ? "bg-brand-50 ring-2 ring-brand-200" : ""}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-200 text-sm font-bold text-stone-700"
+                  >
+                    {pi + 1}
+                  </span>
+                  {allowed ? (
+                    <div className="min-w-0 flex-1">
+                      {p.sentences.map((s) => {
+                        const on = selected.has(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            data-sentence={s.id}
+                            aria-pressed={on}
+                            onClick={() => onPick(s.id)}
+                            className={`my-0.5 block min-h-11 w-full rounded-lg border px-2 py-1 text-left ${
+                              on ? "border-sun-400 bg-sun-100 font-semibold" : "border-transparent hover:bg-stone-100"
+                            }`}
+                          >
+                            {s.text}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="min-w-0 flex-1">
+                      {p.sentences.map((s) => {
+                        const on = selected.has(s.id);
+                        const n = targets.get(s.id);
+                        return (
+                          <span
+                            key={s.id}
+                            data-sentence={s.id}
+                            className={`${on ? (done ? "rounded bg-brand-100 font-semibold" : "rounded bg-sun-100 font-semibold") : ""} ${
+                              n ? "underline decoration-brand-500 decoration-2 underline-offset-4" : ""
+                            }`}
+                          >
+                            {n && (
+                              <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 align-middle text-xs font-bold text-brand-700">
+                                {n}
+                              </span>
+                            )}
+                            {s.text}{" "}
                           </span>
-                        )}
-                        {s.text}{" "}
-                      </span>
-                    );
-                  })}
-                </p>
-              )}
-            </div>
-          );
-        })}
+                        );
+                      })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </section>
   );

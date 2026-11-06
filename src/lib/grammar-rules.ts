@@ -1,5 +1,6 @@
 // 문법 활동의 호스트 쪽 순수 규칙(DB·서버 의존 없음, 단위 시험 가능).
 import { getActivity, getItem, type Block, type GrammarAnswer, type GrammarItem } from "@/core/grammar";
+import { displayOptions, toDisplayIndex, toOriginalIndex } from "@/core/practice/shuffle";
 
 /** 학생 화면에 보내는 문제. 정답·설명·원리·힌트는 들어 있지 않다(오답/정답 뒤 서버가 따로 보낸다). */
 export type StudentItem =
@@ -25,7 +26,7 @@ export function toStudentItem(item: GrammarItem): StudentItem {
       standardCode: item.standardCode,
       ...(item.context !== undefined ? { context: item.context } : {}),
       ...(item.target !== undefined ? { target: item.target } : {}),
-      options: [...item.options],
+      options: displayOptions(item.id, item.options),
     };
   }
   return {
@@ -34,8 +35,20 @@ export function toStudentItem(item: GrammarItem): StudentItem {
     prompt: item.prompt,
     standardCode: item.standardCode,
     tokens: [...item.tokens],
-    options: [...item.options],
+    options: displayOptions(item.id, item.options),
   };
+}
+
+/**
+ * 학생에게 보내는 보기는 섞은(표시) 순서이고, parseAnswer가 받은 번호를 원래 번호로 되돌린다(저장·채점은 원래 번호).
+ * 정답 공개처럼 서버가 원래 번호로 만든 답을 화면에 돌려줄 때는 이 함수로 표시 번호로 바꾼다.
+ */
+export function toDisplayAnswer(item: GrammarItem, answer: GrammarAnswer): GrammarAnswer {
+  if (answer.type === "choice" && item.type === "choice") return { type: "choice", option: toDisplayIndex(item.id, item.options.length, answer.option) };
+  if (answer.type === "agreement-fix" && item.type === "agreement-fix") {
+    return { type: "agreement-fix", index: answer.index, option: toDisplayIndex(item.id, item.options.length, answer.option) };
+  }
+  return answer;
 }
 
 /** 활동의 문제를 정답 정보 없이 돌려준다. 없는 활동이면 빈 배열. */
@@ -69,14 +82,14 @@ export function parseAnswer(item: GrammarItem, raw: unknown): GrammarAnswer | nu
     if (a.type !== "choice" || !Number.isInteger(a.option)) return null;
     const o = a.option as number;
     if (o < 0 || o >= item.options.length) return null;
-    return { type: "choice", option: o };
+    return { type: "choice", option: toOriginalIndex(item.id, item.options.length, o) };
   }
   if (a.type !== "agreement-fix") return null;
   const { index, option } = a;
   if (!Number.isInteger(index) || !Number.isInteger(option)) return null;
   if ((index as number) < 0 || (index as number) >= item.tokens.length) return null;
   if ((option as number) < 0 || (option as number) >= item.options.length) return null;
-  return { type: "agreement-fix", index: index as number, option: option as number };
+  return { type: "agreement-fix", index: index as number, option: toOriginalIndex(item.id, item.options.length, option as number) };
 }
 
 /** 틀린 횟수에 넣지 않는 reason: 정답, 어색한 순서(문법), 다 고르지 않음·형식 불일치(읽기) */
@@ -89,6 +102,9 @@ export function wrongAttemptCount(previousReasons: readonly string[]): number {
 
 export type HintLevel = "principle" | "hint1" | "hint2" | "reveal";
 
+/** 요약 쓰기에서 위험 신호·개인 정보로 안내만 하고 점검하지 않은 시도의 reason. 시도 횟수·정답률에 넣지 않는다. */
+export const SAFETY_REASONS: ReadonlySet<string> = new Set(["distress", "personal_info"]);
+
 const HINT_RANK: Record<string, number> = { hint1: 1, hint2: 2, reveal: 3 };
 
 export interface AttemptRow {
@@ -99,6 +115,8 @@ export interface AttemptRow {
   createdAt: Date;
   /** 채점 사유(연구용 CSV의 근거 오답 수에 쓴다). 없을 수 있다. */
   reason?: string;
+  /** 제출한 답 JSON(교사 화면에서 요약 글을 보여 줄 때만 쓴다) */
+  answer?: unknown;
 }
 
 export interface ItemProgress {
@@ -116,7 +134,9 @@ export interface ItemProgress {
 /** 한 학생의 시도 기록을 문제별 진행 상황으로 줄인다. itemIds 순서대로 돌려준다. */
 export function summarizeAttempts(itemIds: readonly string[], attempts: readonly AttemptRow[]): ItemProgress[] {
   return itemIds.map((itemId) => {
-    const rows = attempts.filter((a) => a.itemId === itemId).sort((a, b) => a.attemptNo - b.attemptNo);
+    const rows = attempts
+      .filter((a) => a.itemId === itemId && !SAFETY_REASONS.has(a.reason ?? ""))
+      .sort((a, b) => a.attemptNo - b.attemptNo);
     const correctRow = rows.find((r) => r.correct);
     const revealRow = rows.find((r) => r.feedbackLevel === "reveal");
     const solveRow = correctRow ?? revealRow;

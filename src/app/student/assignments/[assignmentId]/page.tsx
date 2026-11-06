@@ -10,7 +10,7 @@ import { progress, studentItems } from "@/lib/grammar";
 import { progressSummary } from "@/lib/grammar-rules";
 import { GrammarRunner } from "./GrammarRunner";
 import { readingProgress } from "@/lib/reading";
-import { studentPassages, studentReadingItems } from "@/lib/reading-rules";
+import { studentReadingView } from "@/lib/reading-rules";
 import { ReadingRunner } from "./ReadingRunner";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -33,14 +33,17 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
       await db.update(schema.submissions).set({ stage: "reading" }).where(eq(schema.submissions.id, submission.id));
     }
     const prog = await readingProgress(submission.id, assignment.activityId);
+    const solvedIds = prog.filter((p) => p.solved).map((p) => p.itemId);
+    // 문단을 차례로 펼치는 활동은 푼 만큼의 문단·문제만 보낸다.
+    const view = studentReadingView(assignment.activityId ?? "", new Set(solvedIds));
     return (
       <ReadingRunner
         submissionId={submission.id}
         title={assignment.title}
         isOpen={assignment.isOpen}
-        items={studentReadingItems(assignment.activityId ?? "")}
-        passages={studentPassages(assignment.activityId ?? "")}
-        solvedIds={prog.filter((p) => p.solved).map((p) => p.itemId)}
+        items={view.items}
+        passages={view.passages}
+        solvedIds={solvedIds}
         initialSummary={progressSummary(prog)}
       />
     );
