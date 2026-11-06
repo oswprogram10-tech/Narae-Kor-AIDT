@@ -57,6 +57,25 @@ return Response.json(outcome.body, { status: outcome.status });
 
 예시: `src/app/api/submissions/[id]/coach/route.ts`. 요청·응답 형식은 `CoachTurnResponse` 타입을 따릅니다.
 
+## 학습 활동 모듈(2~5단계) 붙이기
+
+문법·읽기·매체·문학 활동과 학생 제작물은 AI 없이 동작하는 **순수 함수**로 핵심부에 있습니다. 호스트는 문제를 보여 주고, 학생 답을 서버에서 채점하고, 시도를 저장하면 됩니다.
+
+| 모듈 | 핵심부 | 호스트가 쓰는 함수(예) | 레퍼런스 호스트 구현 |
+| --- | --- | --- | --- |
+| 문법·어휘 | `src/core/grammar` | `GRAMMAR_ITEMS`, `gradeAnswer`, `feedbackFor`, `renderAnswer` | `src/lib/grammar*.ts`, `app/api/grammar` |
+| 읽기 | `src/core/reading` | `READING_ITEMS`, `gradeAnswer`, `feedbackFor`, `evaluateSummary`, `visiblePassages` | `src/lib/reading*.ts`, `app/api/reading` |
+| 매체 | `src/core/media` | `MEDIA_ITEMS`, `gradeMediaAnswer`, `resultsFor`, `displayQueries` | 읽기 호스트 재사용(`src/lib/activities.ts`) |
+| 문학 | `src/core/literature` | `LITERATURE_ITEMS`, `gradeLiteratureAnswer`, `moodGraph`, `relationEdges`, 인물 답장 조각 | 읽기 호스트 재사용 |
+| 학생 제작물 | `src/core/{artifact,cardnews,diary,impression}` | `sanitize*`, `submitProblems`, `scanSafety`, `groupBySentence` | `src/lib/artifacts.ts`, `app/api/artifacts`, `app/api/reactions` |
+| 공통 | `src/core/practice` | `feedbackLevel`(찍기 방지 단계), `optionOrder`(보기 섞기) | — |
+
+지켜야 할 것:
+- **채점은 서버에서.** 학생 기기로 보내는 문제에서는 정답·근거 목록·원리·힌트·해설을 빼고(레퍼런스: `toStudentItem`, `toStudentReadingItem`), 보기는 `optionOrder`로 섞은 순서로 보낸 뒤 받은 번호를 원래 번호로 되돌려 채점합니다. 기록은 원래 번호로 저장합니다(연구 자료 비교용).
+- **아직 보면 안 되는 것은 보내지 않기**: 예측하며 읽기는 연 문단까지만(`visiblePassages`), 검색 실험실은 학생이 고른 검색어의 결과만(`resultsFor`) 보냅니다.
+- **자유 글은 길이 검사보다 먼저 `classifyInput`**(위험 신호·개인 정보)을 거칩니다. 위험 신호는 정해진 돌봄 안내 + 교사 알림, 개인 정보는 글을 저장하지 않습니다.
+- **학생 작품 공유**는 교사 승인 뒤 같은 학급에만, 반응은 정해 둔 스티커만(자유 댓글 없음).
+
 ## 지켜야 할 원칙
 
 - **API 키는 호스트 서버에만** 둡니다. 모듈은 학생 기기에서 돌기 때문에 키를 기기에 저장하면 새어 나갈 수 있습니다.
