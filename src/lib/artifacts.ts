@@ -14,7 +14,7 @@ import {
   type SafetyKind,
 } from "@/core/artifact";
 import { checkCardnews, isStickerId, LIMITS as CARD_LIMITS, STICKER_IDS, type Card } from "@/core/cardnews";
-import { IMPRESSION_STICKER_IDS, LIMITS as IMPRESSION_LIMITS, isImpressionStickerId, getImpressionWork, sentenceInWork, type ImpressionArtifact } from "@/core/impression";
+import { IMPRESSION_STICKER_IDS, LIMITS as IMPRESSION_LIMITS, isImpressionStickerId } from "@/core/impression";
 import { DISTRESS_REPLY, PERSONAL_INFO_REPLY } from "@/core/coach/guard";
 import { logEvent } from "@/lib/events";
 
@@ -297,13 +297,6 @@ export async function impressionGalleryFor(assignmentId: number, classId: number
     works.push({ submissionId: s.id, nickname, own: s.studentId === viewerId, workId: art.workId, sentenceId: art.sentenceId, why: art.why, life: art.life, counts, mine });
   }
   return { title: found.a.title, works };
-}
-
-/** 학생 화면용: 내가 고른 작품·문장이 맞는지(저장된 값 기준) */
-export function impressionChoice(art: ImpressionArtifact) {
-  const work = getImpressionWork(art.workId);
-  const sentence = work ? sentenceInWork(work, art.sentenceId) : undefined;
-  return { work, sentence };
 }
 
 export type ReactionOutcome =

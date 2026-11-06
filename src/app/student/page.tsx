@@ -54,13 +54,13 @@ export default async function StudentHome() {
       <header className="flex items-center justify-between">
         <div>
           <p className="text-sm text-stone-500">{klass?.grade}학년 {klass?.name}</p>
-          <h1 className="text-2xl font-bold">{student?.number}번 {student?.nickname}의 글쓰기</h1>
+          <h1 className="text-2xl font-bold">{student?.number}번 {student?.nickname}의 국어나래</h1>
         </div>
         <form action={studentLogout}>
           <button className="text-sm text-stone-500 underline">나가기</button>
         </form>
       </header>
-      {assignments.length === 0 && <p className="card text-stone-600">아직 선생님이 낸 글쓰기 과제가 없어요.</p>}
+      {assignments.length === 0 && <p className="card text-stone-600">아직 선생님이 낸 과제가 없어요.</p>}
       <ul className="space-y-3">
         {assignments
           .filter(({ a, s }) => a.isOpen || s)

@@ -1,5 +1,5 @@
 import type { CoachContext } from "./types";
-import { STAGE_LABELS, REVISION_LENSES } from "@/core/data/genres";
+import { STAGE_LABELS, REVISION_LENSES, lensQuestion } from "@/core/data/genres";
 
 // 정책을 바꾸면 버전을 올린다. 모든 코치 메시지에 기록되어 연구 분석 때 정책별로 비교할 수 있다.
 export const POLICY_VERSION = "2026-11-03.v1";
@@ -60,7 +60,7 @@ export function buildUserTurn(ctx: CoachContext): string {
       `학년: ${ctx.grade}학년\n글의 종류: ${ctx.genreName}\n성취기준: ${ctx.standardStatements.join(" / ")}\n선생님이 낸 과제: ${ctx.prompt}\n지도 초점: ${ctx.coachFocus}`,
     ),
     block("평가 기준(참고용, 학생에게 점수를 말하지 않음)", rubricText),
-    block("현재 단계", `${STAGE_LABELS[ctx.stage]}${lens ? `\n고른 렌즈: ${lens.label} — ${lens.question}` : ""}\n이번 도움의 힌트 단계: ${hintLevel}단계`),
+    block("현재 단계", `${STAGE_LABELS[ctx.stage]}${lens ? `\n고른 렌즈: ${lens.label} — ${lensQuestion(ctx.genreId, lens.key)}` : ""}\n이번 도움의 힌트 단계: ${hintLevel}단계`),
     block("학생의 생각 열기 메모", ctx.brainstorm),
     block("학생의 계획표", organizerText),
     block("학생의 초고", ctx.draft),
@@ -99,7 +99,7 @@ export function buildCompactUserTurn(ctx: CoachContext): string {
   const lens = REVISION_LENSES.find((l) => l.key === ctx.lens);
   return [
     `과제(${ctx.grade}학년, ${ctx.genreName}): ${ctx.prompt}`,
-    `지금 단계: ${STAGE_LABELS[ctx.stage]}${lens ? ` / 살펴볼 점: ${lens.question}` : ""}`,
+    `지금 단계: ${STAGE_LABELS[ctx.stage]}${lens ? ` / 살펴볼 점: ${lensQuestion(ctx.genreId, lens.key)}` : ""}`,
     ctx.stage === "brainstorm" ? `생각 메모: ${ctx.brainstorm.slice(0, 200) || "(비어 있음)"}` : "",
     ctx.stage === "plan" ? `계획표:\n${filled}` : "",
     ctx.stage === "draft" || ctx.stage === "revise" ? `학생 글: ${draft || "(비어 있음)"}` : "",

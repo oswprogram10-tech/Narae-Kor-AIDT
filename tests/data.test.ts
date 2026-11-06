@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { STANDARDS, getStandard } from "@/core/data/standards";
-import { GENRES, genresForGrade } from "@/core/data/genres";
+import { GENRES, REVISION_LENSES, genresForGrade, lensQuestion } from "@/core/data/genres";
 
 describe("standards", () => {
   it("has 87 elementary standards (23 / 30 / 34)", () => {
@@ -31,5 +31,32 @@ describe("genres", () => {
   it("offers genres for grades 3-6", () => {
     expect(genresForGrade(3).map((g) => g.id)).toContain("paragraph");
     expect(genresForGrade(6).map((g) => g.id)).toContain("argument");
+  });
+});
+
+
+describe("글 종류별 고쳐 쓰기 렌즈 질문", () => {
+  const keys = REVISION_LENSES.map((l) => l.key as string);
+  it("재정의 키는 모두 올바른 렌즈이고 해요체 질문이에요", () => {
+    for (const g of GENRES) {
+      for (const [k, q] of Object.entries(g.lensQuestions ?? {})) {
+        expect(keys, `${g.id}.${k}`).toContain(k);
+        expect(q, `${g.id}.${k}`).toMatch(/요\?$/);
+        expect(q).not.toMatch(/[“"'‘]/);
+      }
+    }
+  });
+  it("편지·시·이야기는 일반 질문 대신 자기 질문을 써요", () => {
+    for (const id of ["letter", "character-letter", "experience-poem", "experience-story"]) {
+      expect(lensQuestion(id, "whole")).not.toContain("중심 생각(주장)");
+    }
+    expect(lensQuestion("letter", "whole")).toContain("받는 사람");
+  });
+  it("없으면 일반 질문으로 돌아가요", () => {
+    const generic = REVISION_LENSES.find((l) => l.key === "whole")!.question;
+    expect(lensQuestion("argument", "whole")).toBe(generic);
+    expect(lensQuestion(undefined, "whole")).toBe(generic);
+    expect(lensQuestion("no-such", "word")).toBe(REVISION_LENSES.find((l) => l.key === "word")!.question);
+    expect(lensQuestion("experience-story", "word")).toBe(REVISION_LENSES.find((l) => l.key === "word")!.question);
   });
 });

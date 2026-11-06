@@ -23,6 +23,7 @@ export interface GenreTemplate {
   organizer: OrganizerField[];
   rubric: RubricCriterion[];
   coachFocus: string; // 코치 프롬프트에 들어가는 글 종류별 지도 초점
+  lensQuestions?: Partial<Record<LensKey, string>>; // 고쳐 쓰기 렌즈별 질문(없으면 일반 질문)
 }
 
 const SPELLING: RubricCriterion = {
@@ -75,6 +76,11 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "structure", label: "글의 짜임", levels: ["목적·절차·결과의 구분이 없다.", "짜임이 있지만 일부가 섞여 있다.", "목적-절차-결과-느낀 점의 짜임이 분명하다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "목적, 절차, 결과가 차례대로 드러나나요? 보고하려는 일과 관계없는 내용은 없나요?",
+      paragraph: "한 일을 순서대로 빠짐없이 썼나요? 문단마다 하나의 내용만 담았나요?",
+      word: "막연한 말 대신 정확한 낱말이나 숫자를 썼나요? 맞춤법과 띄어쓰기도 바른가요?",
+    },
     coachFocus: "절차를 시간 순서대로 빠짐없이 썼는지, 결과를 '많이', '좀' 같은 막연한 말 대신 정확하게 표현했는지 점검하게 한다.",
   },
   {
@@ -116,6 +122,11 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "form", label: "편지 형식", levels: ["편지 형식이 거의 없다.", "형식 일부가 빠졌다.", "부르는 말-첫인사-하고 싶은 말-끝인사-쓴 날짜·쓴 사람을 갖췄다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "받는 사람에게 하고 싶은 말이 잘 전해지나요? 마음과 그 마음이 생긴 까닭이 함께 드러나나요?",
+      paragraph: "부르는 말, 첫인사, 하고 싶은 말, 끝인사가 차례대로 이어지나요? 한 문단에 한 가지 이야기만 담았나요?",
+      sentence: "받는 사람에게 알맞은 높임 표현을 썼나요? 말투가 처음부터 끝까지 한결같나요?",
+    },
     coachFocus: "받는 사람에게 맞는 높임 표현과 말투인지, 마음과 그 마음이 생긴 구체적인 일이 함께 드러나는지 묻는다.",
   },
   {
@@ -137,6 +148,11 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "structure", label: "글의 구조", levels: ["처음-가운데-끝 구분이 없다.", "구조가 있지만 문단 구분이 어색하다.", "특성별로 문단을 나누어 짜임새 있게 썼다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "설명하려는 대상의 특성이 글 전체에서 잘 드러나나요? 대상과 관계없는 내용은 없나요?",
+      paragraph: "문단마다 대상의 한 가지 특성을 다루나요? 고른 설명 방법이 알맞나요?",
+      sentence: "설명하는 문장이 정확하고 이해하기 쉬운가요? 어려운 낱말은 풀어서 썼나요?",
+    },
     coachFocus: "고른 설명 방법이 대상의 특성을 드러내는 데 알맞은지, 각 문단이 하나의 특성을 다루는지 점검하게 한다.",
   },
   {
@@ -178,6 +194,10 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "structure", label: "글의 짜임", levels: ["짜임이 없다.", "짜임이 있지만 일부가 어색하다.", "여정·견문·감상이 자연스럽게 어우러진다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "체험한 일과 내 생각·느낌이 함께 드러나나요? 가장 하고 싶은 감상이 무엇인지 분명한가요?",
+      paragraph: "보고 듣고 한 일과 그때의 생각·느낌이 문단마다 알맞게 이어지나요?",
+    },
     coachFocus: "'재미있었다', '좋았다' 같은 막연한 감상 대신, 구체적인 장면과 그때의 생각을 떠올리도록 질문한다.",
   },
   {
@@ -198,6 +218,10 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "content", label: "내용", levels: ["목적과 관계없는 내용이 많다.", "핵심 내용 일부가 빠졌다.", "목적에 맞는 핵심 내용이 잘 드러난다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "읽을 사람이 궁금해할 내용이 중심이 되나요? 글의 목적과 관계없는 내용은 없나요?",
+      sentence: "고른 매체와 읽을 사람에게 알맞은 말투와 길이로 썼나요?",
+    },
     coachFocus: "정한 독자와 매체에 맞게 내용, 길이, 말투를 골랐는지 묻는다.",
   },
   {
@@ -219,6 +243,11 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "experience", label: "내 경험과의 연결", levels: ["내 경험이 드러나지 않는다.", "경험이 있지만 작품과 어떻게 이어지는지 분명하지 않다.", "작품 속 장면과 내 경험이 닮은 점을 들어 자연스럽게 이어 썼다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "인물에게 하고 싶은 말이 잘 전해지나요? 작품에서 읽은 내용과 내 마음이 함께 드러나나요?",
+      paragraph: "부르는 말, 첫인사, 하고 싶은 말, 끝인사가 차례대로 이어지나요? 한 문단에 한 가지 이야기만 담았나요?",
+      sentence: "받는 사람에게 알맞은 높임 표현을 썼나요? 말투가 처음부터 끝까지 한결같나요?",
+    },
     coachFocus:
       "학생이 고른 인물이 그 장면에서 왜 그렇게 말하거나 행동했을지, 그때 어떤 마음이었을지 묻는 질문을 한다. 학생의 경험과 작품 속 장면이 어떤 점에서 닮았는지 스스로 찾도록 묻는다. 편지의 문장이나 인물에게 할 말을 대신 써 주지 않고, 인물의 마음을 대신 단정해 주지도 않는다.",
   },
@@ -240,6 +269,12 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "form", label: "행과 연", levels: ["글이 산문처럼 이어져 행과 연의 구분이 없다.", "행과 연을 나누었지만 나눈 까닭이 분명하지 않다.", "행과 연을 나누어 시의 리듬과 느낌을 살렸다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "시 전체가 하나의 장면이나 느낌으로 모이나요? 제목과 시의 내용이 어울리나요?",
+      paragraph: "행과 연을 나눈 곳이 알맞나요? 연마다 장면이나 느낌이 이어지면서도 조금씩 달라지나요?",
+      sentence: "한 행 한 행이 짧고 또렷한가요? 되풀이한 말이 있다면 일부러 살리려고 한 것인가요?",
+      word: "보이고 들리고 만져지는 느낌이 잘 전해지는 낱말을 골랐나요? 비유한 표현이 어색하지 않나요?",
+    },
     coachFocus:
       "겪은 일에서 가장 또렷한 순간이 무엇인지, 그때 오감으로 무엇을 느꼈는지, 마음이 무엇과 닮았는지 묻는다. 행을 어디서 나누면 좋을지, 되풀이하는 말이 어떤 느낌을 주는지 학생이 스스로 생각하게 한다. 시의 구절이나 비유를 대신 만들어 주지 않는다.",
   },
@@ -262,6 +297,11 @@ export const GENRES: readonly GenreTemplate[] = [
       { key: "ending", label: "끝맺음과 마음 표현", levels: ["끝맺음이 없고 인물의 마음이 드러나지 않는다.", "끝맺음이 있지만 인물의 마음이 조금만 드러난다.", "인물의 마음이 말·행동으로 드러나고 끝맺음이 자연스럽다."] },
       SPELLING,
     ],
+    lensQuestions: {
+      whole: "처음, 가운데, 끝으로 이야기가 이어지나요? 끝맺음이 이야기와 어울리나요?",
+      paragraph: "인물, 배경, 사건이 흐름에 따라 자연스럽게 이어지나요? 장면이 바뀔 때 읽는 사람이 알 수 있게 썼나요?",
+      sentence: "누가 말하고 행동하는지 분명한가요? 일어난 일의 앞뒤 순서가 맞나요?",
+    },
     coachFocus:
       "실제로 겪은 일에서 무엇을 그대로 두고 무엇을 바꿀지, 인물이 누구이고 배경이 어떤 모습인지, 사건이 어떤 순서로 이어지고 어떻게 끝나는지 묻는다. 인물의 마음을 '슬펐다' 대신 말이나 행동으로 보여 줄 방법을 스스로 찾게 한다. 이야기의 문장이나 줄거리를 대신 써 주지 않는다.",
   },
@@ -295,3 +335,9 @@ export const REVISION_LENSES = [
   { key: "word", label: "낱말·띄어쓰기", question: "맞춤법과 띄어쓰기가 바른가요? 더 정확한 낱말은 없을까요?" },
 ] as const;
 export type LensKey = (typeof REVISION_LENSES)[number]["key"];
+
+/** 고쳐 쓰기 렌즈 질문: 글 종류별 질문이 있으면 그것을, 없으면 일반 질문을 쓴다. 질문에는 예시 문장을 넣지 않는다. */
+export function lensQuestion(genre: GenreTemplate | string | undefined, key: LensKey): string {
+  const g = typeof genre === "string" ? getGenre(genre) : genre;
+  return g?.lensQuestions?.[key] ?? REVISION_LENSES.find((l) => l.key === key)!.question;
+}

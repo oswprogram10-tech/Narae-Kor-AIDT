@@ -126,6 +126,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     <Workbench
       submissionId={submission.id}
       assignment={{
+        genreId: assignment.genreId,
         title: assignment.title,
         prompt: assignment.prompt,
         organizer: assignment.organizer,

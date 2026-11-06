@@ -38,6 +38,7 @@ export interface CoachHistoryItem {
 
 export interface CoachContext {
   grade: number;
+  genreId?: string;
   genreName: string;
   coachFocus: string;
   standardStatements: string[];

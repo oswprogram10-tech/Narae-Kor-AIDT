@@ -43,6 +43,7 @@ export const drizzleCoachAdapter: CoachHostAdapter = {
       preferredProvider: asProvider(row.assignment.coachProvider),
       context: {
         grade: row.klass.grade,
+        genreId: row.assignment.genreId,
         genreName: genre?.name ?? row.assignment.title,
         coachFocus: genre?.coachFocus ?? "",
         standardStatements: row.assignment.standardCodes.map((c) => `[${c}] ${getStandard(c)?.statement ?? ""}`),

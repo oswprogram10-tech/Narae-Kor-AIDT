@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { REVISION_LENSES, STAGES, STAGE_LABELS, type LensKey, type OrganizerField, type Stage } from "@/core/data/genres";
+import { REVISION_LENSES, lensQuestion, STAGES, STAGE_LABELS, type LensKey, type OrganizerField, type Stage } from "@/core/data/genres";
 import { lintKorean } from "@/core/lint";
 import { runCoachEngine } from "@/core/coach/engine";
 import type { CoachContext } from "@/core/coach/types";
@@ -19,7 +19,7 @@ export interface CoachMessageView {
 
 interface Props {
   submissionId: number;
-  assignment: { title: string; prompt: string; organizer: OrganizerField[]; coachEnabled: boolean; isOpen: boolean };
+  assignment: { genreId?: string; title: string; prompt: string; organizer: OrganizerField[]; coachEnabled: boolean; isOpen: boolean };
   initial: { stage: Stage; status: string; brainstorm: string; organizerValues: Record<string, string>; draft: string };
   comments: { id: number; content: string; characterName: string | null }[];
   messages: CoachMessageView[];
@@ -268,6 +268,7 @@ export function Workbench({ submissionId, assignment, initial, comments, message
                 <RevisePanel
                   draft={draft}
                   lens={lens}
+                  genreId={assignment.genreId}
                   setLens={setLens}
                   coachHighlights={latestRevise?.highlights ?? []}
                   onSelect={(start, end) => {
@@ -332,12 +333,14 @@ export function Workbench({ submissionId, assignment, initial, comments, message
 function RevisePanel({
   draft,
   lens,
+  genreId,
   setLens,
   coachHighlights,
   onSelect,
 }: {
   draft: string;
   lens: LensKey;
+  genreId?: string;
   setLens: (l: LensKey) => void;
   coachHighlights: CoachMessageView["highlights"];
   onSelect: (start: number, end: number) => void;
@@ -372,7 +375,7 @@ function RevisePanel({
           </button>
         ))}
       </div>
-      <p className="font-semibold">{current.question}</p>
+      <p className="font-semibold">{lensQuestion(genreId, current.key)}</p>
       {items.length > 0 ? (
         <ul className="space-y-2">
           {items.map((it, i) => (

@@ -151,6 +151,14 @@ describe("신호등 글(ma-12) 요약", () => {
   it("지문을 한 문장도 안 베끼는 한 줄 요약은 너무 짧다고 해요", () => {
     expect(run("ma-12", "신호등은 안전해요.").reason).toBe("too-short");
   });
+  it("‘안전’만 다른 뜻으로 쓰면 1문단을 반영하지 않아요", () => {
+    const r = run("ma-12", "우리 학교에서는 안전이 제일 중요해요. 자동차 신호등은 빨간불 초록불 노란불로 알려 줘요. 걷는 사람용 신호등은 사람 모양과 숫자로 알려 줘요. 소리가 나는 신호등도 있어요.");
+    expect(r).toMatchObject({ done: false, missing: [1], reason: "missing-paragraph" });
+  });
+  it("‘색깔’만 다른 뜻으로 쓰면 2문단을 반영하지 않아요", () => {
+    const r = run("ma-12", "신호등은 사고가 나지 않게 차례를 알려 줘요. 내가 좋아하는 색깔은 파랑이에요. 걷는 사람용 신호등은 사람 모양과 숫자로 알려 줘요. 소리가 나는 신호등도 있어요.");
+    expect(r).toMatchObject({ done: false, missing: [2], reason: "missing-paragraph" });
+  });
 });
 
 describe("급식 글(ts-11) 요약", () => {
@@ -168,6 +176,10 @@ describe("급식 글(ts-11) 요약", () => {
     const r = run("ts-11", "급식을 남기지 말아야 해요. 음식물 쓰레기가 생기면 환경에 안 좋아요. 농부와 조리사의 정성이 담겨 있어요. 그러니까 오늘부터 다 먹어요.");
     expect(r).toMatchObject({ done: false, missing: [4], reason: "missing-paragraph", coverage: 0.8 });
     expect(summaryFeedback(item("ts-11"), r, 1)).toContain("4문단은 무엇에 대한 이야기였나요?");
+  });
+  it("‘남기지’만 다른 뜻으로 쓰면 1문단을 반영하지 않아요", () => {
+    const r = run("ts-11", "친구에게 쪽지를 남기지 않았어요. 음식을 남기면 쓰레기가 늘어 환경이 나빠져요. 음식에는 농부와 조리사의 정성이 담겨 있어요. 골고루 먹어야 몸이 튼튼해져요. 그래서 오늘부터 먹을 만큼만 받아요.");
+    expect(r).toMatchObject({ done: false, missing: [1], reason: "missing-paragraph" });
   });
   it("문장을 두 개 베끼면 자기 말로 쓰라고 해요", () => {
     const t =
@@ -197,6 +209,10 @@ describe("목 아픔 글(ts-12) 요약", () => {
     const r = run("ts-12", "목이 아픈 어린이가 많아요. 고개를 숙이면 머리가 무거워서 아파요. 의자 높이를 맞추고 화면을 올려요. 30분마다 일어나 스트레칭을 해요.");
     expect(r).toMatchObject({ done: false, missing: [3], reason: "missing-paragraph" });
     expect(summaryFeedback(item("ts-12"), r, 1)).toContain("3문단은 무엇에 대한 이야기였나요?");
+  });
+  it("‘앉아’만 다른 뜻으로 쓰면 3문단을 반영하지 않아요", () => {
+    const r = run("ts-12", "목이 아픈 어린이가 많아요. 고개를 숙이면 머리가 무거워서 아파요. 버스에서 자리에 앉아 노래를 불렀어요. 의자 높이를 맞추고 화면을 올려요. 30분마다 일어나 스트레칭을 해요.");
+    expect(r).toMatchObject({ done: false, missing: [3], reason: "missing-paragraph" });
   });
   it("문장을 두 개 베끼면 알려 줘요", () => {
     const t =
