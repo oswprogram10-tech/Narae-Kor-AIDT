@@ -14,7 +14,16 @@ import {
 } from "@/core/reading";
 import { displayOptions, toDisplayIndex, toOriginalIndex } from "@/core/practice/shuffle";
 import { displayQueries, displayResults, searchEvidence, type EvidenceField, type MediaAnswer, type MediaItem, type SearchTaskItem } from "@/core/media";
-import { activityItemsOf } from "@/lib/activities";
+import {
+  OWN_LINE_MAX,
+  displayEvents,
+  displayFeelings,
+  feelingOrder,
+  type LiteratureAnswer,
+  type MoodPoint,
+  type RelationEdge,
+} from "@/core/literature";
+import { activityItemsOf, type HostItem } from "@/lib/activities";
 
 /** 학생 화면에 보내는 읽기 문제. 정답·근거 목록·원리·힌트·설명은 들어 있지 않다(오답/정답 뒤 서버가 따로 보낸다). */
 interface StudentBase {
@@ -65,8 +74,26 @@ export type StudentReadingItem =
   | (StudentBase & { type: "summary-write"; minChars: number; maxChars: number });
 
 /** 문단을 차례로 펼치는 활동에서 아직 풀 차례가 아닌 문제: 내용(안내·보기)을 보내지 않는다. */
-/** 읽기·매체 활동 화면의 문제 */
-export type StudentMediaItem = StudentReadingItem | StudentSearchItem;
+/**
+ * 문학 활동의 새 문제 형식. 정답 범위(minOk·maxOk)·정답 마음 낱말·근거 목록·정답 순서는 들어 있지 않다.
+ * 마음 낱말·사건 카드는 섞은(표시) 순서로 보낸다.
+ */
+export type StudentLiteratureItem =
+  /** 마음 온도: 장면 문단 id는 문제 글에도 나오는 정보(근거를 그 문단에서 고르게 한다) */
+  | (StudentBase & { type: "mood-scale"; character: string; sceneParagraphId: string; feelings: string[] })
+  | (StudentBase & { type: "sequence"; events: { id: string; text: string }[] })
+  /** 내 한 줄: 최대 글자 수만 보낸다 */
+  | (StudentBase & { type: "own-line"; maxChars: number });
+
+/** 문학 활동 화면에 곁들이는 그림 재료: 마음 그래프(푼 장면의 학생 값)와 인물 관계도(푼 관계 문제의 정답 관계) */
+export interface LiteratureExtras {
+  mood: MoodPoint[];
+  /** 인물 관계도: 가운데 인물(main)과 푼 관계 문제의 선. 푼 것이 없으면 edges는 빈 배열 */
+  relations: { main: string; edges: RelationEdge[] };
+}
+
+/** 읽기·매체·문학 활동 화면의 문제 */
+export type StudentMediaItem = StudentReadingItem | StudentSearchItem | StudentLiteratureItem;
 
 export interface LockedReadingItem {
   id: string;
@@ -74,8 +101,8 @@ export interface LockedReadingItem {
 }
 
 export function toStudentReadingItem(item: ReadingItem): StudentReadingItem;
-export function toStudentReadingItem(item: MediaItem): StudentMediaItem;
-export function toStudentReadingItem(item: MediaItem): StudentMediaItem {
+export function toStudentReadingItem(item: HostItem): StudentMediaItem;
+export function toStudentReadingItem(item: HostItem): StudentMediaItem {
   if (item.type === "search-task") {
     return {
       id: item.id,
@@ -111,6 +138,12 @@ export function toStudentReadingItem(item: MediaItem): StudentMediaItem {
       return { ...base, type: "choice-with-evidence", options: displayOptions(item.id, item.options) };
     case "summary-write":
       return { ...base, type: "summary-write", minChars: item.minChars, maxChars: item.maxChars };
+    case "mood-scale":
+      return { ...base, type: "mood-scale", character: item.character, sceneParagraphId: item.sceneParagraphId, feelings: displayFeelings(item) };
+    case "sequence":
+      return { ...base, type: "sequence", events: displayEvents(item).map((e) => ({ id: e.id, text: e.text })) };
+    case "own-line":
+      return { ...base, type: "own-line", maxChars: OWN_LINE_MAX };
   }
 }
 
@@ -119,9 +152,11 @@ export function studentMediaItems(activityId: string): StudentMediaItem[] {
   return activityItemsOf(activityId).map((item) => toStudentReadingItem(item));
 }
 
-/** 읽기 문제 형식만(검색 실험실 문제는 studentMediaItems) */
+/** 읽기 문제 형식만(검색 실험실·문학 새 형식 문제는 studentMediaItems) */
 export function studentReadingItems(activityId: string): StudentReadingItem[] {
-  return studentMediaItems(activityId).filter((i): i is StudentReadingItem => i.type !== "search-task");
+  return studentMediaItems(activityId).filter(
+    (i): i is StudentReadingItem => i.type !== "search-task" && i.type !== "mood-scale" && i.type !== "sequence" && i.type !== "own-line",
+  );
 }
 
 /** 학생이 고른 검색어(원래 번호)의 결과를 표시 순서로. 범위 밖이면 undefined */
@@ -180,7 +215,12 @@ export function studentReadingView(activityId: string, solvedIds: ReadonlySet<st
  * 보기는 섞은(표시) 순서로 보내고 parseReadingAnswer가 원래 번호로 되돌린다(채점·저장은 원래 번호).
  * 정답 공개처럼 원래 번호로 만든 답을 화면에 돌려줄 때는 이 함수로 표시 번호로 바꾼다.
  */
-export function toDisplayAnswer(item: MediaItem, answer: MediaAnswer): MediaAnswer {
+export function toDisplayAnswer(item: HostItem, answer: MediaAnswer | LiteratureAnswer): MediaAnswer | LiteratureAnswer {
+  if (item.type === "mood-scale") {
+    if (answer.type !== "mood-scale") return answer;
+    // 마음 낱말은 섞어서 보여 주므로 원래 번호를 표시 번호로 바꾼다
+    return { ...answer, feeling: feelingOrder(item).indexOf(answer.feeling) };
+  }
   if (item.type === "search-task") {
     if (answer.type !== "search-task") return answer;
     const results = item.queries[answer.query]?.results;
@@ -198,7 +238,8 @@ export function toDisplayAnswer(item: MediaItem, answer: MediaAnswer): MediaAnsw
   return answer;
 }
 
-const readingOnly = (items: readonly MediaItem[]): ReadingItem[] => items.filter((i): i is ReadingItem => i.type !== "search-task");
+const readingOnly = (items: readonly HostItem[]): ReadingItem[] =>
+  items.filter((i): i is ReadingItem => i.type !== "search-task" && i.type !== "mood-scale" && i.type !== "sequence" && i.type !== "own-line");
 
 export function isProgressiveActivity(activityId: string): boolean {
   return isProgressive(readingOnly(activityItemsOf(activityId)));
@@ -222,13 +263,39 @@ const isRecord = (x: unknown): x is Record<string, unknown> => !!x && typeof x =
  */
 export function parseReadingAnswer(item: ReadingItem, raw: unknown): ReadingAnswer | null;
 export function parseReadingAnswer(item: MediaItem, raw: unknown): MediaAnswer | null;
-export function parseReadingAnswer(item: MediaItem, raw: unknown): MediaAnswer | null {
+export function parseReadingAnswer(item: HostItem, raw: unknown): MediaAnswer | LiteratureAnswer | null;
+export function parseReadingAnswer(item: HostItem, raw: unknown): MediaAnswer | LiteratureAnswer | null {
   if (!isRecord(raw) || raw.type !== item.type) return null;
   if (item.type === "search-task") return parseSearchAnswer(item, raw);
   const passage = itemPassages(item)[0];
   if (!passage) return null;
   // 고를 수 있는 문장: 학생에게 보이는 문장(지문 쌍이면 둘 다, 문단을 차례로 펼치면 펼친 문단까지)
   const sentenceIds = new Set(visibleSentences(item).map((s) => s.id));
+  if (item.type === "mood-scale") {
+    // 마음 온도 1~5(정수), 마음 낱말은 표시 번호 → 원래 번호, 근거 문장은 보이는 문장
+    const { value, feeling, evidenceId } = raw;
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) return null;
+    if (typeof feeling !== "number" || !Number.isInteger(feeling) || feeling < 0 || feeling >= item.feelingOptions.length) return null;
+    if (typeof evidenceId !== "string" || !sentenceIds.has(evidenceId)) return null;
+    return { type: "mood-scale", value, feeling: feelingOrder(item)[feeling], evidenceId };
+  }
+  if (item.type === "sequence") {
+    // 놓은 사건 id 목록: 문제의 사건만, 겹치지 않게(일부만 놓은 답은 채점에서 incomplete로 안내한다)
+    if (!Array.isArray(raw.order) || raw.order.length > item.events.length) return null;
+    const known = new Set(item.events.map((e) => e.id));
+    const seen = new Set<string>();
+    for (const id of raw.order) {
+      if (typeof id !== "string" || !known.has(id) || seen.has(id)) return null;
+      seen.add(id);
+    }
+    return { type: "sequence", order: [...(raw.order as string[])] };
+  }
+  if (item.type === "own-line") {
+    // 내 한 줄: 요약 쓰기처럼 1000자까지 받는다. 60자 제한은 안전 점검(위험 신호·개인 정보) 뒤에 기록 경로가 안내한다.
+    // 길이로 먼저 거부하면 긴 글에 담긴 위험 신호를 놓치기 때문이다.
+    if (typeof raw.text !== "string" || raw.text.length > SUMMARY_MAX_INPUT) return null;
+    return { type: "own-line", text: raw.text.trim() };
+  }
   if (item.type === "summary-write") {
     const text = raw.text;
     if (typeof text !== "string" || text.length > SUMMARY_MAX_INPUT) return null;

@@ -27,9 +27,9 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
   const isArtifact = a.kind === "cardnews" || a.kind === "media-diary";
   const aStatus = isArtifact ? await artifactStatus(id, klass.id, a.kind as "cardnews" | "media-diary") : null;
-  const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media" || isArtifact;
+  const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media" || a.kind === "literature" || isArtifact;
   const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
-  const gStatus = isGrammar && !isArtifact ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" ? a.kind : "grammar") : null;
+  const gStatus = isGrammar && !isArtifact ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" || a.kind === "literature" ? a.kind : "grammar") : null;
   const available = assignableProviders();
 
   return (
@@ -47,8 +47,8 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
             <div className="text-sm text-stone-500">
               {isArtifact
                 ? (artifactActivity(a.kind)?.title ?? "제작 활동")
-                : a.kind === "reading" || a.kind === "media"
-                ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : "읽기 활동"))
+                : a.kind === "reading" || a.kind === "media" || a.kind === "literature"
+                ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : a.kind === "literature" ? "문학 활동" : "읽기 활동"))
                 : isGrammar
                   ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
                   : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}

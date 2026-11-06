@@ -166,6 +166,21 @@ describe("카드뉴스 저장·안전", () => {
     expect((await save(cardnewsA, stu.a, { nope: 1 })).status).toBe(400);
   });
 
+  it("칸 길이를 넘는 글의 뒷부분에 담긴 힘든 일 언급도 놓치지 않는다(자르기 전 원문 점검)", async () => {
+    const stored = (await artifactOf(cardnewsA, stu.a)) as CardnewsArtifact;
+    const next = structuredClone(stored);
+    next.cards[0].title = `${"가".repeat(30)} 죽고 싶어요`; // 제목 칸 한도(20자) 뒤에 있는 글
+    const out = await save(cardnewsA, stu.a, next);
+    expect(out.status).toBe(200);
+    if (out.status !== 200) return;
+    expect(out.safety?.kind).toBe("distress");
+    expect(JSON.stringify(await artifactOf(cardnewsA, stu.a))).not.toContain("가".repeat(30));
+    // 모양이 틀린 요청도 400으로 끝내기 전에 원문을 점검한다
+    const bad = await save(cardnewsA, stu.a, { nope: 1, memo: "나는 죽고 싶어요" });
+    expect(bad.status === 200 && bad.safety?.kind).toBe("distress");
+    expect(await allEventsJson()).toContain("raw");
+  });
+
   it("제출: 막는 문제가 있으면 400, 채우면 제출 + 경고 수 기록", async () => {
     const out0 = await save(cardnewsA, stu.b, emptyCardnews());
     expect(out0.status).toBe(200);
@@ -269,6 +284,11 @@ describe("공유 승인·갤러리·반응", () => {
     expect(bad.status === 200 && bad.safety?.kind).toBe("personal_info");
     expect((await sub(cardnewsA, stu.b)).s.reflection).toBe("");
     expect(await allEventsJson()).not.toContain("5555-6666");
+    // 한도(100자)를 넘는 글의 뒷부분에 있는 개인 정보·위험 신호도 놓치지 않는다
+    const long = await lib.saveReflection(s, a, stu.b, `${"고칠 점을 길게 적어 봐요. ".repeat(12)}제 번호는 010-7777-8888이에요`);
+    expect(long.status === 200 && long.safety?.kind).toBe("personal_info");
+    expect(await allEventsJson()).not.toContain("7777-8888");
+    expect((await sub(cardnewsA, stu.b)).s.reflection).toBe("");
     const ok = await lib.saveReflection(s, a, stu.b, "출처를 더 써야겠어요");
     expect(ok.status === 200 && ok.reflection).toBe("출처를 더 써야겠어요");
     // 승인 전 작품에는 쓸 수 없다

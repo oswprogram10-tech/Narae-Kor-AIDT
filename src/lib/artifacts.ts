@@ -65,6 +65,31 @@ async function recordSafety(submissionId: number, studentId: number, scan: Retur
   return { kind: scan.kind, reply: scan.reply, keys: scan.hits.map((h) => h.key) };
 }
 
+const RAW_SCAN_LIMIT = 5000;
+
+/** 요청 본문 안의 모든 글(칸 길이로 잘리기 전 원문)을 모은다. 깊이·개수·길이를 제한한다. */
+function rawStrings(x: unknown, out: string[] = [], depth = 0): string[] {
+  if (out.length >= 300 || depth > 6) return out;
+  if (typeof x === "string") out.push(x.slice(0, RAW_SCAN_LIMIT));
+  else if (Array.isArray(x)) for (const v of x) rawStrings(v, out, depth + 1);
+  else if (x && typeof x === "object") for (const v of Object.values(x)) rawStrings(v, out, depth + 1);
+  return out;
+}
+
+/**
+ * 길이 제한으로 잘리기 전의 원문에서 위험 신호·개인 정보를 찾는다.
+ * 칸 길이를 넘는 글의 뒷부분이나 모양이 틀린 요청에 담긴 글도 놓치지 않으려고, 길이로 거르거나 자르기 전에 본다.
+ */
+function rawSafety(raw: unknown): { kind: SafetyKind; text: string } | null {
+  let found: { kind: SafetyKind; text: string } | null = null;
+  for (const text of rawStrings(raw)) {
+    const kind = classifyField(text);
+    if (kind === "distress") return { kind, text };
+    if (kind && !found) found = { kind, text };
+  }
+  return found;
+}
+
 /** 자동 저장: 모든 글 칸에 안전 점검을 돌리고, 걸린 칸은 새 글을 저장하지 않는다. */
 export async function saveArtifact(
   submission: Submission,
@@ -79,9 +104,21 @@ export async function saveArtifact(
   if (locked) return { status: 409, error: locked };
   const prev = storedArtifact(submission, kind);
   const next = sanitizeArtifact(kind, raw, prev);
-  if (!next) return { status: 400, error: "내용을 다시 확인해 주세요." };
-
-  const scan = scanSafety(submission.artifact ? prev : null, next);
+  const scan = next ? scanSafety(submission.artifact ? prev : null, next) : null;
+  if (!scan?.kind) {
+    // 칸 점검에 안 걸렸거나 모양이 틀린 요청이어도, 잘리기 전 원문에 위험 신호·개인 정보가 있으면 저장하지 않고 안내한다.
+    const over = rawSafety(raw);
+    if (over) {
+      await logEvent(`student:${studentId}`, "artifact_safety", "submission", submission.id, {
+        keys: ["raw"],
+        flags: { distress: over.kind === "distress", personalInfo: over.kind === "personal_info" },
+        ...(over.kind === "distress" ? { excerpts: [{ key: "raw", text: over.text.slice(0, 300) }] } : {}),
+      });
+      const reply = over.kind === "distress" ? DISTRESS_REPLY.reply : PERSONAL_INFO_REPLY.reply;
+      return { status: 200, artifact: prev, safety: { kind: over.kind, reply, keys: ["raw"] }, savedAt: new Date().toISOString() };
+    }
+  }
+  if (!next || !scan) return { status: 400, error: "내용을 다시 확인해 주세요." };
   let saved = scan.artifact;
   const now = new Date();
   if (saved.kind === "cardnews" && submission.submittedAt && contentKey(saved) !== contentKey(prev)) {
@@ -142,14 +179,16 @@ export async function saveReflection(submission: Submission, assignment: Assignm
   if (!assignment.isOpen) return { status: 403, error: "선생님이 과제를 닫았어요." };
   if (!submission.shareApproved) return { status: 409, error: "작품이 공유된 뒤에 적을 수 있어요." };
   if (typeof text !== "string") return { status: 400, error: "내용을 확인해 주세요." };
-  const clean = Array.from(text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")).slice(0, CARD_LIMITS.reflection).join("");
-  const kind = classifyField(clean);
+  // 안전 점검은 길이로 자르기 전의 글에 한다(긴 글 뒷부분의 위험 신호도 놓치지 않는다).
+  const whole = Array.from(text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")).slice(0, RAW_SCAN_LIMIT).join("");
+  const clean = Array.from(whole).slice(0, CARD_LIMITS.reflection).join("");
+  const kind = classifyField(whole);
   if (kind) {
     const reply = kind === "distress" ? DISTRESS_REPLY.reply : PERSONAL_INFO_REPLY.reply;
     await logEvent(`student:${studentId}`, "artifact_safety", "submission", submission.id, {
       keys: ["reflection"],
       flags: { distress: kind === "distress", personalInfo: kind === "personal_info" },
-      ...(kind === "distress" ? { excerpts: [{ key: "reflection", text: clean.slice(0, 300) }] } : {}),
+      ...(kind === "distress" ? { excerpts: [{ key: "reflection", text: whole.slice(0, 300) }] } : {}),
     });
     return { status: 200, reflection: submission.reflection, safety: { kind, reply, keys: ["reflection"] } };
   }

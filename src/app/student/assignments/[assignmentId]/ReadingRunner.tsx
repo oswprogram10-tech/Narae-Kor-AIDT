@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Passage } from "@/core/reading/types";
 import type { ProgressSummary } from "@/lib/grammar-rules";
-import type { LockedReadingItem, StudentMediaItem, StudentSearchResult, StudentSearchView } from "@/lib/reading-rules";
+import type { MoodPoint, RelationEdge } from "@/core/literature";
+import type { LiteratureExtras, LockedReadingItem, StudentMediaItem, StudentSearchResult, StudentSearchView } from "@/lib/reading-rules";
 
 type Entry = StudentMediaItem | LockedReadingItem;
 type View = { items: Entry[]; passages: Passage[] };
@@ -17,7 +18,12 @@ type Answer =
   | { type: "choice"; option: number }
   | { type: "choice-with-evidence"; option: number; sentenceId: string }
   | { type: "summary-write"; text: string; submitAsIs?: boolean }
-  | { type: "search-task"; query: number; result?: number; evidenceId?: string };
+  | { type: "search-task"; query: number; result?: number; evidenceId?: string }
+  | { type: "mood-scale"; value: number; feeling: number; evidenceId: string }
+  | { type: "sequence"; order: string[] }
+  | { type: "own-line"; text: string };
+
+const NO_LITERATURE: LiteratureExtras = { mood: [], relations: { main: "", edges: [] } };
 
 interface SummaryResult {
   done: boolean;
@@ -44,6 +50,8 @@ interface Result {
   view?: View;
   /** 검색 실험실: 고른(또는 알맞은) 검색어의 결과 */
   search?: StudentSearchView;
+  /** 문학: 마음 그래프·관계도 재료 */
+  literature?: LiteratureExtras;
 }
 
 type Notice =
@@ -63,6 +71,7 @@ export function ReadingRunner({
   passages: initialPassages,
   solvedIds,
   initialSummary,
+  initialLiterature,
 }: {
   submissionId: number;
   title: string;
@@ -71,7 +80,9 @@ export function ReadingRunner({
   passages: Passage[];
   solvedIds: string[];
   initialSummary: ProgressSummary;
+  initialLiterature?: LiteratureExtras;
 }) {
+  const [lit, setLit] = useState<LiteratureExtras>(initialLiterature ?? NO_LITERATURE);
   const [solved, setSolved] = useState<Set<string>>(() => new Set(solvedIds));
   const [summary, setSummary] = useState(initialSummary);
   const [view, setView] = useState<View>({ items: initialItems, passages: initialPassages });
@@ -132,6 +143,8 @@ export function ReadingRunner({
           <p className="text-stone-700">풀었어요: <b>{summary.solved}문제</b></p>
           <p className="text-stone-700">한 번에 맞힌 문제: <b>{summary.firstTry}개</b></p>
           <p className="text-stone-700">도움 받아 완료한 문제: <b>{summary.revealed}개</b></p>
+          {lit.mood.length > 0 && <MoodGraph points={lit.mood} />}
+          {lit.relations.edges.length > 0 && <RelationDiagram main={lit.relations.main} edges={lit.relations.edges} />}
           <p className="text-sm text-stone-600">
             {summary.revealed > 0
               ? "힌트를 보면서 끝까지 생각해 본 것도 멋져요. 도움 받은 문제는 다음에 다시 도전해 봐요."
@@ -153,10 +166,12 @@ export function ReadingRunner({
           onTogglePassage={() => setPassageOpen((o) => !o)}
           submissionId={submissionId}
           isLast={index === total - 1}
-          onSolved={(s, next) => {
+          lit={lit}
+          onSolved={(s, next, extras) => {
             setSolved((prev) => new Set(prev).add(current!.id));
             setSummary(s);
             if (next) setPending(next);
+            if (extras) setLit(extras);
           }}
           onNext={goNext}
         />
@@ -176,6 +191,7 @@ function ItemView({
   onTogglePassage,
   submissionId,
   isLast,
+  lit,
   onSolved,
   onNext,
 }: {
@@ -186,7 +202,8 @@ function ItemView({
   onTogglePassage: () => void;
   submissionId: number;
   isLast: boolean;
-  onSolved: (s: ProgressSummary, next?: View) => void;
+  lit: LiteratureExtras;
+  onSolved: (s: ProgressSummary, next?: View, extras?: LiteratureExtras) => void;
   onNext: () => void;
 }) {
   const [sentenceId, setSentenceId] = useState<string | null>(null);
@@ -201,6 +218,10 @@ function ItemView({
   const [seen, setSeen] = useState<Record<number, { results: StudentSearchResult[]; wrong: boolean }>>({});
   const [resultNo, setResultNo] = useState<number | null>(null);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
+  // 문학: 마음 온도(1~5), 사건 카드를 놓은 자리(자리 번호 순서)와 손에 든 카드
+  const [scale, setScale] = useState<number | null>(null);
+  const [slots, setSlots] = useState<(string | null)[]>(() => (item.type === "sequence" ? item.events.map(() => null) : []));
+  const [heldEvent, setHeldEvent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const locked = busy || done;
@@ -213,6 +234,12 @@ function ItemView({
   const ready =
     item.type === "search-task"
       ? queryNo !== null && (seenQuery === undefined || (!seenQuery.wrong && resultNo !== null && evidenceId !== null))
+      : item.type === "mood-scale"
+      ? scale !== null && option !== null && sentenceId !== null
+      : item.type === "sequence"
+      ? slots.every((x) => x !== null)
+      : item.type === "own-line"
+      ? text.trim().length > 0
       : item.type === "sentence-pick"
       ? sentenceId !== null
       : item.type === "label-sentences"
@@ -226,8 +253,8 @@ function ItemView({
               : option !== null && sentenceId !== null;
 
   // 지문에서 문장을 눌러 고를 수 있는 문제만 문장이 버튼이 된다.
-  const picking = item.type === "sentence-pick" || item.type === "choice-with-evidence";
-  const scope = item.type === "sentence-pick" ? item.paragraphId : undefined;
+  const picking = item.type === "sentence-pick" || item.type === "choice-with-evidence" || item.type === "mood-scale";
+  const scope = item.type === "sentence-pick" ? item.paragraphId : item.type === "mood-scale" ? item.sceneParagraphId : undefined;
   const marked = new Set<string>(sentenceId ? [sentenceId] : []);
   const targets = new Map<string, number>(item.type === "label-sentences" ? item.sentenceIds.map((id, i) => [id, i + 1]) : []);
   const heldParagraphs = new Set<string>(heldParagraph ? [heldParagraph] : []);
@@ -242,6 +269,12 @@ function ItemView({
       setOption(a.option);
       setSentenceId(a.sentenceId);
     }
+    if (a.type === "mood-scale") {
+      setScale(a.value);
+      setOption(a.feeling);
+      setSentenceId(a.evidenceId);
+    }
+    if (a.type === "sequence") setSlots(a.order);
     if (a.type === "search-task") {
       setQueryNo(a.query);
       setResultNo(a.result ?? null);
@@ -252,7 +285,13 @@ function ItemView({
   async function check(submitAsIs = false) {
     if (!ready || locked) return;
     const answer: Answer =
-      item.type === "search-task"
+      item.type === "mood-scale"
+        ? { type: "mood-scale", value: scale!, feeling: option!, evidenceId: sentenceId! }
+        : item.type === "sequence"
+        ? { type: "sequence", order: slots as string[] }
+        : item.type === "own-line"
+        ? { type: "own-line", text }
+        : item.type === "search-task"
         ? seenQuery && !seenQuery.wrong
           ? { type: "search-task", query: queryNo!, result: resultNo!, evidenceId: evidenceId! }
           : { type: "search-task", query: queryNo! }
@@ -300,12 +339,12 @@ function ItemView({
       } else if (r.correct) {
         setNotice({ kind: "correct", text: r.explanation ?? "", rendered: r.rendered });
         setDone(true);
-        onSolved(r.progress, r.view);
+        onSolved(r.progress, r.view, r.literature);
       } else if (r.feedback?.level === "reveal") {
         applyReveal(r.feedback.reveal?.answer);
         setNotice({ kind: "reveal", text: r.explanation ?? r.feedback.message, rendered: r.feedback.reveal?.rendered ?? "" });
         setDone(true);
-        onSolved(r.progress, r.view);
+        onSolved(r.progress, r.view, r.literature);
       } else {
         setNotice({ kind: "wrong", text: r.feedback?.message ?? "", level: r.feedback?.level ?? "principle" });
       }
@@ -397,6 +436,118 @@ function ItemView({
             evidenceId={evidenceId}
             onEvidence={setEvidenceId}
           />
+        )}
+
+        {item.type === "mood-scale" && (
+          <div className="space-y-5">
+            <div>
+              <div className="label" id="thermo-label">1. {item.character}의 마음 온도를 눌러 보세요</div>
+              <Thermometer value={scale} disabled={locked} onChange={setScale} />
+            </div>
+            <div>
+              <div className="label">2. 마음을 나타내는 말을 골라요</div>
+              {optionList(item.feelings)}
+            </div>
+            <div>
+              <div className="label">3. 그렇게 생각한 문장을 지문에서 눌러 보세요</div>
+              <p className="rounded-xl bg-stone-50 p-3 text-stone-700" aria-live="polite">
+                {sentenceId ? (
+                  <>
+                    <span className="mr-2 text-sm text-stone-500">근거로 고른 문장</span>
+                    {sentenceText(sentenceId)}
+                  </>
+                ) : (
+                  <span className="text-stone-500">아직 고르지 않았어요.</span>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {item.type === "sequence" && (
+          <div className="space-y-4">
+            <div>
+              <div className="label">사건 카드 (눌러서 고르고, 아래 자리에 놓아요)</div>
+              <ul aria-label="사건 카드 모음" className="grid gap-2">
+                {item.events
+                  .filter((e) => !slots.includes(e.id))
+                  .map((e) => (
+                    <li key={e.id}>
+                      <button
+                        type="button"
+                        disabled={locked}
+                        aria-pressed={heldEvent === e.id}
+                        onClick={() => setHeldEvent((h) => (h === e.id ? null : e.id))}
+                        className={`${btn} w-full text-left ${heldEvent === e.id ? "border-sun-400 bg-sun-100" : "border-black/15 bg-white hover:bg-stone-50"}`}
+                      >
+                        {e.text}
+                      </button>
+                    </li>
+                  ))}
+                {slots.every((x) => x !== null) && <li className="text-sm text-stone-500">카드를 모두 놓았어요.</li>}
+              </ul>
+            </div>
+            <ol aria-label="순서 자리" className="grid gap-2">
+              {slots.map((placedId, i) => {
+                const ev = placedId ? item.events.find((e) => e.id === placedId) : undefined;
+                return (
+                  <li key={i} className="flex items-stretch gap-2 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 p-2">
+                    <span aria-hidden="true" className="flex w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-base font-bold text-brand-700">
+                      {i + 1}
+                    </span>
+                    {ev ? (
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => setSlots((prev) => prev.map((x, j) => (j === i ? null : x)))}
+                        aria-label={`${i + 1}번째 자리: ${ev.text} (누르면 카드 모음으로 돌아가요)`}
+                        className={`${btn} min-w-0 flex-1 border-brand-500 bg-white text-left text-brand-700 hover:bg-brand-50`}
+                      >
+                        {ev.text}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={locked || heldEvent === null}
+                        onClick={() => {
+                          if (heldEvent === null) return;
+                          setSlots((prev) => prev.map((x, j) => (j === i ? heldEvent : x)));
+                          setHeldEvent(null);
+                        }}
+                        aria-label={`${i + 1}번째 자리에 놓기`}
+                        className={`${btn} min-w-0 flex-1 border-black/15 bg-white text-left text-stone-600 hover:bg-stone-50`}
+                      >
+                        {heldEvent === null ? "카드를 먼저 골라요" : "여기에 놓기"}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+
+        {item.type === "own-line" && (
+          <div className="space-y-2">
+            <label htmlFor="own-line-text" className="label">내 한 줄</label>
+            <input
+              id="own-line-text"
+              data-testid="own-line-input"
+              type="text"
+              className="input w-full text-[18px]"
+              maxLength={1000}
+              value={text}
+              readOnly={locked}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="내가 느낀 것을 한 줄로 써 보세요."
+              aria-describedby="own-line-count"
+              autoComplete="off"
+            />
+            <p id="own-line-count" className="text-sm font-semibold text-stone-600" aria-live="polite" data-testid="own-line-count">
+              <span className={Array.from(text.trim()).length > item.maxChars ? "text-orange-700" : ""}>{Array.from(text.trim()).length}/{item.maxChars}자</span>{" "}
+              <span className="font-normal text-stone-500">(정답은 없어요)</span>
+            </p>
+          </div>
         )}
 
         {item.type === "label-sentences" && (
@@ -579,7 +730,7 @@ function ItemView({
           )}
           {notice?.kind === "correct" && (
             <p className="rounded-xl border border-brand-500 bg-brand-50 p-3 text-brand-700">
-              <b className="block">정답이에요! ✓</b>
+              <b className="block">{item.type === "own-line" ? "다 썼어요! ✓" : "정답이에요! ✓"}</b>
               {notice.text}
             </p>
           )}
@@ -594,6 +745,9 @@ function ItemView({
             <p role="alert" className="rounded-xl border border-black/10 bg-stone-50 p-3 text-stone-700">{notice.text}</p>
           )}
         </div>
+
+        {done && item.type === "mood-scale" && lit.mood.length > 0 && <MoodGraph points={lit.mood} />}
+        {done && lit.relations.edges.some((r) => r.itemId === item.id) && <RelationDiagram main={lit.relations.main} edges={lit.relations.edges} />}
 
         <div className="flex flex-wrap justify-end gap-2">
           {!done && notice?.kind === "summary" && notice.result.canSubmitAsIs && (
@@ -1002,6 +1156,7 @@ function PassagePanel({
                 );
               }
               const no = passage.page ? pi : pi + 1;
+              const poem = passage.genre === "시";
               const allowed = picking && (!scopeParagraphId || scopeParagraphId === p.id);
               const scoped = picking && scopeParagraphId === p.id;
               const dimmed = picking && !!scopeParagraphId && scopeParagraphId !== p.id;
@@ -1010,18 +1165,20 @@ function PassagePanel({
                 <div
                   key={p.id}
                   role="group"
-                  aria-label={`${no}문단`}
+                  aria-label={poem ? `${no}연` : `${no}문단`}
                   data-paragraph={p.id}
                   data-fresh={isFresh ? "true" : undefined}
-                  className={`flex gap-2 rounded-lg p-1 ${passage.page ? "mx-2" : ""} ${dimmed ? "opacity-50" : ""} ${
+                  className={`flex gap-2 rounded-lg p-1 ${poem ? "mt-5 first:mt-0" : ""} ${passage.page ? "mx-2" : ""} ${dimmed ? "opacity-50" : ""} ${
                     scoped || heldParagraphs.has(p.id) ? "bg-sun-100/60 ring-2 ring-sun-400" : ""
                   } ${isFresh ? "bg-brand-50 ring-2 ring-brand-200" : ""}`}
                 >
                   <span
                     aria-hidden="true"
-                    className="mt-1.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-200 text-sm font-bold text-stone-700"
+                    className={`mt-1.5 inline-flex h-6 shrink-0 items-center justify-center rounded-full bg-stone-200 text-sm font-bold text-stone-700 ${
+                      poem ? "min-w-9 px-1.5" : "w-6"
+                    }`}
                   >
-                    {no}
+                    {poem ? `${no}연` : no}
                   </span>
                   {allowed ? (
                     <div className="min-w-0 flex-1">
@@ -1052,7 +1209,7 @@ function PassagePanel({
                           <span
                             key={s.id}
                             data-sentence={s.id}
-                            className={`${on ? (done ? "rounded bg-brand-100 font-semibold" : "rounded bg-sun-100 font-semibold") : ""} ${
+                            className={`${poem ? "block" : ""} ${on ? (done ? "rounded bg-brand-100 font-semibold" : "rounded bg-sun-100 font-semibold") : ""} ${
                               n ? "underline decoration-brand-500 decoration-2 underline-offset-4" : ""
                             }`}
                           >
@@ -1074,5 +1231,136 @@ function PassagePanel({
         ))}
       </div>
     </section>
+  );
+}
+
+// ───────── 문학: 마음 온도계, 마음 그래프, 인물 관계도 ─────────
+
+/** 마음 온도 1~5의 이름과 색(차가운 파랑 → 따뜻한 주황). 색만으로 알리지 않도록 숫자와 이름을 함께 쓴다. */
+const MOOD_LEVELS: { value: number; label: string; bg: string; fg: string }[] = [
+  { value: 5, label: "아주 따뜻해요", bg: "#e4572e", fg: "#ffffff" },
+  { value: 4, label: "따뜻해요", bg: "#f4a259", fg: "#1c1917" },
+  { value: 3, label: "보통이에요", bg: "#e7e2d3", fg: "#1c1917" },
+  { value: 2, label: "차가워요", bg: "#8ec1e6", fg: "#1c1917" },
+  { value: 1, label: "아주 차가워요", bg: "#2f64b0", fg: "#ffffff" },
+];
+const moodColor = (v: number) => MOOD_LEVELS.find((l) => l.value === v)?.bg ?? "#a8a29e";
+const moodName = (v: number) => MOOD_LEVELS.find((l) => l.value === v)?.label ?? "";
+
+/** 세로 온도계: 위가 따뜻함(5), 아래가 차가움(1). 라디오 그룹(위·아래·좌·우 화살표로도 고를 수 있다). */
+function Thermometer({ value, disabled, onChange }: { value: number | null; disabled: boolean; onChange: (v: number) => void }) {
+  function onKey(e: React.KeyboardEvent) {
+    if (disabled) return;
+    const up = e.key === "ArrowUp" || e.key === "ArrowRight";
+    const down = e.key === "ArrowDown" || e.key === "ArrowLeft";
+    if (!up && !down) return;
+    e.preventDefault();
+    const base = value ?? 3;
+    onChange(Math.min(5, Math.max(1, base + (up ? 1 : -1))));
+  }
+  return (
+    <div role="radiogroup" aria-labelledby="thermo-label" onKeyDown={onKey} className="flex flex-col gap-1.5 rounded-3xl border border-black/10 bg-stone-50 p-2" data-testid="thermometer">
+      {MOOD_LEVELS.map((l) => {
+        const on = value === l.value;
+        return (
+          <button
+            key={l.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            tabIndex={on || (value === null && l.value === 3) ? 0 : -1}
+            disabled={disabled}
+            data-scale={l.value}
+            onClick={() => onChange(l.value)}
+            style={{ backgroundColor: l.bg, color: l.fg }}
+            className={`flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-2 text-left text-base font-bold transition disabled:cursor-not-allowed disabled:opacity-80 ${
+              on ? "ring-4 ring-stone-900 ring-offset-2" : "opacity-90 hover:opacity-100"
+            }`}
+          >
+            <span aria-hidden="true" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 text-lg text-stone-900">
+              {l.value}
+            </span>
+            <span className="flex-1">{l.label}</span>
+            {on && <span aria-hidden="true">✓</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 마음 그래프: 학생이 고른 마음 온도를 장면 순서대로 이은 꺾은선 */
+function MoodGraph({ points }: { points: MoodPoint[] }) {
+  const W = 340;
+  const H = 210;
+  const left = 54;
+  const right = 16;
+  const top = 16;
+  const bottom = 40;
+  const n = points.length;
+  const x = (i: number) => (n === 1 ? (left + W - right) / 2 : left + (i * (W - left - right)) / (n - 1));
+  const y = (v: number) => top + ((5 - v) * (H - top - bottom)) / 4;
+  const character = points[0]?.character ?? "";
+  const sceneNo = (id: string) => id.replace(/^\D+/, "");
+  const summary = points.map((p) => `${sceneNo(p.sceneParagraphId)}장면 ${p.value}도(${moodName(p.value)})`).join(", ");
+  return (
+    <figure className="rounded-2xl border border-black/10 bg-white p-3 text-left" data-testid="mood-graph" data-values={points.map((p) => p.value).join(",")}>
+      <figcaption className="mb-1 text-base font-bold">📈 {character}의 마음 그래프</figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${character}의 마음 그래프: ${summary}`} className="h-auto w-full">
+        {[1, 2, 3, 4, 5].map((v) => (
+          <g key={v}>
+            <line x1={left} x2={W - right} y1={y(v)} y2={y(v)} stroke="#d6d3d1" strokeWidth={1} strokeDasharray={v === 3 ? undefined : "3 4"} />
+            <text x={left - 8} y={y(v) + 4} textAnchor="end" fontSize={12} fill="#57534e">{v}</text>
+          </g>
+        ))}
+        <text x={6} y={y(5) + 4} fontSize={10} fill="#b4381a">따뜻</text>
+        <text x={6} y={y(1) + 4} fontSize={10} fill="#2f64b0">차가움</text>
+        {n > 1 && (
+          <polyline fill="none" stroke="#44403c" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" points={points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ")} />
+        )}
+        {points.map((p, i) => (
+          <g key={`${p.sceneParagraphId}-${i}`}>
+            <circle cx={x(i)} cy={y(p.value)} r={9} fill={moodColor(p.value)} stroke="#1c1917" strokeWidth={2} />
+            <text x={x(i)} y={y(p.value) + 4} textAnchor="middle" fontSize={11} fontWeight={700} fill="#1c1917">{p.value}</text>
+            <text x={x(i)} y={H - 16} textAnchor="middle" fontSize={12} fill="#44403c">{sceneNo(p.sceneParagraphId)}장면</text>
+          </g>
+        ))}
+      </svg>
+      <p className="text-xs text-stone-500">내가 고른 마음 온도를 장면 순서대로 이었어요. 1은 아주 차갑고, 5는 아주 따뜻해요.</p>
+    </figure>
+  );
+}
+
+/** 인물 관계도: 가운데에 주인공, 둘레에 푼 문제의 인물과 관계 이름 */
+function RelationDiagram({ main, edges }: { main: string; edges: RelationEdge[] }) {
+  const W = 400;
+  const H = 280;
+  const cx = W / 2;
+  const cy = H / 2;
+  const n = edges.length;
+  const pos = edges.map((_, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / n + (n === 1 ? Math.PI / 2 : n === 2 ? Math.PI / 2 : 0);
+    return { x: cx + Math.cos(a) * 128, y: cy + Math.sin(a) * 92 };
+  });
+  const summary = edges.map((e) => `${main}와 ${e.other}: ${e.label}`).join(", ");
+  return (
+    <figure className="rounded-2xl border border-black/10 bg-white p-3 text-left" data-testid="relation-diagram" data-count={n}>
+      <figcaption className="mb-1 text-base font-bold">🧩 인물 관계도</figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`인물 관계도: ${summary}`} className="h-auto w-full">
+        {edges.map((e, i) => (
+          <line key={`l-${e.itemId}`} x1={cx} y1={cy} x2={pos[i].x} y2={pos[i].y} stroke="#78716c" strokeWidth={2} />
+        ))}
+        <circle cx={cx} cy={cy} r={34} fill="#dbeafe" stroke="#1d4ed8" strokeWidth={3} />
+        <text x={cx} y={cy + 5} textAnchor="middle" fontSize={16} fontWeight={700} fill="#1e3a8a">{main}</text>
+        {edges.map((e, i) => (
+          <g key={e.itemId} data-testid={`relation-${e.itemId}`}>
+            <rect x={pos[i].x - 62} y={pos[i].y - 26} width={124} height={52} rx={14} fill="#fffbeb" stroke="#d97706" strokeWidth={2} />
+            <text x={pos[i].x} y={pos[i].y - 4} textAnchor="middle" fontSize={14} fontWeight={700} fill="#1c1917">{e.other}</text>
+            <text x={pos[i].x} y={pos[i].y + 14} textAnchor="middle" fontSize={e.label.length > 7 ? 10.5 : 12} fill="#b45309">{e.label}</text>
+          </g>
+        ))}
+      </svg>
+      <p className="text-xs text-stone-500">문제를 풀 때마다 {main}와 다른 인물의 사이가 하나씩 채워져요.</p>
+    </figure>
   );
 }

@@ -9,7 +9,7 @@ import { getLocalModelConfig } from "@/lib/coach";
 import { progress, studentItems } from "@/lib/grammar";
 import { progressSummary } from "@/lib/grammar-rules";
 import { GrammarRunner } from "./GrammarRunner";
-import { readingProgress } from "@/lib/reading";
+import { literatureExtras, readingProgress } from "@/lib/reading";
 import { studentReadingView } from "@/lib/reading-rules";
 import { isReadingHostKind } from "@/lib/activities";
 import { ReadingRunner } from "./ReadingRunner";
@@ -72,6 +72,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
         passages={view.passages}
         solvedIds={solvedIds}
         initialSummary={progressSummary(prog)}
+        initialLiterature={assignment.kind === "literature" ? await literatureExtras(submission.id, assignment.activityId) : undefined}
       />
     );
   }

@@ -46,7 +46,7 @@ export function GrammarStatus({ assignmentId, initial }: { assignmentId: number;
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
           <b>살펴봐야 할 학생이 있어요.</b>{" "}
           {alerts.map((r) => `${r.number}번(${r.alert === "distress" ? "힘든 일 언급" : "개인 정보 입력"})`).join(", ")}
-          — 아래 ‘요약 글’에서 내용을 확인해 주세요.
+          — 아래 ‘학생이 쓴 글’에서 내용을 확인해 주세요.
         </div>
       )}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -162,9 +162,9 @@ const REASON_LABEL: Record<string, string> = {
 
 function SummaryList({ rows }: { rows: SummaryStudentRow[] }) {
   return (
-    <section className="card space-y-3 p-0" aria-label="요약 글">
+    <section className="card space-y-3 p-0" aria-label="학생이 쓴 글">
       <div className="border-b border-black/5 px-3 py-2 font-semibold">
-        요약 글 <span className="text-xs font-normal text-stone-500">선생님만 볼 수 있어요. 눌러서 펼쳐 보세요.</span>
+        학생이 쓴 글 <span className="text-xs font-normal text-stone-500">선생님만 볼 수 있어요. 눌러서 펼쳐 보세요.</span>
       </div>
       <ul className="divide-y divide-black/5">
         {rows.map((r) => {
@@ -174,7 +174,7 @@ function SummaryList({ rows }: { rows: SummaryStudentRow[] }) {
             <li key={`${r.studentId}-${r.itemId}`} className={flagged ? "bg-red-50" : ""}>
               <details className="px-3 py-2">
                 <summary className="cursor-pointer text-sm">
-                  <b>{r.number}번</b> {r.nickname} · {r.no}번 문제 · 제출 {r.attempts.length}번
+                  <b>{r.number}번</b> {r.nickname} · {r.no}번 문제 ({r.kind === "own-line" ? "내 한 줄" : "요약"}) · 제출 {r.attempts.length}번
                   {last?.coverage != null && <> · 문단 반영 {Math.round(last.coverage * 100)}%</>}
                   {last?.length != null && <> · {last.length}자</>}
                   {r.solved ? (
@@ -186,7 +186,7 @@ function SummaryList({ rows }: { rows: SummaryStudentRow[] }) {
                 </summary>
                 <ol className="mt-2 space-y-2">
                   {r.attempts.map((a) => (
-                    <AttemptItem key={a.no} a={a} />
+                    <AttemptItem key={a.no} a={a} ownLine={r.kind === "own-line"} />
                   ))}
                 </ol>
               </details>
@@ -198,13 +198,14 @@ function SummaryList({ rows }: { rows: SummaryStudentRow[] }) {
   );
 }
 
-function AttemptItem({ a }: { a: SummaryAttemptView }) {
+function AttemptItem({ a, ownLine }: { a: SummaryAttemptView; ownLine: boolean }) {
   return (
     <li className={`rounded-lg border p-3 text-sm ${a.safety ? "border-red-200 bg-red-50" : "border-black/10 bg-stone-50"}`}>
       <div className="mb-1 text-xs text-stone-500">
-        {a.no}번째 제출 · {REASON_LABEL[a.reason] ?? a.reason}
+        {a.no}번째 제출 · {ownLine && a.reason === "ok" ? "잘 씀(채점 없음)" : (REASON_LABEL[a.reason] ?? a.reason)}
         {a.coverage !== null && <> · 문단 반영 {Math.round(a.coverage * 100)}%</>}
         {a.length !== null && <> · {a.length}자</>}
+        {ownLine && a.text && !a.safety && <> · {Array.from(a.text).length}자</>}
         {a.copied && <> · 베껴 쓴 문장 있음</>}
       </div>
       {a.text ? <p className="whitespace-pre-wrap">{a.text}</p> : <p className="text-stone-400">(글 없음)</p>}

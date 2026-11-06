@@ -37,6 +37,7 @@ export function NewAssignmentForm({
   activities: grammarActivities,
   readingActivities,
   mediaActivities,
+  literatureActivities,
   artifactActivities,
 }: {
   classId: number;
@@ -44,12 +45,13 @@ export function NewAssignmentForm({
   activities: ActivityOption[];
   readingActivities: ActivityOption[];
   mediaActivities: ActivityOption[];
+  literatureActivities: ActivityOption[];
   artifactActivities: ArtifactOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "cardnews" | "media-diary">("writing");
-  const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities };
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "literature" | "cardnews" | "media-diary">("writing");
+  const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities, literature: literatureActivities };
   const artifact = artifactActivities.find((x) => x.kind === kind);
-  const activities = kind === "writing" || artifact ? [] : activityMap[kind as "grammar" | "reading" | "media"];
+  const activities = kind === "writing" || artifact ? [] : activityMap[kind as "grammar" | "reading" | "media" | "literature"];
   const [activityId, setActivityId] = useState(grammarActivities[0]?.id ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(createAssignment, {});
   const [genreId, setGenreId] = useState(genres[0]?.id ?? "");
@@ -67,6 +69,7 @@ export function NewAssignmentForm({
           ["grammar", "문법·어휘 활동"],
           ["reading", "읽기 활동"],
           ["media", "매체 활동"],
+          ["literature", "문학 활동"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
@@ -148,6 +151,7 @@ export function NewAssignmentForm({
             AI 없이 규칙으로 채점해요. 틀리면 원리와 힌트를 차례로 보여 주고, 학생 기록은 문제별로 남아요.
             {kind === "reading" && " 학생은 지문을 보면서 문제를 풀고, 근거 문장도 함께 골라요."}
             {kind === "media" && " 모두 연습용 가상 페이지와 가상 검색 결과예요. 학생은 믿을 만한 단서를 찾고, 근거도 함께 골라요."}
+            {kind === "literature" && " 모두 직접 지은 동화와 시예요. 마음 온도와 인물 관계는 글 속 근거로 확인할 수 있는 것만 채점하고, 내 한 줄 쓰기는 채점하지 않고 안전 점검만 해요."}
           </p>
           <FormMessage state={state} />
           <button className="btn-primary" disabled={pending || activities.length === 0}>과제 만들기</button>

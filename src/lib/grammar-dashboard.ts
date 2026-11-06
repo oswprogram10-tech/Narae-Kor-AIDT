@@ -20,11 +20,11 @@ export interface GrammarStudentRow {
   /** 힌트(힌트 1 이상)를 본 문제 수 */
   hintItems: number;
   updatedAt: string | null;
-  /** 읽기 요약 쓰기에서 위험 신호·개인 정보가 감지됐는지(쓰기 코치의 알림과 같은 뜻). 가장 심한 것 하나 */
+  /** 읽기 요약 쓰기·문학 내 한 줄에서 위험 신호·개인 정보가 감지됐는지(쓰기 코치의 알림과 같은 뜻). 가장 심한 것 하나 */
   alert: "distress" | "personal_info" | null;
 }
 
-/** 요약 쓰기 한 번의 제출(교사만 본다) */
+/** 요약 쓰기·내 한 줄 한 번의 제출(교사만 본다) */
 export interface SummaryAttemptView {
   no: number;
   reason: string;
@@ -43,6 +43,8 @@ export interface SummaryStudentRow {
   number: number;
   nickname: string;
   itemId: string;
+  /** 요약 쓰기인지, 문학의 내 한 줄인지 */
+  kind: "summary" | "own-line";
   /** 활동 안에서의 문제 번호(1부터) */
   no: number;
   solved: boolean;
@@ -64,12 +66,12 @@ export interface GrammarItemRow {
 export interface GrammarStatus {
   students: GrammarStudentRow[];
   items: GrammarItemRow[];
-  /** 읽기 활동의 요약 쓰기 제출(없으면 빈 배열) */
+  /** 읽기 활동의 요약 쓰기·문학 활동의 내 한 줄 제출(없으면 빈 배열) */
   summaries: SummaryStudentRow[];
 }
 
-/** 문법·읽기·매체 활동이 같은 화면·계산을 쓴다. kind로 문제 은행만 고른다(매체는 읽기 문제 은행 + 검색 실험실). */
-export type ActivityKind = "grammar" | "reading" | "media";
+/** 문법·읽기·매체·문학 활동이 같은 화면·계산을 쓴다. kind로 문제 은행만 고른다(매체는 읽기 문제 은행 + 검색 실험실, 문학은 읽기 문제 은행 + 새 형식). */
+export type ActivityKind = "grammar" | "reading" | "media" | "literature";
 
 const itemIdsOf = (kind: ActivityKind, activityId: string | null): string[] =>
   (kind !== "grammar" ? readingActivityItems(activityId) : activityItems(activityId)).map((i) => i.id);
@@ -112,6 +114,10 @@ function summaryAttemptView(a: AttemptRow): SummaryAttemptView {
 const summaryItemIds = (kind: ActivityKind, itemIds: string[]): Set<string> =>
   new Set(kind !== "grammar" ? itemIds.filter((id) => findItem(id)?.type === "summary-write") : []);
 
+/** 문제 id 목록 중 글을 쓰는 문제(요약 쓰기·내 한 줄)의 id. 교사가 학생의 글을 읽는 목록에 쓴다. */
+const writtenItemIds = (kind: ActivityKind, itemIds: string[]): Set<string> =>
+  new Set(kind !== "grammar" ? itemIds.filter((id) => { const t = findItem(id)?.type; return t === "summary-write" || t === "own-line"; }) : []);
+
 export async function grammarStatus(
   assignmentId: number,
   classId: number,
@@ -133,7 +139,7 @@ export async function grammarStatus(
     updatedAt: sub && prog.some((p) => p.attempts > 0) ? sub.updatedAt.toISOString() : null,
     alert: sub ? alertOf(attempts.filter((a) => a.submissionId === sub.id)) : null,
   }));
-  const summaryIds = summaryItemIds(kind, itemIds);
+  const summaryIds = writtenItemIds(kind, itemIds);
   const summaries: SummaryStudentRow[] = [];
   for (const { st, sub, prog } of rows) {
     if (!sub) continue;
@@ -146,6 +152,7 @@ export async function grammarStatus(
         number: st.number,
         nickname: st.nickname,
         itemId,
+        kind: findItem(itemId)?.type === "own-line" ? "own-line" : "summary",
         no: itemIds.indexOf(itemId) + 1,
         solved: !!p?.solved,
         helped: !!p?.revealed,
@@ -179,6 +186,7 @@ function alertOf(rows: readonly AttemptRow[]): GrammarStudentRow["alert"] {
 // 연구용 익명 CSV: 학생 × 문제 한 줄. 별명은 넣지 않는다.
 // 읽기·매체 활동은 끝에 evidence_wrong_attempts(답은 맞고 근거 문장이 틀린 시도 수),
 // summary_coverage·summary_chars(요약 쓰기 문제의 마지막 점검 결과: 문단 반영률, 글자 수. 다른 문제는 빈칸) 열이 붙는다. 매체 활동은 wrong_query_attempts(검색 실험실에서 알맞지 않은 검색어를 고른 시도 수, 다른 문제는 빈칸)도 붙는다.
+// 문학 활동은 scale_wrong_attempts(마음 온도가 인정 범위 밖이어서 틀린 시도 수, 마음 온도 문제가 아니면 빈칸)와 own_line_chars(내 한 줄의 마지막 점검 통과 글의 글자 수, 아니면 빈칸)가 붙는다. 글 내용은 CSV에 넣지 않는다.
 export async function grammarCsv(
   assignmentId: number,
   classId: number,
@@ -189,6 +197,7 @@ export async function grammarCsv(
   const header = ["student_number", "item_id", "standard_code", "attempts", "first_try_correct", "revealed", "max_hint_level", "seconds_to_solve"];
   if (kind !== "grammar") header.push("evidence_wrong_attempts", "summary_coverage", "summary_chars");
   if (kind === "media") header.push("wrong_query_attempts");
+  if (kind === "literature") header.push("scale_wrong_attempts", "own_line_chars");
   const summaryIds = summaryItemIds(kind, itemIds);
   const lines = [header.join(",")];
   for (const { st, sub, prog } of rows) {
@@ -219,6 +228,7 @@ export async function grammarCsv(
                         : "",
                     ]
                   : []),
+                ...(kind === "literature" ? literatureCells(findItem(p.itemId)?.type, sub ? attempts.filter((a) => a.submissionId === sub.id && a.itemId === p.itemId) : []) : []),
               ]
             : []),
         ].join(","),
@@ -242,4 +252,16 @@ function summaryCells(last: AttemptRow | undefined): (number | string)[] {
   const coverage = num(ans.coverage);
   const length = num(ans.length);
   return [coverage === null ? "" : Math.round(coverage * 100) / 100, length ?? ""];
+}
+
+/** 문학 CSV의 scale_wrong_attempts·own_line_chars 두 칸. 해당하지 않는 문제는 빈칸. */
+function literatureCells(type: string | undefined, rows: readonly AttemptRow[]): (number | string)[] {
+  const scale = type === "mood-scale" ? rows.filter((a) => a.reason === "wrong-scale").length : "";
+  let chars: number | string = "";
+  if (type === "own-line") {
+    const last = rows.filter((a) => !SAFETY_REASONS.has(a.reason ?? "")).sort((a, b) => b.attemptNo - a.attemptNo)[0];
+    const text = last ? asRecord(last.answer).text : undefined;
+    if (typeof text === "string") chars = Array.from(text).length;
+  }
+  return [scale, chars];
 }

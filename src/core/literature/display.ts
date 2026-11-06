@@ -73,3 +73,30 @@ export function moodGraph(
   rows.sort((x, y) => x.passageOrder - y.passageOrder || x.sceneOrder - y.sceneOrder || x.seq - y.seq);
   return rows.map((r) => r.point);
 }
+
+/** 인물 관계도의 선 하나: 가운데 인물과 다른 인물 사이, 관계 이름(짧게). 근거로 정답이 정해진 관계 문제에서만 만든다. */
+export interface RelationEdge {
+  itemId: string;
+  other: string;
+  label: string;
+}
+
+/** 관계도 가운데에 놓는 인물(인물 관계도 활동의 주인공) */
+export const RELATION_MAIN = "지우";
+
+/** 관계 문제 id → 다른 인물과 관계 이름. 관계 이름은 그 문제의 정답 보기를 짧게 줄인 것이다. */
+const RELATION_TABLE: readonly RelationEdge[] = [
+  { itemId: "cm-01", other: "할머니", label: "가족" },
+  { itemId: "cm-02", other: "서린이", label: "단짝 친구" },
+  { itemId: "cm-03", other: "달수 할아버지", label: "이웃" },
+  { itemId: "cm-04", other: "도윤이", label: "겨루다가 친구가 된 사이" },
+];
+
+/** 관계 문제 id 목록(표 순서) */
+export const RELATION_ITEM_IDS: readonly string[] = RELATION_TABLE.map((r) => r.itemId);
+
+/** 푼(맞히거나 정답을 본) 관계 문제의 선만 표 순서대로 돌려준다. 아직 안 푼 문제의 관계는 알려 주지 않는다. */
+export function relationEdges(solvedItemIds: Iterable<string>): RelationEdge[] {
+  const solved = new Set(solvedItemIds);
+  return RELATION_TABLE.filter((r) => solved.has(r.itemId)).map((r) => ({ ...r }));
+}

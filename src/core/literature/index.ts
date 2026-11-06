@@ -5,6 +5,10 @@ export { LITERATURE_ITEMS, getLiteratureItem } from "./items";
 export { LITERATURE_ACTIVITIES, getLiteratureActivity, literatureActivitiesForGrade } from "./activities";
 export {
   OWN_LINE_MAX,
+  RELATION_ITEM_IDS,
+  RELATION_MAIN,
+  relationEdges,
+  type RelationEdge,
   displayEventIds,
   displayEvents,
   displayFeelings,

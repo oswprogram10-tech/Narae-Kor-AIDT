@@ -8,7 +8,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const id = Number((await params).id);
   const owned = await ownedAssignment(session.teacherId, id);
   const kind = owned?.assignment.kind;
-  if (!owned || (kind !== "grammar" && kind !== "reading" && kind !== "media")) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!owned || (kind !== "grammar" && kind !== "reading" && kind !== "media" && kind !== "literature")) return NextResponse.json({ error: "not found" }, { status: 404 });
   const status = await grammarStatus(id, owned.klass.id, owned.assignment.activityId, kind);
   return NextResponse.json({ ...status, now: new Date().toISOString() });
 }

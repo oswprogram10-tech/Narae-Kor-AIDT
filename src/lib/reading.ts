@@ -19,15 +19,31 @@ import {
   type MediaItem,
 } from "@/core/media";
 import {
+  OWN_LINE_MAX,
+  RELATION_MAIN,
+  correctLiteratureAnswerOf,
+  gradeLiteratureAnswer,
+  literatureCorrectFeedback,
+  literatureFeedbackFor,
+  moodGraph,
+  ownLineCheck,
+  relationEdges,
+  renderLiteratureAnswer,
+  type LiteratureAnswer,
+  type LiteratureGradeReason,
+  type OwnLineItem,
+} from "@/core/literature";
+import {
   isItemUnlocked,
   isProgressiveActivity,
   searchViewFor,
   studentReadingView,
   toDisplayAnswer,
+  type LiteratureExtras,
   type ReadingView,
   type StudentSearchView,
 } from "@/lib/reading-rules";
-import { activityItemsOf } from "@/lib/activities";
+import { activityItemsOf, isLiteratureItem, type HostItem } from "@/lib/activities";
 import { logEvent } from "@/lib/events";
 import { attemptsFor } from "@/lib/grammar";
 import {
@@ -40,9 +56,44 @@ import {
   type ProgressSummary,
 } from "@/lib/grammar-rules";
 
-/** 읽기·매체 활동의 문제(매체의 검색 실험실 문제 포함) */
-export function readingActivityItems(activityId: string | null): MediaItem[] {
+/** 읽기·매체·문학 활동의 문제(매체의 검색 실험실 문제, 문학의 마음 온도·순서 놓기·내 한 줄 포함) */
+export function readingActivityItems(activityId: string | null): HostItem[] {
   return activityItemsOf(activityId);
+}
+
+type HostAnswer = MediaAnswer | LiteratureAnswer;
+type HostGrade = { correct: boolean; reason: string; countsAsWrong: boolean };
+
+// 문학 은행의 문제는 문학 채점·안내를, 나머지는 매체(=읽기+검색) 채점·안내를 쓴다. 문제는 한쪽에만 속하므로 답 형식도 그쪽이다.
+const gradeHost = (item: HostItem, answer: HostAnswer): HostGrade =>
+  isLiteratureItem(item) ? gradeLiteratureAnswer(item, answer as LiteratureAnswer) : gradeMediaAnswer(item as MediaItem, answer as MediaAnswer);
+const renderHost = (item: HostItem, answer: HostAnswer): string =>
+  isLiteratureItem(item) ? renderLiteratureAnswer(item, answer as LiteratureAnswer) : renderMediaAnswer(item as MediaItem, answer as MediaAnswer);
+const correctFeedbackHost = (item: HostItem): string =>
+  isLiteratureItem(item) ? literatureCorrectFeedback(item) : mediaCorrectFeedback(item as MediaItem);
+function feedbackHost(item: HostItem, wrongCount: number, reason: string): { level: HintLevel; message: string; reveal?: HostAnswer } {
+  return isLiteratureItem(item)
+    ? literatureFeedbackFor(item, wrongCount, reason as LiteratureGradeReason)
+    : mediaFeedbackFor(item as MediaItem, wrongCount, reason as Parameters<typeof mediaFeedbackFor>[2]);
+}
+
+/**
+ * 문학 활동의 마음 그래프·관계도 재료를 계산한다. 푼 문제만 담는다(아직 안 푼 문제의 값·관계는 알려 주지 않는다).
+ * 마음 그래프 값은 맞힌 시도에서 학생이 고른 값이고, 정답을 보고 넘어간 문제는 공개된 정답 값이다.
+ */
+export async function literatureExtras(submissionId: number, activityId: string | null): Promise<LiteratureExtras> {
+  const items = readingActivityItems(activityId).filter(isLiteratureItem);
+  const rows = await attemptsFor([submissionId]);
+  const prog = summarizeAttempts(items.map((i) => i.id), rows);
+  const solvedIds = new Set(prog.filter((p) => p.solved).map((p) => p.itemId));
+  const answers: Record<string, LiteratureAnswer | undefined> = {};
+  for (const item of items) {
+    if (item.type !== "mood-scale" || !solvedIds.has(item.id)) continue;
+    const mine = rows.filter((r) => r.itemId === item.id && !SAFETY_REASONS.has(r.reason ?? "")).sort((a, b) => a.attemptNo - b.attemptNo);
+    const correct = mine.find((r) => r.correct);
+    answers[item.id] = correct ? (correct.answer as LiteratureAnswer) : correctLiteratureAnswerOf(item);
+  }
+  return { mood: moodGraph(items, answers), relations: { main: RELATION_MAIN, edges: relationEdges(solvedIds) } };
 }
 
 /** 검색 실험실에서 1단계(검색어만 골랐을 때) 알맞은 검색어의 결과를 보여 주며 하는 안내 */
@@ -85,7 +136,7 @@ export type ReadingOutcome =
       incomplete?: boolean;
       message?: string;
       rendered: string;
-      feedback?: { level: HintLevel; message: string; reveal?: { answer: MediaAnswer; rendered: string } };
+      feedback?: { level: HintLevel; message: string; reveal?: { answer: HostAnswer; rendered: string } };
       explanation?: string;
       progress: ProgressSummary;
       summary?: SummaryOutcome;
@@ -98,6 +149,8 @@ export type ReadingOutcome =
       search?: StudentSearchView;
       /** 문단을 차례로 펼치는 활동에서 문제를 풀었을 때: 다음에 보일 문제와 지문 */
       view?: Pick<ReadingView, "items" | "passages">;
+      /** 문학 활동에서 마음 온도·관계 문제를 풀었을 때: 마음 그래프·관계도 재료 */
+      literature?: LiteratureExtras;
     };
 
 type Submission = typeof schema.submissions.$inferSelect;
@@ -106,8 +159,8 @@ export async function recordReadingAnswer(
   submission: Submission,
   activityId: string | null,
   studentId: number,
-  item: MediaItem,
-  answer: MediaAnswer,
+  item: HostItem,
+  answer: HostAnswer,
 ): Promise<ReadingOutcome> {
   const db = await getDb();
   const prev = await db
@@ -122,10 +175,13 @@ export async function recordReadingAnswer(
     if (!isItemUnlocked(activityId, item.id, solved)) return { status: 409, error: "앞 문제를 먼저 풀어 주세요." };
   }
   if (item.type === "summary-write") {
-    return recordSummary(submission, activityId, studentId, item, answer, prev);
+    return recordSummary(submission, activityId, studentId, item, answer as MediaAnswer, prev);
   }
-  const result = gradeMediaAnswer(item, answer);
-  const rendered = renderMediaAnswer(item, answer);
+  if (item.type === "own-line") {
+    return recordOwnLine(submission, activityId, studentId, item, answer, prev);
+  }
+  const result = gradeHost(item, answer);
+  const rendered = renderHost(item, answer);
 
   if (!result.correct && !result.countsAsWrong) {
     // 다 고르지 않았거나 형식이 맞지 않음: 안내만 하고 기록하지 않는다.
@@ -141,17 +197,17 @@ export async function recordReadingAnswer(
   }
 
   let level: HintLevel | null = null;
-  let feedback: { level: HintLevel; message: string; reveal?: { answer: MediaAnswer; rendered: string } } | undefined;
+  let feedback: { level: HintLevel; message: string; reveal?: { answer: HostAnswer; rendered: string } } | undefined;
   let search: StudentSearchView | undefined;
   let solved = result.correct;
   if (!result.correct) {
     const wrongCount = wrongAttemptCount(prev.map((p) => p.reason)) + 1;
-    const fb = mediaFeedbackFor(item, wrongCount, result.reason);
+    const fb = feedbackHost(item, wrongCount, result.reason);
     level = fb.level;
     feedback = {
       level: fb.level,
       message: fb.message,
-      reveal: fb.reveal ? { answer: toDisplayAnswer(item, fb.reveal), rendered: renderMediaAnswer(item, fb.reveal) } : undefined,
+      reveal: fb.reveal ? { answer: toDisplayAnswer(item, fb.reveal), rendered: renderHost(item, fb.reveal) } : undefined,
     };
     if (fb.level === "reveal") solved = true;
     if (item.type === "search-task" && answer.type === "search-task" && (fb.level === "reveal" || result.reason === "wrong-query")) {
@@ -177,16 +233,22 @@ export async function recordReadingAnswer(
   });
 
   const { summary, view } = await touchSubmission(submission, activityId, solved);
+  // 문학: 마음 온도·관계 문제를 풀면 그래프·관계도 재료를 함께 보낸다
+  const literature =
+    solved && isLiteratureItem(item) && (item.type === "mood-scale" || relationEdges([item.id]).length > 0)
+      ? await literatureExtras(submission.id, activityId)
+      : undefined;
 
   return {
     status: 200,
     correct: result.correct,
     rendered,
     feedback,
-    explanation: result.correct ? mediaCorrectFeedback(item) : solved ? item.explanation : undefined,
+    explanation: result.correct ? correctFeedbackHost(item) : solved ? item.explanation : undefined,
     progress: summary,
     ...(search ? { search } : {}),
     ...(view ? { view } : {}),
+    ...(literature ? { literature } : {}),
   };
 }
 
@@ -213,6 +275,72 @@ async function touchSubmission(submission: Submission, activityId: string | null
 }
 
 type PrevAttempt = { reason: string; correct: boolean; feedbackLevel: string | null };
+
+/**
+ * 내 한 줄 쓰기: 채점하지 않는다. 비어 있지 않고 60자 안이면 '다 했어요'.
+ * 요약 쓰기와 같은 안전 경로: 위험 신호는 돌봄 안내 + 교사 알림(글을 남겨 교사가 맥락을 봄),
+ * 개인 정보는 안내만 하고 글은 어디에도 저장하지 않는다.
+ */
+async function recordOwnLine(
+  submission: Submission,
+  activityId: string | null,
+  studentId: number,
+  item: OwnLineItem,
+  answer: HostAnswer,
+  prev: PrevAttempt[],
+): Promise<ReadingOutcome> {
+  const db = await getDb();
+  if (answer.type !== "own-line") return { status: 409, error: "답을 다시 확인해 주세요." };
+  const text = answer.text.trim();
+  if (text.length === 0) {
+    const progress = progressSummary(await readingProgress(submission.id, activityId));
+    return { status: 200, correct: false, incomplete: true, message: "먼저 한 줄을 써 보세요.", rendered: "", progress };
+  }
+
+  // 안전 점검이 먼저다: 글이 길어도(60자를 넘어도) 위험 신호·개인 정보는 놓치지 않는다.
+  const gate = summaryGate(text);
+  if (gate.kind) {
+    await db.insert(schema.grammarAttempts).values({
+      submissionId: submission.id,
+      itemId: item.id,
+      attemptNo: prev.length + 1,
+      correct: false,
+      reason: gate.kind,
+      feedbackLevel: null,
+      answer: { type: "own-line", text: gate.kind === "distress" ? text : "", safety: gate.kind },
+    });
+    await logEvent(`student:${studentId}`, "reading_answer", "submission", submission.id, { itemId: item.id, safety: gate.kind });
+    await db.update(schema.submissions).set({ updatedAt: new Date() }).where(eq(schema.submissions.id, submission.id));
+    const progress = progressSummary(await readingProgress(submission.id, activityId));
+    return { status: 200, correct: false, safety: gate.kind, message: gate.reply, rendered: "", progress };
+  }
+
+  // 안전한 글이 60자를 넘으면 too-long: 고쳐 쓰라고 안내만 하고 기록하지 않으며 틀린 횟수에도 넣지 않는다.
+  if (ownLineCheck(text).tooLong) {
+    const progress = progressSummary(await readingProgress(submission.id, activityId));
+    return { status: 200, correct: false, incomplete: true, message: `${OWN_LINE_MAX}자 안으로 줄여 써 볼까요?`, rendered: "", progress };
+  }
+
+  await db.insert(schema.grammarAttempts).values({
+    submissionId: submission.id,
+    itemId: item.id,
+    attemptNo: prev.length + 1,
+    correct: true,
+    reason: "ok",
+    feedbackLevel: null,
+    answer: { type: "own-line", text },
+  });
+  await logEvent(`student:${studentId}`, "reading_answer", "submission", submission.id, { itemId: item.id, correct: true, level: null });
+  const { summary: progress, view } = await touchSubmission(submission, activityId, true);
+  return {
+    status: 200,
+    correct: true,
+    rendered: text,
+    explanation: literatureCorrectFeedback(item),
+    progress,
+    ...(view ? { view } : {}),
+  };
+}
 
 /**
  * 요약 쓰기: 정답/오답이 아니라 고쳐 쓰기. 제출할 때마다 (1) 위험 신호·개인 정보를 먼저 확인하고,

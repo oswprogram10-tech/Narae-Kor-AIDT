@@ -8,6 +8,7 @@ import { getStandard } from "@/core/data/standards";
 import { activitiesForGrade } from "@/core/grammar";
 import { activitiesForGrade as readingActivitiesForGrade } from "@/core/reading";
 import { mediaActivitiesForGrade } from "@/core/media";
+import { literatureActivitiesForGrade } from "@/core/literature";
 import { artifactActivitiesForGrade } from "@/core/artifact";
 import { NewAssignmentForm } from "./NewAssignmentForm";
 
@@ -38,6 +39,7 @@ export default async function NewAssignment({ params }: { params: Promise<{ clas
   const activities = activitiesForGrade(klass.grade).map(toOption);
   const readingActivities = readingActivitiesForGrade(klass.grade).map(toOption);
   const mediaActivities = mediaActivitiesForGrade(klass.grade).map(toOption);
+  const literatureActivities = literatureActivitiesForGrade(klass.grade).map(toOption);
   const artifactActivities = artifactActivitiesForGrade(klass.grade).map((x) => ({
     kind: x.kind,
     title: x.title,
@@ -56,7 +58,7 @@ export default async function NewAssignment({ params }: { params: Promise<{ clas
       />
       <main className="mx-auto max-w-3xl px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold">과제 만들기</h1>
-        <NewAssignmentForm classId={classId} genres={genres} activities={activities} readingActivities={readingActivities} mediaActivities={mediaActivities} artifactActivities={artifactActivities} />
+        <NewAssignmentForm classId={classId} genres={genres} activities={activities} readingActivities={readingActivities} mediaActivities={mediaActivities} literatureActivities={literatureActivities} artifactActivities={artifactActivities} />
       </main>
     </>
   );
