@@ -4,21 +4,30 @@ import { getDb, schema } from "@/lib/db";
 import {
   INCOMPLETE_MESSAGE,
   SUMMARY_HELP_AFTER,
-  correctFeedback,
   evaluateSummary,
-  feedbackFor,
-  getActivity,
-  getItem,
-  gradeAnswer,
-  renderAnswer,
   summaryFeedback,
   summaryGate,
-  type ReadingAnswer,
-  type ReadingItem,
   type SummaryReason,
   type SummaryWriteItem,
 } from "@/core/reading";
-import { isItemUnlocked, isProgressiveActivity, studentReadingView, toDisplayAnswer, type ReadingView } from "@/lib/reading-rules";
+import {
+  gradeMediaAnswer,
+  mediaCorrectFeedback,
+  mediaFeedbackFor,
+  renderMediaAnswer,
+  type MediaAnswer,
+  type MediaItem,
+} from "@/core/media";
+import {
+  isItemUnlocked,
+  isProgressiveActivity,
+  searchViewFor,
+  studentReadingView,
+  toDisplayAnswer,
+  type ReadingView,
+  type StudentSearchView,
+} from "@/lib/reading-rules";
+import { activityItemsOf } from "@/lib/activities";
 import { logEvent } from "@/lib/events";
 import { attemptsFor } from "@/lib/grammar";
 import {
@@ -31,11 +40,13 @@ import {
   type ProgressSummary,
 } from "@/lib/grammar-rules";
 
-export function readingActivityItems(activityId: string | null): ReadingItem[] {
-  const activity = activityId ? getActivity(activityId) : undefined;
-  if (!activity) return [];
-  return activity.itemIds.map((id) => getItem(id)).filter((x): x is ReadingItem => !!x);
+/** 읽기·매체 활동의 문제(매체의 검색 실험실 문제 포함) */
+export function readingActivityItems(activityId: string | null): MediaItem[] {
+  return activityItemsOf(activityId);
 }
+
+/** 검색 실험실에서 1단계(검색어만 골랐을 때) 알맞은 검색어의 결과를 보여 주며 하는 안내 */
+export const SEARCH_PICK_MESSAGE = "이 검색어로 찾은 결과예요. 목적에 가장 알맞고 믿을 만한 결과를 하나 고른 뒤, 그렇게 생각한 까닭이 되는 부분을 눌러 보세요.";
 
 /** 한 제출물의 문제별 진행 상황. */
 export async function readingProgress(submissionId: number, activityId: string | null): Promise<ItemProgress[]> {
@@ -74,12 +85,17 @@ export type ReadingOutcome =
       incomplete?: boolean;
       message?: string;
       rendered: string;
-      feedback?: { level: HintLevel; message: string; reveal?: { answer: ReadingAnswer; rendered: string } };
+      feedback?: { level: HintLevel; message: string; reveal?: { answer: MediaAnswer; rendered: string } };
       explanation?: string;
       progress: ProgressSummary;
       summary?: SummaryOutcome;
       /** 요약에 위험 신호·개인 정보가 있어 점검 없이 안내만 함(교사에게 알림이 간다) */
       safety?: SummarySafety;
+      /**
+       * 검색 실험실: 학생이 고른 검색어의 결과(표시 순서). 알맞지 않은 검색어를 골랐을 때 그 검색어의 결과,
+       * 알맞은 검색어인데 결과를 아직 안 골랐을 때와 정답 공개 때는 알맞은 검색어의 결과.
+       */
+      search?: StudentSearchView;
       /** 문단을 차례로 펼치는 활동에서 문제를 풀었을 때: 다음에 보일 문제와 지문 */
       view?: Pick<ReadingView, "items" | "passages">;
     };
@@ -90,8 +106,8 @@ export async function recordReadingAnswer(
   submission: Submission,
   activityId: string | null,
   studentId: number,
-  item: ReadingItem,
-  answer: ReadingAnswer,
+  item: MediaItem,
+  answer: MediaAnswer,
 ): Promise<ReadingOutcome> {
   const db = await getDb();
   const prev = await db
@@ -108,28 +124,40 @@ export async function recordReadingAnswer(
   if (item.type === "summary-write") {
     return recordSummary(submission, activityId, studentId, item, answer, prev);
   }
-  const result = gradeAnswer(item, answer);
-  const rendered = renderAnswer(item, answer);
+  const result = gradeMediaAnswer(item, answer);
+  const rendered = renderMediaAnswer(item, answer);
 
   if (!result.correct && !result.countsAsWrong) {
     // 다 고르지 않았거나 형식이 맞지 않음: 안내만 하고 기록하지 않는다.
     const summary = progressSummary(await readingProgress(submission.id, activityId));
+    // 검색 실험실: 알맞은 검색어를 골랐지만 결과를 아직 안 골랐으면 그 검색어의 결과를 보여 준다(틀린 횟수에 넣지 않는다).
+    if (item.type === "search-task" && answer.type === "search-task" && answer.result === undefined && answer.query === item.correctQuery) {
+      const search = searchViewFor(item, item.correctQuery);
+      if (search) {
+        return { status: 200, correct: false, incomplete: true, message: SEARCH_PICK_MESSAGE, rendered, progress: summary, search };
+      }
+    }
     return { status: 200, correct: false, incomplete: true, message: INCOMPLETE_MESSAGE, rendered, progress: summary };
   }
 
   let level: HintLevel | null = null;
-  let feedback: { level: HintLevel; message: string; reveal?: { answer: ReadingAnswer; rendered: string } } | undefined;
+  let feedback: { level: HintLevel; message: string; reveal?: { answer: MediaAnswer; rendered: string } } | undefined;
+  let search: StudentSearchView | undefined;
   let solved = result.correct;
   if (!result.correct) {
     const wrongCount = wrongAttemptCount(prev.map((p) => p.reason)) + 1;
-    const fb = feedbackFor(item, wrongCount, result.reason);
+    const fb = mediaFeedbackFor(item, wrongCount, result.reason);
     level = fb.level;
     feedback = {
       level: fb.level,
       message: fb.message,
-      reveal: fb.reveal ? { answer: toDisplayAnswer(item, fb.reveal), rendered: renderAnswer(item, fb.reveal) } : undefined,
+      reveal: fb.reveal ? { answer: toDisplayAnswer(item, fb.reveal), rendered: renderMediaAnswer(item, fb.reveal) } : undefined,
     };
     if (fb.level === "reveal") solved = true;
+    if (item.type === "search-task" && answer.type === "search-task" && (fb.level === "reveal" || result.reason === "wrong-query")) {
+      // 알맞지 않은 검색어: 그 검색어의 결과를 실제로 보여 준다. 정답 공개: 알맞은 검색어의 결과(정답·근거 칸을 표시하려고).
+      search = searchViewFor(item, fb.level === "reveal" ? item.correctQuery : answer.query);
+    }
   }
 
   // 저장하는 답(answer)은 원래 보기 번호(섞기 전)
@@ -155,8 +183,9 @@ export async function recordReadingAnswer(
     correct: result.correct,
     rendered,
     feedback,
-    explanation: result.correct ? correctFeedback(item) : solved ? item.explanation : undefined,
+    explanation: result.correct ? mediaCorrectFeedback(item) : solved ? item.explanation : undefined,
     progress: summary,
+    ...(search ? { search } : {}),
     ...(view ? { view } : {}),
   };
 }
@@ -194,7 +223,7 @@ async function recordSummary(
   activityId: string | null,
   studentId: number,
   item: SummaryWriteItem,
-  answer: ReadingAnswer,
+  answer: MediaAnswer,
   prev: PrevAttempt[],
 ): Promise<ReadingOutcome> {
   const db = await getDb();

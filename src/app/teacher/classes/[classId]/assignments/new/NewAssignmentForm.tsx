@@ -28,14 +28,17 @@ export function NewAssignmentForm({
   genres,
   activities: grammarActivities,
   readingActivities,
+  mediaActivities,
 }: {
   classId: number;
   genres: GenreOption[];
   activities: ActivityOption[];
   readingActivities: ActivityOption[];
+  mediaActivities: ActivityOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar" | "reading">("writing");
-  const activities = kind === "reading" ? readingActivities : grammarActivities;
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media">("writing");
+  const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities };
+  const activities = kind === "writing" ? [] : activityMap[kind];
   const [activityId, setActivityId] = useState(grammarActivities[0]?.id ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(createAssignment, {});
   const [genreId, setGenreId] = useState(genres[0]?.id ?? "");
@@ -47,11 +50,12 @@ export function NewAssignmentForm({
     <form action={action} className="space-y-6">
       <input type="hidden" name="classId" value={classId} />
       <input type="hidden" name="kind" value={kind} />
-      <div role="group" aria-label="과제 종류" className="flex gap-2">
+      <div role="group" aria-label="과제 종류" className="flex flex-wrap gap-2">
         {([
           ["writing", "글쓰기 과제"],
           ["grammar", "문법·어휘 활동"],
           ["reading", "읽기 활동"],
+          ["media", "매체 활동"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
@@ -59,7 +63,7 @@ export function NewAssignmentForm({
             aria-pressed={kind === k}
             onClick={() => {
               setKind(k);
-              if (k !== "writing") setActivityId((k === "reading" ? readingActivities : grammarActivities)[0]?.id ?? "");
+              if (k !== "writing") setActivityId(activityMap[k][0]?.id ?? "");
             }}
             className={kind === k ? "btn-primary" : "btn-ghost"}
           >
@@ -106,6 +110,7 @@ export function NewAssignmentForm({
           <p className="text-sm text-stone-500">
             AI 없이 규칙으로 채점해요. 틀리면 원리와 힌트를 차례로 보여 주고, 학생 기록은 문제별로 남아요.
             {kind === "reading" && " 학생은 지문을 보면서 문제를 풀고, 근거 문장도 함께 골라요."}
+            {kind === "media" && " 모두 연습용 가상 페이지와 가상 검색 결과예요. 학생은 믿을 만한 단서를 찾고, 근거도 함께 골라요."}
           </p>
           <FormMessage state={state} />
           <button className="btn-primary" disabled={pending || activities.length === 0}>과제 만들기</button>

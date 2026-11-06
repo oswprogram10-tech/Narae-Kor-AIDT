@@ -11,7 +11,7 @@ import { PROVIDER_IDS, PROVIDER_LABELS } from "@/core/providers";
 import { LiveStatus } from "./LiveStatus";
 import { GrammarStatus } from "./GrammarStatus";
 import { getActivity } from "@/core/grammar";
-import { getActivity as getReadingActivity } from "@/core/reading";
+import { findActivity } from "@/lib/activities";
 import { grammarStatus } from "@/lib/grammar-dashboard";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -22,9 +22,9 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const { assignment: a, klass } = owned;
   const db = await getDb();
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
-  const isGrammar = a.kind === "grammar" || a.kind === "reading";
+  const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media";
   const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
-  const gStatus = isGrammar ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" ? "reading" : "grammar") : null;
+  const gStatus = isGrammar ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" ? a.kind : "grammar") : null;
   const available = assignableProviders();
 
   return (
@@ -40,8 +40,8 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-sm text-stone-500">
-              {a.kind === "reading"
-                ? (getReadingActivity(a.activityId ?? "")?.title ?? "읽기 활동")
+              {a.kind === "reading" || a.kind === "media"
+                ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : "읽기 활동"))
                 : isGrammar
                   ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
                   : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}

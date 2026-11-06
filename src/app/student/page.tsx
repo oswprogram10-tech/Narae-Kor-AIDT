@@ -5,6 +5,7 @@ import { getDb, schema } from "@/lib/db";
 import { studentLogout } from "@/app/actions/student";
 import { activityItems, attemptsFor } from "@/lib/grammar";
 import { readingActivityItems } from "@/lib/reading";
+import { isReadingHostKind } from "@/lib/activities";
 import { summarizeAttempts, progressSummary } from "@/lib/grammar-rules";
 import { STAGE_LABELS, type Stage } from "@/core/data/genres";
 
@@ -23,12 +24,12 @@ export default async function StudentHome() {
     .where(eq(schema.assignments.classId, classId))
     .orderBy(desc(schema.assignments.createdAt));
 
-  const grammarSubIds = assignments.filter(({ a, s }) => (a.kind === "grammar" || a.kind === "reading") && s).map(({ s }) => s!.id);
+  const grammarSubIds = assignments.filter(({ a, s }) => (a.kind === "grammar" || isReadingHostKind(a.kind)) && s).map(({ s }) => s!.id);
   const grammarAttempts = await attemptsFor(grammarSubIds);
   const label = (a: (typeof assignments)[number]["a"], s: (typeof assignments)[number]["s"]): string => {
-    if (a.kind === "grammar" || a.kind === "reading") {
+    if (a.kind === "grammar" || isReadingHostKind(a.kind)) {
       if (!s) return "시작하기";
-      const ids = (a.kind === "reading" ? readingActivityItems(a.activityId) : activityItems(a.activityId)).map((i) => i.id);
+      const ids = (isReadingHostKind(a.kind) ? readingActivityItems(a.activityId) : activityItems(a.activityId)).map((i) => i.id);
       const sum = progressSummary(summarizeAttempts(ids, grammarAttempts.filter((t) => t.submissionId === s.id)));
       if (sum.total > 0 && sum.solved === sum.total) return "완료 ✓";
       return sum.solved === 0 ? "시작하기" : `${sum.solved}/${sum.total} 문제`;

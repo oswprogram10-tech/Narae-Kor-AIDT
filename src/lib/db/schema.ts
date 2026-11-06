@@ -47,8 +47,8 @@ export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동). grammar·reading이면 activityId에 활동 id를 둔다.
-  kind: text("kind").$type<"writing" | "grammar" | "reading">().notNull().default("writing"),
+  // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용). grammar·reading·media이면 activityId에 활동 id를 둔다.
+  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media">().notNull().default("writing"),
   activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),

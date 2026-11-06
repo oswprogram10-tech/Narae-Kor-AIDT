@@ -7,7 +7,7 @@ import { TeacherHeader } from "@/components/TeacherHeader";
 import { resetStudentPin } from "@/app/actions/teacher";
 import { getGenre } from "@/core/data/genres";
 import { getActivity } from "@/core/grammar";
-import { getActivity as getReadingActivity } from "@/core/reading";
+import { findActivity } from "@/lib/activities";
 
 export default async function ClassPage({ params }: { params: Promise<{ classId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -44,8 +44,8 @@ export default async function ClassPage({ params }: { params: Promise<{ classId:
               <div className="flex items-center gap-2 text-sm text-stone-500">
                 <span>{a.kind === "grammar"
                     ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
-                    : a.kind === "reading"
-                      ? (getReadingActivity(a.activityId ?? "")?.title ?? "읽기 활동")
+                    : a.kind === "reading" || a.kind === "media"
+                      ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : "읽기 활동"))
                       : getGenre(a.genreId)?.name}</span>
                 <span>·</span>
                 <span>{a.standardCodes.map((c) => `[${c}]`).join(" ")}</span>

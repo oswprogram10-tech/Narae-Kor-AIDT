@@ -8,7 +8,7 @@ import {
   MEDIA_ITEMS,
   MEDIA_PASSAGES,
   WRONG_QUERY_MESSAGE,
-  WRONG_RESULT_MESSAGE,
+  WRONG_RESULT_MESSAGE, SEARCH_EVIDENCE_MESSAGE,
   correctMediaAnswerOf,
   correctResultOf,
   displayQueries,
@@ -250,7 +250,7 @@ describe("찍기 방지 단계(피드백 사다리)", () => {
   it("검색 문제: 오답 종류에 따라 안내 앞말이 붙고, 정답 공개 때는 붙지 않아요", () => {
     expect(mediaFeedbackFor(sl, 1, "wrong-query").message).toBe(`${WRONG_QUERY_MESSAGE} ${sl.principle}`);
     expect(mediaFeedbackFor(sl, 2, "wrong-result").message).toBe(`${WRONG_RESULT_MESSAGE} ${sl.hints[0]}`);
-    expect(mediaFeedbackFor(sl, 3, "evidence-wrong").message).toBe(`${EVIDENCE_MESSAGE} ${sl.hints[1]}`);
+    expect(mediaFeedbackFor(sl, 3, "evidence-wrong").message).toBe(`${SEARCH_EVIDENCE_MESSAGE} ${sl.hints[1]}`);
     expect(mediaFeedbackFor(sl, 4, "wrong-query").message).toBe(sl.explanation);
     expect(mediaFeedbackFor(sl, 4, "wrong-query").reveal).toEqual(correctMediaAnswerOf(sl));
   });

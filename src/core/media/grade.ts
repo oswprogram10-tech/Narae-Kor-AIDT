@@ -2,7 +2,6 @@
 
 import { feedbackLevel } from "@/core/practice/feedback";
 import {
-  EVIDENCE_MESSAGE,
   correctAnswerOf as readingCorrectAnswerOf,
   correctFeedback as readingCorrectFeedback,
   feedbackFor as readingFeedbackFor,
@@ -33,6 +32,8 @@ export interface MediaGradeResult {
 export const WRONG_QUERY_MESSAGE = "이 검색어로 찾은 결과를 살펴봐요. 결과가 내 목적과 맞나요?";
 /** reason이 "wrong-result"일 때 안내 문구 앞에 붙는 말 */
 export const WRONG_RESULT_MESSAGE = "검색어는 알맞아요. 이제 목적에 가장 잘 맞고 믿을 만한 결과를 다시 골라 봐요.";
+/** 검색 결과는 맞게 골랐지만 근거(단서 칸)가 틀렸을 때 */
+export const SEARCH_EVIDENCE_MESSAGE = "결과는 잘 골랐어요. 이 결과를 고른 단서(사이트·날짜·광고 표시·요약)를 다시 찾아봐요.";
 
 const ok: MediaGradeResult = { correct: true, reason: "ok", countsAsWrong: false };
 const wrong = (reason: MediaGradeReason): MediaGradeResult => ({ correct: false, reason, countsAsWrong: true });
@@ -90,7 +91,7 @@ export function mediaFeedbackFor(item: MediaItem, wrongCount: number, reason?: M
   const prefix =
     reason === "wrong-query" ? WRONG_QUERY_MESSAGE
     : reason === "wrong-result" ? WRONG_RESULT_MESSAGE
-    : reason === "evidence-wrong" ? EVIDENCE_MESSAGE
+    : reason === "evidence-wrong" ? SEARCH_EVIDENCE_MESSAGE
     : "";
   return { level, message: prefix ? `${prefix} ${base}` : base };
 }

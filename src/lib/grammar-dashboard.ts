@@ -2,9 +2,9 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { getItem } from "@/core/grammar";
-import { getItem as getReadingItem } from "@/core/reading";
 import { activityItems, attemptsFor } from "@/lib/grammar";
 import { readingActivityItems } from "@/lib/reading";
+import { findItem } from "@/lib/activities";
 import { SAFETY_REASONS, summarizeAttempts, type AttemptRow, type ItemProgress } from "@/lib/grammar-rules";
 
 export interface GrammarStudentRow {
@@ -68,11 +68,11 @@ export interface GrammarStatus {
   summaries: SummaryStudentRow[];
 }
 
-/** 문법·읽기 활동이 같은 화면·계산을 쓴다. kind로 문제 은행만 고른다. */
-export type ActivityKind = "grammar" | "reading";
+/** 문법·읽기·매체 활동이 같은 화면·계산을 쓴다. kind로 문제 은행만 고른다(매체는 읽기 문제 은행 + 검색 실험실). */
+export type ActivityKind = "grammar" | "reading" | "media";
 
 const itemIdsOf = (kind: ActivityKind, activityId: string | null): string[] =>
-  (kind === "reading" ? readingActivityItems(activityId) : activityItems(activityId)).map((i) => i.id);
+  (kind !== "grammar" ? readingActivityItems(activityId) : activityItems(activityId)).map((i) => i.id);
 
 async function collect(assignmentId: number, classId: number, activityId: string | null, kind: ActivityKind) {
   const db = await getDb();
@@ -110,7 +110,7 @@ function summaryAttemptView(a: AttemptRow): SummaryAttemptView {
 
 /** 문제 id 목록 중 요약 쓰기 문제의 id */
 const summaryItemIds = (kind: ActivityKind, itemIds: string[]): Set<string> =>
-  new Set(kind === "reading" ? itemIds.filter((id) => getReadingItem(id)?.type === "summary-write") : []);
+  new Set(kind !== "grammar" ? itemIds.filter((id) => findItem(id)?.type === "summary-write") : []);
 
 export async function grammarStatus(
   assignmentId: number,
@@ -177,8 +177,8 @@ function alertOf(rows: readonly AttemptRow[]): GrammarStudentRow["alert"] {
 }
 
 // 연구용 익명 CSV: 학생 × 문제 한 줄. 별명은 넣지 않는다.
-// 읽기 활동은 끝에 evidence_wrong_attempts(답은 맞고 근거 문장이 틀린 시도 수),
-// summary_coverage·summary_chars(요약 쓰기 문제의 마지막 점검 결과: 문단 반영률, 글자 수. 다른 문제는 빈칸) 열이 붙는다.
+// 읽기·매체 활동은 끝에 evidence_wrong_attempts(답은 맞고 근거 문장이 틀린 시도 수),
+// summary_coverage·summary_chars(요약 쓰기 문제의 마지막 점검 결과: 문단 반영률, 글자 수. 다른 문제는 빈칸) 열이 붙는다. 매체 활동은 wrong_query_attempts(검색 실험실에서 알맞지 않은 검색어를 고른 시도 수, 다른 문제는 빈칸)도 붙는다.
 export async function grammarCsv(
   assignmentId: number,
   classId: number,
@@ -187,7 +187,8 @@ export async function grammarCsv(
 ): Promise<string> {
   const { itemIds, rows, attempts } = await collect(assignmentId, classId, activityId, kind);
   const header = ["student_number", "item_id", "standard_code", "attempts", "first_try_correct", "revealed", "max_hint_level", "seconds_to_solve"];
-  if (kind === "reading") header.push("evidence_wrong_attempts", "summary_coverage", "summary_chars");
+  if (kind !== "grammar") header.push("evidence_wrong_attempts", "summary_coverage", "summary_chars");
+  if (kind === "media") header.push("wrong_query_attempts");
   const summaryIds = summaryItemIds(kind, itemIds);
   const lines = [header.join(",")];
   for (const { st, sub, prog } of rows) {
@@ -196,18 +197,28 @@ export async function grammarCsv(
         [
           st.number,
           p.itemId,
-          (kind === "reading" ? getReadingItem(p.itemId) : getItem(p.itemId))?.standardCode ?? "",
+          (kind !== "grammar" ? findItem(p.itemId) : getItem(p.itemId))?.standardCode ?? "",
           p.attempts,
           p.firstTryCorrect ? 1 : 0,
           p.revealed ? 1 : 0,
           p.hintsUsed,
           p.secondsToSolve ?? "",
-          ...(kind === "reading"
+          ...(kind !== "grammar"
             ? [
                 sub
                   ? attempts.filter((a) => a.submissionId === sub.id && a.itemId === p.itemId && a.reason === "evidence-wrong").length
                   : 0,
                 ...summaryCells(summaryIds.has(p.itemId) && sub ? lastEvaluated(attempts, sub.id, p.itemId) : undefined),
+                // 매체: 검색 실험실 문제에서 알맞지 않은 검색어를 고른 시도 수(다른 문제는 빈칸)
+                ...(kind === "media"
+                  ? [
+                      findItem(p.itemId)?.type === "search-task"
+                        ? sub
+                          ? attempts.filter((a) => a.submissionId === sub.id && a.itemId === p.itemId && a.reason === "wrong-query").length
+                          : 0
+                        : "",
+                    ]
+                  : []),
               ]
             : []),
         ].join(","),

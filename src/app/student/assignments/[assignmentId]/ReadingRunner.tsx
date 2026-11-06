@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Passage } from "@/core/reading/types";
 import type { ProgressSummary } from "@/lib/grammar-rules";
-import type { LockedReadingItem, StudentReadingItem } from "@/lib/reading-rules";
+import type { LockedReadingItem, StudentMediaItem, StudentSearchResult, StudentSearchView } from "@/lib/reading-rules";
 
-type Entry = StudentReadingItem | LockedReadingItem;
+type Entry = StudentMediaItem | LockedReadingItem;
 type View = { items: Entry[]; passages: Passage[] };
 const isLocked = (e: Entry): e is LockedReadingItem => "locked" in e;
 
@@ -16,7 +16,8 @@ type Answer =
   | { type: "slot-paragraphs"; placement: Record<string, string> }
   | { type: "choice"; option: number }
   | { type: "choice-with-evidence"; option: number; sentenceId: string }
-  | { type: "summary-write"; text: string; submitAsIs?: boolean };
+  | { type: "summary-write"; text: string; submitAsIs?: boolean }
+  | { type: "search-task"; query: number; result?: number; evidenceId?: string };
 
 interface SummaryResult {
   done: boolean;
@@ -41,6 +42,8 @@ interface Result {
   summary?: SummaryResult;
   safety?: "distress" | "personal_info";
   view?: View;
+  /** 검색 실험실: 고른(또는 알맞은) 검색어의 결과 */
+  search?: StudentSearchView;
 }
 
 type Notice =
@@ -84,7 +87,7 @@ export function ReadingRunner({
   const finished = index >= total;
   const currentEntry = finished ? null : items[index];
   const current = currentEntry && !isLocked(currentEntry) ? currentEntry : null;
-  const itemPassages = current
+  const itemPassages = current && current.type !== "search-task"
     ? (current.passageIds ?? [current.passageId]).map((id) => passages.find((p) => p.id === id)).filter((p): p is Passage => !!p)
     : [];
 
@@ -176,7 +179,7 @@ function ItemView({
   onSolved,
   onNext,
 }: {
-  item: StudentReadingItem;
+  item: StudentMediaItem;
   passages: Passage[];
   fresh: Set<string>;
   passageOpen: boolean;
@@ -193,16 +196,24 @@ function ItemView({
   const [option, setOption] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [text, setText] = useState("");
+  // 검색 실험실: 고른 검색어(표시 번호), 서버가 보여 준 결과, 고른 결과와 근거 칸
+  const [queryNo, setQueryNo] = useState<number | null>(null);
+  const [seen, setSeen] = useState<Record<number, { results: StudentSearchResult[]; wrong: boolean }>>({});
+  const [resultNo, setResultNo] = useState<number | null>(null);
+  const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const locked = busy || done;
   const passage = passages[0];
 
   const sentenceText = (id: string) => passages.flatMap((p) => p.paragraphs.flatMap((x) => x.sentences)).find((s) => s.id === id)?.text ?? "";
-  const paragraphNo = (pid: string) => (passage?.paragraphs.findIndex((p) => p.id === pid) ?? -1) + 1;
+  const paragraphNo = (pid: string) => (passage?.paragraphs.findIndex((p) => p.id === pid) ?? -1) + (passage?.page ? 0 : 1);
 
+  const seenQuery = queryNo !== null ? seen[queryNo] : undefined;
   const ready =
-    item.type === "sentence-pick"
+    item.type === "search-task"
+      ? queryNo !== null && (seenQuery === undefined || (!seenQuery.wrong && resultNo !== null && evidenceId !== null))
+      : item.type === "sentence-pick"
       ? sentenceId !== null
       : item.type === "label-sentences"
         ? item.sentenceIds.every((id) => labels[id] !== undefined)
@@ -231,12 +242,21 @@ function ItemView({
       setOption(a.option);
       setSentenceId(a.sentenceId);
     }
+    if (a.type === "search-task") {
+      setQueryNo(a.query);
+      setResultNo(a.result ?? null);
+      setEvidenceId(a.evidenceId ?? null);
+    }
   }
 
   async function check(submitAsIs = false) {
     if (!ready || locked) return;
     const answer: Answer =
-      item.type === "summary-write"
+      item.type === "search-task"
+        ? seenQuery && !seenQuery.wrong
+          ? { type: "search-task", query: queryNo!, result: resultNo!, evidenceId: evidenceId! }
+          : { type: "search-task", query: queryNo! }
+        : item.type === "summary-write"
         ? { type: "summary-write", text, ...(submitAsIs ? { submitAsIs: true } : {}) }
         : item.type === "sentence-pick"
         ? { type: "sentence-pick", sentenceId: sentenceId! }
@@ -260,6 +280,12 @@ function ItemView({
         return;
       }
       const r = data as Result;
+      if (item.type === "search-task" && r.search) {
+        // 서버가 보여 준 결과를 기억한다. 알맞지 않은 검색어의 결과는 읽기만 하고 고르지 않는다.
+        const results = r.search.results;
+        const wrongQuery = !r.correct && !r.incomplete && r.feedback?.level !== "reveal";
+        setSeen((prev) => ({ ...prev, [r.search!.query]: { results, wrong: wrongQuery } }));
+      }
       if (r.safety) {
         // 위험 신호·개인 정보: 점검하지 않고 안내만 한다(교사에게는 서버가 알린다)
         setNotice({ kind: "safety", text: r.message ?? "" });
@@ -309,7 +335,7 @@ function ItemView({
   );
 
   return (
-    <div className={`grid gap-4 lg:items-start ${passages.length > 1 ? "" : "lg:grid-cols-2"}`}>
+    <div className={`grid gap-4 lg:items-start ${passages.length === 1 ? "lg:grid-cols-2" : ""}`}>
       {passage && (
         <PassagePanel
           passages={passages}
@@ -348,6 +374,29 @@ function ItemView({
               </span>
             )}
           </p>
+        )}
+
+        {item.type === "search-task" && (
+          <SearchTaskView
+            item={item}
+            locked={locked}
+            done={done}
+            queryNo={queryNo}
+            onQuery={(i) => {
+              setQueryNo(i);
+              setResultNo(null);
+              setEvidenceId(null);
+              setNotice(null);
+            }}
+            seen={seen}
+            resultNo={resultNo}
+            onResult={(i) => {
+              setResultNo(i);
+              setEvidenceId(null);
+            }}
+            evidenceId={evidenceId}
+            onEvidence={setEvidenceId}
+          />
         )}
 
         {item.type === "label-sentences" && (
@@ -563,11 +612,226 @@ function ItemView({
             </button>
           ) : (
             <button type="button" className="btn-primary min-h-11" disabled={!ready || busy} onClick={() => check()}>
-              {busy ? "확인하는 중…" : "확인"}
+              {busy ? (item.type === "search-task" && !seenQuery ? "찾는 중…" : "확인하는 중…") : item.type === "search-task" && !seenQuery ? "검색하기" : "확인"}
             </button>
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+/** 가상 페이지·검색 화면에 늘 붙는 안내 */
+function VirtualBanner() {
+  return (
+    <p className="bg-sun-100 px-3 py-1 text-center text-sm font-bold text-stone-800" data-testid="virtual-banner">
+      연습용 가상 페이지예요
+    </p>
+  );
+}
+
+/** 브라우저 주소 줄 모양(가짜 주소) */
+function AddressBar({ address }: { address: string }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-black/10 bg-stone-100 px-2 py-1.5 text-sm text-stone-600">
+      <span aria-hidden="true" className="select-none tracking-widest">‹ ›</span>
+      <span aria-label="가상 주소" className="min-w-0 flex-1 truncate rounded-full bg-white px-3 py-1 font-mono text-stone-700" data-testid="virtual-address">
+        {address}
+      </span>
+    </div>
+  );
+}
+
+const AdBadge = () => (
+  <span className="ml-1 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-800">광고</span>
+);
+
+/** 검색 실험실: 목적, 검색어 고르기, 가상 검색 화면(고른 검색어의 결과만), 근거 고르기 */
+function SearchTaskView({
+  item,
+  locked,
+  done,
+  queryNo,
+  onQuery,
+  seen,
+  resultNo,
+  onResult,
+  evidenceId,
+  onEvidence,
+}: {
+  item: Extract<StudentMediaItem, { type: "search-task" }>;
+  locked: boolean;
+  done: boolean;
+  queryNo: number | null;
+  onQuery: (i: number) => void;
+  seen: Record<number, { results: StudentSearchResult[]; wrong: boolean }>;
+  resultNo: number | null;
+  onResult: (i: number) => void;
+  evidenceId: string | null;
+  onEvidence: (id: string) => void;
+}) {
+  const shown = queryNo !== null ? seen[queryNo] : undefined;
+  const interactive = !!shown && !shown.wrong && !locked;
+  return (
+    <div className="space-y-4">
+      <p className="rounded-xl bg-brand-50 p-3 text-brand-700" data-testid="search-purpose">
+        <b className="mr-2">내 목적</b>
+        {item.purpose}
+      </p>
+      <div>
+        <div className="label">1. 알맞은 검색어를 골라 검색해 보세요</div>
+        <ul aria-label="검색어" className="grid gap-2">
+          {item.queries.map((q, i) => {
+            const on = queryNo === i;
+            const known = seen[i];
+            return (
+              <li key={i}>
+                <button
+                  type="button"
+                  disabled={locked}
+                  aria-pressed={on}
+                  data-query={i}
+                  onClick={() => onQuery(i)}
+                  className={`${btn} w-full text-left ${on ? "border-sun-400 bg-sun-100" : "border-black/15 bg-white hover:bg-stone-50"}`}
+                >
+                  <span aria-hidden="true" className="mr-2">🔍</span>
+                  {q.text}
+                  {known?.wrong && <span className="ml-2 text-sm font-normal text-stone-500">(결과를 살펴봤어요)</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {queryNo !== null && (
+        <section aria-label="가상 검색 화면" className="overflow-hidden rounded-xl border border-black/20 bg-white" data-testid="search-page">
+          <VirtualBanner />
+          <AddressBar address="나래검색.가상" />
+          <div className="space-y-3 p-3">
+            <div className="flex items-center gap-2 rounded-full border border-black/20 bg-white px-4 py-2 text-lg" data-testid="search-box">
+              <span aria-hidden="true">🔍</span>
+              <span className="min-w-0 flex-1 truncate">{item.queries[queryNo].text}</span>
+            </div>
+            {!shown ? (
+              <p className="rounded-lg bg-stone-50 p-3 text-stone-600">‘검색하기’를 누르면 이 검색어로 찾은 결과가 나와요.</p>
+            ) : (
+              <>
+                {interactive && (
+                  <p className="text-sm text-stone-600">
+                    2. 목적에 가장 잘 맞고 믿을 만한 결과를 눌러 고른 뒤, 그렇게 생각한 까닭이 되는 부분을 눌러 보세요.
+                  </p>
+                )}
+                {shown.wrong && !done && (
+                  <p className="text-sm text-stone-600">이 결과는 살펴보기만 해요. 다른 검색어를 골라 봐요.</p>
+                )}
+                <ul aria-label="검색 결과" className="space-y-2">
+                  {shown.results.map((r, i) => (
+                    <li key={r.id}>
+                      <ResultCard
+                        result={r}
+                        index={i}
+                        interactive={interactive}
+                        selected={resultNo === i}
+                        done={done}
+                        evidenceId={resultNo === i ? evidenceId : null}
+                        onSelect={() => onResult(i)}
+                        onEvidence={onEvidence}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function fieldKind(id: string): string {
+  return id.slice(id.lastIndexOf("-") + 1);
+}
+
+function ResultCard({
+  result,
+  index,
+  interactive,
+  selected,
+  done,
+  evidenceId,
+  onSelect,
+  onEvidence,
+}: {
+  result: StudentSearchResult;
+  index: number;
+  interactive: boolean;
+  selected: boolean;
+  done: boolean;
+  evidenceId: string | null;
+  onSelect: () => void;
+  onEvidence: (id: string) => void;
+}) {
+  const frame = selected ? (done ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200" : "border-sun-400 bg-sun-100/60 ring-2 ring-sun-400") : "border-black/15 bg-white";
+  const view = (f: { id: string; text: string }) => {
+    const kind = fieldKind(f.id);
+    if (kind === "ad") return <AdBadge />;
+    if (kind === "title") return <span className="block text-lg font-bold text-brand-700">{f.text}</span>;
+    if (kind === "snippet") return <span className="block text-base text-stone-800">{f.text}</span>;
+    return <span className="block text-sm text-stone-600">{f.text}</span>;
+  };
+  if (!interactive || !selected) {
+    // 고르기 전(또는 읽기만 하는 결과): 카드 전체가 하나의 버튼이거나 글이다.
+    const body = result.fields.map((f) => (
+      <span
+        key={f.id}
+        data-field={f.id}
+        className={`block ${selected && done && evidenceId === f.id ? "rounded-lg bg-brand-100 px-2 py-1 ring-2 ring-brand-500" : ""}`}
+      >
+        {view(f)}
+      </span>
+    ));
+    if (interactive) {
+      return (
+        <button
+          type="button"
+          aria-pressed={false}
+          data-result={index}
+          onClick={onSelect}
+          className={`block min-h-11 w-full rounded-xl border p-3 text-left hover:bg-stone-50 ${frame}`}
+        >
+          {body}
+        </button>
+      );
+    }
+    return (
+      <div data-result={index} className={`rounded-xl border p-3 ${frame}`}>
+        {body}
+      </div>
+    );
+  }
+  // 고른 결과: 칸마다 근거로 누를 수 있다.
+  return (
+    <div data-result={index} aria-label="고른 결과" className={`space-y-1 rounded-xl border p-2 ${frame}`}>
+      <p className="px-1 text-sm font-semibold text-stone-700">고른 결과예요. 그렇게 생각한 까닭이 되는 부분을 눌러 보세요.</p>
+      {result.fields.map((f) => {
+        const on = evidenceId === f.id;
+        return (
+          <button
+            key={f.id}
+            type="button"
+            aria-pressed={on}
+            data-field={f.id}
+            onClick={() => onEvidence(f.id)}
+            className={`block min-h-11 w-full rounded-lg border px-3 py-1.5 text-left ${
+              on ? "border-sun-400 bg-sun-100 font-semibold" : "border-black/10 bg-white hover:bg-stone-50"
+            }`}
+          >
+            {view(f)}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -619,7 +883,10 @@ function PassagePanel({
     if (el && scroller.current) scroller.current.scrollTop = Math.max(0, el.offsetTop - scroller.current.offsetTop - 8);
   }, []);
   const pair = passages.length > 1;
-  const tabLabel = (p: Passage, i: number) => (p.title.startsWith("(") ? `${p.title.slice(0, p.title.indexOf(")") + 1)} 글` : `${i + 1}번째 글`);
+  // 가상 페이지(매체)는 '글' 대신 '페이지'로 부르고, 가짜 웹 페이지 모양으로 보여 준다.
+  const pages = passages.every((p) => p.page !== undefined);
+  const tabLabel = (p: Passage, i: number) =>
+    pages ? `${i + 1}번 페이지` : p.title.startsWith("(") ? `${p.title.slice(0, p.title.indexOf(")") + 1)} 글` : `${i + 1}번째 글`;
   return (
     <section
       aria-label="지문"
@@ -628,7 +895,9 @@ function PassagePanel({
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-bold">📖 {pair ? "두 글을 함께 읽어요" : passages[0].title}</h2>
+        <h2 className="text-base font-bold">
+          {pages ? "🌐" : "📖"} {pair ? (pages ? "가상 페이지를 비교해요" : "두 글을 함께 읽어요") : passages[0].title}
+        </h2>
         <button
           type="button"
           onClick={onToggle}
@@ -639,7 +908,7 @@ function PassagePanel({
         </button>
       </div>
       {pair && open && (
-        <div role="tablist" aria-label="글 고르기" className="mt-2 flex gap-2 lg:hidden">
+        <div role="tablist" aria-label={pages ? "페이지 고르기" : "글 고르기"} className="mt-2 flex gap-2 lg:hidden">
           {passages.map((p, i) => (
             <button
               key={p.id}
@@ -661,9 +930,78 @@ function PassagePanel({
         className={`${open ? "" : "hidden lg:block"} mt-2 max-h-[40vh] overflow-y-auto pr-1 ${pair ? "lg:max-h-[45vh] lg:grid lg:grid-cols-2 lg:gap-6" : "lg:max-h-[calc(100vh-8rem)]"}`}
       >
         {passages.map((passage, pidx) => (
-          <div key={passage.id} data-passage={passage.id} className={`space-y-3 text-[18px] leading-[1.8] ${pair && pidx !== tab ? "hidden lg:block" : ""}`}>
-            {pair && <h3 className="hidden text-base font-bold lg:block">{passage.title}</h3>}
+          <div
+            key={passage.id}
+            data-passage={passage.id}
+            className={`space-y-3 text-[18px] leading-[1.8] ${pair && pidx !== tab ? "hidden lg:block" : ""} ${
+              passage.page ? "overflow-hidden rounded-xl border border-black/20 bg-white pb-3" : ""
+            }`}
+          >
+            {passage.page && (
+              <div className="space-y-0 text-base leading-normal">
+                <VirtualBanner />
+                <AddressBar address={passage.page.address} />
+                <div className="flex flex-wrap items-center gap-2 border-b border-black/10 px-3 py-2">
+                  <span className="font-bold text-stone-800" data-testid="page-site">{passage.page.site}</span>
+                  {passage.page.isAd && <span data-testid="ad-badge" className="inline-flex items-center rounded bg-orange-100 px-2 py-0.5 text-sm font-bold text-orange-800">광고</span>}
+                </div>
+              </div>
+            )}
+            {pair && !passage.page && <h3 className="hidden text-base font-bold lg:block">{passage.title}</h3>}
+            {passage.page && <h3 className="px-3 text-xl font-bold leading-snug">{passage.title}</h3>}
             {passage.paragraphs.map((p, pi) => {
+              if (passage.page && pi === 0 && p.id.endsWith("meta")) {
+                const allowedMeta = picking && (!scopeParagraphId || scopeParagraphId === p.id);
+                return (
+                  <ul key={p.id} aria-label="페이지 정보" data-paragraph={p.id} className="mx-3 space-y-1 rounded-lg bg-stone-50 p-2 text-base leading-normal">
+                    {p.sentences.map((sn) => {
+                      const on = selected.has(sn.id);
+                      const n = targets.get(sn.id);
+                      const at = sn.text.indexOf(": ");
+                      const head = at > 0 ? sn.text.slice(0, at) : "";
+                      const rest = at > 0 ? sn.text.slice(at + 2) : sn.text;
+                      const inner = (
+                        <>
+                          {n && (
+                            <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 align-middle text-xs font-bold text-brand-700">
+                              {n}
+                            </span>
+                          )}
+                          {head && <span className="mr-2 inline-block rounded bg-stone-200 px-1.5 py-0.5 text-sm font-semibold text-stone-700">{head}</span>}
+                          {rest}
+                        </>
+                      );
+                      return (
+                        <li key={sn.id}>
+                          {allowedMeta ? (
+                            <button
+                              type="button"
+                              data-sentence={sn.id}
+                              aria-pressed={on}
+                              onClick={() => onPick(sn.id)}
+                              className={`block min-h-11 w-full rounded-lg border px-2 py-1 text-left ${
+                                on ? "border-sun-400 bg-sun-100 font-semibold" : "border-black/10 bg-white hover:bg-stone-100"
+                              }`}
+                            >
+                              {inner}
+                            </button>
+                          ) : (
+                            <span
+                              data-sentence={sn.id}
+                              className={`block rounded px-2 py-1 ${on ? (done ? "bg-brand-100 font-semibold" : "bg-sun-100 font-semibold") : ""} ${
+                                n ? "underline decoration-brand-500 decoration-2 underline-offset-4" : ""
+                              }`}
+                            >
+                              {inner}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              }
+              const no = passage.page ? pi : pi + 1;
               const allowed = picking && (!scopeParagraphId || scopeParagraphId === p.id);
               const scoped = picking && scopeParagraphId === p.id;
               const dimmed = picking && !!scopeParagraphId && scopeParagraphId !== p.id;
@@ -672,10 +1010,10 @@ function PassagePanel({
                 <div
                   key={p.id}
                   role="group"
-                  aria-label={`${pi + 1}문단`}
+                  aria-label={`${no}문단`}
                   data-paragraph={p.id}
                   data-fresh={isFresh ? "true" : undefined}
-                  className={`flex gap-2 rounded-lg p-1 ${dimmed ? "opacity-50" : ""} ${
+                  className={`flex gap-2 rounded-lg p-1 ${passage.page ? "mx-2" : ""} ${dimmed ? "opacity-50" : ""} ${
                     scoped || heldParagraphs.has(p.id) ? "bg-sun-100/60 ring-2 ring-sun-400" : ""
                   } ${isFresh ? "bg-brand-50 ring-2 ring-brand-200" : ""}`}
                 >
@@ -683,7 +1021,7 @@ function PassagePanel({
                     aria-hidden="true"
                     className="mt-1.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-200 text-sm font-bold text-stone-700"
                   >
-                    {pi + 1}
+                    {no}
                   </span>
                   {allowed ? (
                     <div className="min-w-0 flex-1">

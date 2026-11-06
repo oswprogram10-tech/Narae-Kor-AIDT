@@ -7,7 +7,7 @@ export { realNameProblems } from "./denylist";
 export { correctResultOf, displayQueries, displayResults, resultsFor, searchEvidence, type EvidenceField } from "./search";
 export {
   WRONG_QUERY_MESSAGE,
-  WRONG_RESULT_MESSAGE,
+  WRONG_RESULT_MESSAGE, SEARCH_EVIDENCE_MESSAGE,
   correctMediaAnswerOf,
   gradeMediaAnswer,
   mediaCorrectFeedback,

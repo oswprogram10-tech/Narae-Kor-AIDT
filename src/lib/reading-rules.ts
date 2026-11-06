@@ -3,8 +3,6 @@
 import {
   SUMMARY_MAX_INPUT,
   allSentences,
-  getActivity,
-  getItem,
   getPassage,
   isProgressive,
   itemPassages,
@@ -15,6 +13,8 @@ import {
   type ReadingItem,
 } from "@/core/reading";
 import { displayOptions, toDisplayIndex, toOriginalIndex } from "@/core/practice/shuffle";
+import { displayQueries, displayResults, searchEvidence, type EvidenceField, type MediaAnswer, type MediaItem, type SearchTaskItem } from "@/core/media";
+import { activityItemsOf } from "@/lib/activities";
 
 /** 학생 화면에 보내는 읽기 문제. 정답·근거 목록·원리·힌트·설명은 들어 있지 않다(오답/정답 뒤 서버가 따로 보낸다). */
 interface StudentBase {
@@ -25,6 +25,36 @@ interface StudentBase {
   /** 지문 둘을 함께 읽는 문제(관점 비교)일 때만 */
   passageIds?: string[];
 }
+/**
+ * 검색 실험실 문제. 검색어는 섞은(표시) 순서로 글만 보낸다.
+ * 검색 결과는 처음에 보내지 않는다(학생이 고른 검색어의 결과만 답을 보낸 뒤 서버가 따로 보낸다).
+ */
+export interface StudentSearchItem {
+  id: string;
+  type: "search-task";
+  prompt: string;
+  standardCode: string;
+  purpose: string;
+  queries: { text: string }[];
+}
+
+/** 학생에게 보이는 검색 결과 한 줄(정답 정보 없음). fields는 근거로 누를 수 있는 칸(화면 순서) */
+export interface StudentSearchResult {
+  id: string;
+  title: string;
+  site: string;
+  snippet: string;
+  date?: string;
+  isAd: boolean;
+  fields: EvidenceField[];
+}
+
+/** 학생이 고른 검색어의 결과. query는 표시 번호, results는 표시 순서(배열 위치가 표시 번호) */
+export interface StudentSearchView {
+  query: number;
+  results: StudentSearchResult[];
+}
+
 export type StudentReadingItem =
   | (StudentBase & { type: "sentence-pick"; paragraphId?: string })
   | (StudentBase & { type: "label-sentences"; sentenceIds: string[]; labels: string[] })
@@ -35,12 +65,27 @@ export type StudentReadingItem =
   | (StudentBase & { type: "summary-write"; minChars: number; maxChars: number });
 
 /** 문단을 차례로 펼치는 활동에서 아직 풀 차례가 아닌 문제: 내용(안내·보기)을 보내지 않는다. */
+/** 읽기·매체 활동 화면의 문제 */
+export type StudentMediaItem = StudentReadingItem | StudentSearchItem;
+
 export interface LockedReadingItem {
   id: string;
   locked: true;
 }
 
-export function toStudentReadingItem(item: ReadingItem): StudentReadingItem {
+export function toStudentReadingItem(item: ReadingItem): StudentReadingItem;
+export function toStudentReadingItem(item: MediaItem): StudentMediaItem;
+export function toStudentReadingItem(item: MediaItem): StudentMediaItem {
+  if (item.type === "search-task") {
+    return {
+      id: item.id,
+      type: "search-task",
+      prompt: item.prompt,
+      standardCode: item.standardCode,
+      purpose: item.purpose,
+      queries: displayQueries(item).map(({ query }) => ({ text: query.text })),
+    };
+  }
   const base: StudentBase = {
     id: item.id,
     prompt: item.prompt,
@@ -70,20 +115,36 @@ export function toStudentReadingItem(item: ReadingItem): StudentReadingItem {
 }
 
 /** 활동의 문제를 정답 정보 없이 돌려준다. 없는 활동이면 빈 배열. */
+export function studentMediaItems(activityId: string): StudentMediaItem[] {
+  return activityItemsOf(activityId).map((item) => toStudentReadingItem(item));
+}
+
+/** 읽기 문제 형식만(검색 실험실 문제는 studentMediaItems) */
 export function studentReadingItems(activityId: string): StudentReadingItem[] {
-  const activity = getActivity(activityId);
-  if (!activity) return [];
-  const out: StudentReadingItem[] = [];
-  for (const id of activity.itemIds) {
-    const item = getItem(id);
-    if (item) out.push(toStudentReadingItem(item));
-  }
-  return out;
+  return studentMediaItems(activityId).filter((i): i is StudentReadingItem => i.type !== "search-task");
+}
+
+/** 학생이 고른 검색어(원래 번호)의 결과를 표시 순서로. 범위 밖이면 undefined */
+export function searchViewFor(item: SearchTaskItem, originalQuery: number): StudentSearchView | undefined {
+  const rows = displayResults(item, originalQuery);
+  if (rows.length === 0) return undefined;
+  return {
+    query: toDisplayIndex(`${item.id}:q`, item.queries.length, originalQuery),
+    results: rows.map(({ result }) => ({
+      id: result.id,
+      title: result.title,
+      site: result.site,
+      snippet: result.snippet,
+      ...(result.date !== undefined ? { date: result.date } : {}),
+      isAd: result.isAd === true,
+      fields: searchEvidence(result),
+    })),
+  };
 }
 
 /** 활동의 문제가 쓰는 지문만(읽을 글이라 학생에게 보낸다). 문단을 차례로 펼치는 활동은 studentReadingView를 쓴다. */
 export function studentPassages(activityId: string): Passage[] {
-  const used = new Set(studentReadingItems(activityId).flatMap((i) => i.passageIds ?? [i.passageId]));
+  const used = new Set(studentMediaItems(activityId).flatMap((i) => (i.type === "search-task" ? [] : (i.passageIds ?? [i.passageId]))));
   const out: Passage[] = [];
   for (const id of used) {
     const p = getPassage(id);
@@ -93,7 +154,7 @@ export function studentPassages(activityId: string): Passage[] {
 }
 
 export interface ReadingView {
-  items: (StudentReadingItem | LockedReadingItem)[];
+  items: (StudentMediaItem | LockedReadingItem)[];
   passages: Passage[];
   /** 문단을 차례로 펼치는 활동인가 */
   progressive: boolean;
@@ -105,13 +166,12 @@ export interface ReadingView {
  * 푼 문제 하나가 늘면 서버가 이 함수로 다시 계산해 새 문단과 다음 문제를 보낸다.
  */
 export function studentReadingView(activityId: string, solvedIds: ReadonlySet<string>): ReadingView {
-  const activity = getActivity(activityId);
-  const full = (activity?.itemIds ?? []).map((id) => getItem(id)).filter((x): x is ReadingItem => !!x);
-  if (!isProgressive(full)) return { items: full.map(toStudentReadingItem), passages: studentPassages(activityId), progressive: false };
+  const full = activityItemsOf(activityId);
+  if (!isProgressive(readingOnly(full))) return { items: full.map((i) => toStudentReadingItem(i)), passages: studentPassages(activityId), progressive: false };
   const firstOpen = full.findIndex((i) => !solvedIds.has(i.id));
   return {
     items: full.map((i, idx) => (firstOpen !== -1 && idx > firstOpen && !solvedIds.has(i.id) ? { id: i.id, locked: true as const } : toStudentReadingItem(i))),
-    passages: visiblePassages(full, solvedIds),
+    passages: visiblePassages(readingOnly(full), solvedIds),
     progressive: true,
   };
 }
@@ -120,7 +180,17 @@ export function studentReadingView(activityId: string, solvedIds: ReadonlySet<st
  * 보기는 섞은(표시) 순서로 보내고 parseReadingAnswer가 원래 번호로 되돌린다(채점·저장은 원래 번호).
  * 정답 공개처럼 원래 번호로 만든 답을 화면에 돌려줄 때는 이 함수로 표시 번호로 바꾼다.
  */
-export function toDisplayAnswer(item: ReadingItem, answer: ReadingAnswer): ReadingAnswer {
+export function toDisplayAnswer(item: MediaItem, answer: MediaAnswer): MediaAnswer {
+  if (item.type === "search-task") {
+    if (answer.type !== "search-task") return answer;
+    const results = item.queries[answer.query]?.results;
+    return {
+      type: "search-task",
+      query: toDisplayIndex(`${item.id}:q`, item.queries.length, answer.query),
+      ...(answer.result !== undefined && results ? { result: toDisplayIndex(`${item.id}:r`, results.length, answer.result) } : {}),
+      ...(answer.evidenceId !== undefined ? { evidenceId: answer.evidenceId } : {}),
+    };
+  }
   if (answer.type === "choice" && item.type === "choice") return { type: "choice", option: toDisplayIndex(item.id, item.options.length, answer.option) };
   if (answer.type === "choice-with-evidence" && item.type === "choice-with-evidence") {
     return { ...answer, option: toDisplayIndex(item.id, item.options.length, answer.option) };
@@ -128,16 +198,16 @@ export function toDisplayAnswer(item: ReadingItem, answer: ReadingAnswer): Readi
   return answer;
 }
 
+const readingOnly = (items: readonly MediaItem[]): ReadingItem[] => items.filter((i): i is ReadingItem => i.type !== "search-task");
+
 export function isProgressiveActivity(activityId: string): boolean {
-  const activity = getActivity(activityId);
-  return isProgressive((activity?.itemIds ?? []).map((id) => getItem(id)).filter((x): x is ReadingItem => !!x));
+  return isProgressive(readingOnly(activityItemsOf(activityId)));
 }
 
 /** 이 문제를 풀 차례인지: 문단을 차례로 펼치는 활동에서는 앞 문제를 모두 풀어야 한다. */
 export function isItemUnlocked(activityId: string, itemId: string, solvedIds: ReadonlySet<string>): boolean {
-  const activity = getActivity(activityId);
-  const full = (activity?.itemIds ?? []).map((id) => getItem(id)).filter((x): x is ReadingItem => !!x);
-  if (!isProgressive(full)) return true;
+  const full = activityItemsOf(activityId);
+  if (!isProgressive(readingOnly(full))) return true;
   const firstOpen = full.findIndex((i) => !solvedIds.has(i.id));
   const at = full.findIndex((i) => i.id === itemId);
   return at >= 0 && (firstOpen === -1 || at <= firstOpen);
@@ -150,8 +220,11 @@ const isRecord = (x: unknown): x is Record<string, unknown> => !!x && typeof x =
  * label-sentences·slot-paragraphs는 일부만 채운 답도 통과시킨다(채점에서 incomplete로 안내만 한다).
  * 하지만 문제에 없는 문장·문단·꼬리표·칸이 들어 있으면 null.
  */
-export function parseReadingAnswer(item: ReadingItem, raw: unknown): ReadingAnswer | null {
+export function parseReadingAnswer(item: ReadingItem, raw: unknown): ReadingAnswer | null;
+export function parseReadingAnswer(item: MediaItem, raw: unknown): MediaAnswer | null;
+export function parseReadingAnswer(item: MediaItem, raw: unknown): MediaAnswer | null {
   if (!isRecord(raw) || raw.type !== item.type) return null;
+  if (item.type === "search-task") return parseSearchAnswer(item, raw);
   const passage = itemPassages(item)[0];
   if (!passage) return null;
   // 고를 수 있는 문장: 학생에게 보이는 문장(지문 쌍이면 둘 다, 문단을 차례로 펼치면 펼친 문단까지)
@@ -201,4 +274,32 @@ export function parseReadingAnswer(item: ReadingItem, raw: unknown): ReadingAnsw
   const sid = raw.sentenceId;
   if (typeof sid !== "string" || !sentenceIds.has(sid)) return null;
   return { type: "choice-with-evidence", option: toOriginalIndex(item.id, item.options.length, raw.option), sentenceId: sid };
+}
+
+/**
+ * 검색 실험실 답: 검색어·결과는 표시 번호로 받아 원래 번호로 되돌린다(결과 번호는 그 검색어의 결과 안에서).
+ * 결과·근거는 없어도 된다(1단계: 검색어만 고름). 근거만 있고 결과가 없으면 거부한다.
+ * 근거 칸 id가 고른 결과의 칸이 아니면 채점에서 incomplete로 안내한다.
+ */
+function parseSearchAnswer(item: SearchTaskItem, raw: Record<string, unknown>): MediaAnswer | null {
+  const valid = (n: unknown, len: number): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) < len;
+  if (!valid(raw.query, item.queries.length)) return null;
+  const query = toOriginalIndex(`${item.id}:q`, item.queries.length, raw.query);
+  const results = item.queries[query].results;
+  let result: number | undefined;
+  if (raw.result !== undefined) {
+    if (!valid(raw.result, results.length)) return null;
+    result = toOriginalIndex(`${item.id}:r`, results.length, raw.result);
+  }
+  let evidenceId: string | undefined;
+  if (raw.evidenceId !== undefined) {
+    if (typeof raw.evidenceId !== "string" || raw.evidenceId.length > 40 || result === undefined) return null;
+    evidenceId = raw.evidenceId;
+  }
+  return {
+    type: "search-task",
+    query,
+    ...(result !== undefined ? { result } : {}),
+    ...(evidenceId !== undefined ? { evidenceId } : {}),
+  };
 }

@@ -11,6 +11,7 @@ import { progressSummary } from "@/lib/grammar-rules";
 import { GrammarRunner } from "./GrammarRunner";
 import { readingProgress } from "@/lib/reading";
 import { studentReadingView } from "@/lib/reading-rules";
+import { isReadingHostKind } from "@/lib/activities";
 import { ReadingRunner } from "./ReadingRunner";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -28,7 +29,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     );
   }
   const db = await getDb();
-  if (assignment.kind === "reading") {
+  if (isReadingHostKind(assignment.kind)) {
     if (submission.stage !== "reading") {
       await db.update(schema.submissions).set({ stage: "reading" }).where(eq(schema.submissions.id, submission.id));
     }

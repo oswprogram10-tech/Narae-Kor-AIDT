@@ -16,6 +16,7 @@ import {
 import { getGenre } from "@/core/data/genres";
 import { activitiesForGrade } from "@/core/grammar";
 import { activitiesForGrade as readingActivitiesForGrade } from "@/core/reading";
+import { mediaActivitiesForGrade } from "@/core/media";
 import { teacherSubmission } from "@/lib/submissions";
 import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
@@ -93,8 +94,9 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
   const klass = await ownedClass(teacherId, classId);
   if (!klass) return { error: "학급을 찾을 수 없습니다." };
   const kind = String(form.get("kind") ?? "writing");
-  if (kind === "grammar" || kind === "reading") {
-    const activities = kind === "reading" ? readingActivitiesForGrade(klass.grade) : activitiesForGrade(klass.grade);
+  if (kind === "grammar" || kind === "reading" || kind === "media") {
+    const activities =
+      kind === "reading" ? readingActivitiesForGrade(klass.grade) : kind === "media" ? mediaActivitiesForGrade(klass.grade) : activitiesForGrade(klass.grade);
     const activity = activities.find((x) => x.id === String(form.get("activityId") ?? ""));
     if (!activity) return { error: "활동을 골라 주세요." };
     const db = await getDb();
