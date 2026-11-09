@@ -98,3 +98,12 @@ describe("ghostwriting detector on the evaluation set", () => {
     }
   });
 });
+
+describe("은따 규칙: '…은 따로/따뜻' 같은 흔한 말은 걸지 않는다", () => {
+  it.each(["플라스틱은 따로 모아요", "우리 반은 따뜻해요", "이 책은 따라 읽어요", "숙제는 따로 내요", "봄은 따뜻하다"])("오탐 없음: %s", (s) => {
+    expect(classifyInput(s).distress).toBe(false);
+  });
+  it.each(["나 은따 당하고 있어", "반에서 은따래", "애들이 저를 은따시켜요", "은따라고 불러요"])("계속 알림: %s", (s) => {
+    expect(classifyInput(s).distress).toBe(true);
+  });
+});

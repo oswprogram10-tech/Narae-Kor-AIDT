@@ -168,12 +168,13 @@ describe("발표 준비: 점검", () => {
     expect(ex.target).toBe("point.p1.text");
     expect(ex.spans!.length).toBeGreaterThan(0);
   });
-  it("메모로 어림한 시간이 목표의 50% 미만·150% 초과면 어림이라고 밝히고 권한다", () => {
+  it("메모로 어림한 시간이 목표의 150%를 넘을 때만 어림이라고 밝히고 권한다(짧은 메모는 원칙이라 안내 안 함)", () => {
     const short = good();
     short.opening = "안녕하세요";
     short.points = [{ id: "p1", text: "재활용은 중요해요", sourceIds: ["s1"], aid: null }, { id: "p2", text: "분리배출을 해요", sourceIds: ["s1"], aid: null }];
     short.closing = "고맙습니다";
-    const w = checkPresentation(short, TARGET).find((x) => x.kind === "time-estimate")!;
+    expect(kinds(short)).not.toContain("time-estimate");
+    const w = checkPresentation(good(), 30).find((x) => x.kind === "time-estimate")!;
     expect(w.message).toMatch(/^메모로 어림해 보면 약 [0-9.]+분이에요\. 연습하며 시간을 재 볼까요\?$/);
     // 목표를 짧게 잡으면 같은 메모도 너무 긴 쪽이 된다
     expect(kinds(good(), 30)).toContain("time-estimate");

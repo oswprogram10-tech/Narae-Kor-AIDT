@@ -293,7 +293,8 @@ export function checkPresentation(a: PresentationArtifact, targetSeconds: number
     }
   }
   const est = estimateSeconds(a);
-  if (memoChars(a) > 0 && targetSeconds > 0 && (est < targetSeconds * 0.5 || est > targetSeconds * 1.5)) {
+  // 메모는 짧게 쓰는 것이 원칙이라 '짧다' 쪽은 어림이 믿을 만하지 않아 안내하지 않고, 메모만으로도 목표를 크게 넘을 때만 알린다.
+  if (memoChars(a) > 0 && targetSeconds > 0 && est > targetSeconds * 1.5) {
     out.push({ id: "time-estimate", kind: "time-estimate", message: `메모로 어림해 보면 약 ${minutesText(est)}분이에요. 연습하며 시간을 재 볼까요?` });
   }
   const last = a.practice[a.practice.length - 1];
