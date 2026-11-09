@@ -1,5 +1,5 @@
 """라벨 zip을 풀지 않고 전부 읽어서 '학년 × 정형/비정형 × 소음' 별 시간·발화 수·화자 수 표를 만든다.
-또 어느 원천(wav) zip에 쓸 만한 음성이 들어 있는지 보여 줘서, 필요한 원천 묶음만 내려받게 도와줘요.
+또 어느 원천(wav) zip에 쓸 만한 음성이 들어 있는지 보여 줘서, 필요한 원천 묶음만 내려받게 도와줘요(평가용 Validation 묶음을 먼저 보여 줘요).
 
     python scan_labels.py --labels data/labels
     python scan_labels.py --labels data/labels --sources data/source     # 내려받은 원천 zip이 있는지도 확인
@@ -109,34 +109,35 @@ def main(argv=None) -> None:
         sources_present = {p.name for p in list_files(a.sources, (".zip",))}
 
     by_source = []
-    say("\n== 원천 zip별 '초등 정형' (이 라벨 묶음의 음성이 들어 있는 원천 묶음) ==")
-    say(f"{'라벨 zip':<28}{'짝 원천 zip':<28}{'시간(시)':>9}{'무소음':>8}{'소음':>7}{'발화 수':>10}{'화자':>6}  내려받음")
-    total = 0.0
-    for name, d in sorted(src.items(), key=lambda kv: -kv[1]["seconds"]):
-        pair = zip_pair_name(name, cfg)
-        have = "-" if sources_present is None else ("있음" if pair in sources_present else "없음")
-        if pair is None:
-            pair_s = "(짝 규칙 없음)"
-        else:
-            pair_s = pair
-        total += d["seconds"]
-        say(f"{name[:27]:<28}{pair_s[:27]:<28}{fmt_hours(d['seconds']):>9}{fmt_hours(d['clean']):>8}{fmt_hours(d['noisy']):>7}{d['utts']:>10,}{len(d['spk']):>6,}  {have}   (누적 {fmt_hours(total)}시간)")
-        by_source.append(
-            {
-                "label_zip": name,
-                "source_zip": pair,
-                "split": d["split"],
-                "elementary_formal_hours": round(d["seconds"] / 3600, 4),
-                "clean_hours": round(d["clean"] / 3600, 4),
-                "noisy_hours": round(d["noisy"] / 3600, 4),
-                "utterances": d["utts"],
-                "speakers": len(d["spk"]),
-                "source_present": None if sources_present is None else pair in sources_present,
-            }
-        )
+    entries = sorted(src.items(), key=lambda kv: (kv[1]["split"] != "valid", -kv[1]["seconds"]))
+    for split, title in (("valid", "평가용(Validation) — 먼저 이것만 받아도 돼요"), ("train", "학습용(Training) — 나중에 학습할 때")):
+        group = [(n, d) for n, d in entries if d["split"] == split]
+        if not group:
+            continue
+        say(f"\n== 원천 zip 추천: {title} (초등 정형, 시간이 큰 순) ==")
+        say(f"{'라벨 zip':<28}{'짝 원천 zip':<28}{'시간(시)':>9}{'무소음':>8}{'소음':>7}{'발화 수':>10}{'화자':>6}  내려받음")
+        total = 0.0
+        for name, d in group:
+            pair = zip_pair_name(name, cfg)
+            have = "-" if sources_present is None else ("있음" if pair in sources_present else "없음")
+            total += d["seconds"]
+            say(f"{name[:27]:<28}{(pair or '(짝 규칙 없음)')[:27]:<28}{fmt_hours(d['seconds']):>9}{fmt_hours(d['clean']):>8}{fmt_hours(d['noisy']):>7}{d['utts']:>10,}{len(d['spk']):>6,}  {have}   (누적 {fmt_hours(total)}시간)")
+            by_source.append(
+                {
+                    "label_zip": name,
+                    "source_zip": pair,
+                    "split": d["split"],
+                    "elementary_formal_hours": round(d["seconds"] / 3600, 4),
+                    "clean_hours": round(d["clean"] / 3600, 4),
+                    "noisy_hours": round(d["noisy"] / 3600, 4),
+                    "utterances": d["utts"],
+                    "speakers": len(d["spk"]),
+                    "source_present": None if sources_present is None else pair in sources_present,
+                }
+            )
     if not src:
         say("  (초등 정형으로 분류된 발화가 없어요. 학년·구분 칸을 못 찾았거나 값이 예상과 다를 수 있어요 → inspect_labels.py)")
-    say("\n학습 25시간 + 평가 4시간이면 보통 위에서 '시간(시)'이 큰 묶음 몇 개면 충분해요. 학습용(TL_)과 평가용(VL_) 묶음을 각각 받아 주세요.")
+    say("\n평가만 할 때는 Validation 표에서 누적 4시간(안전하게 5~6시간)이 채워질 만큼만 원천(VS_) zip을 받으면 돼요.")
 
     save_json(
         work / "scan.json",

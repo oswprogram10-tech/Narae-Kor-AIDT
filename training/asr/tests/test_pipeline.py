@@ -194,3 +194,35 @@ def test_09_lora_two_steps(fake):
     run("train_whisper.py", "--model", "tiny", "--lora", "--lora-targets", "q_proj,v_proj", "--work", work, "--device", "cpu", "--batch", "2", "--accum", "1", "--max-steps", "2", "--eval-every", "0")
     assert (work / "runs" / "tiny-lora" / "final" / "config.json").exists()
     assert (work / "runs" / "tiny-lora" / "final_adapter").exists()
+
+
+def test_10_default_is_eval_only(fake):
+    work = fake["root"] / "work_eval_only"
+    out = run("build_subset.py", "--labels", fake["root"] / "labels", "--sources", fake["root"] / "source", "--work", work, "--eval-hours", "0.008")
+    assert (work / "eval.jsonl").exists() and not (work / "train.jsonl").exists()
+    assert "학습 0.00시간" in out
+    assert all(w not in out for w in LEAK_WORDS)
+
+
+def test_11_scan_shows_validation_first(fake):
+    out = run("scan_labels.py", "--labels", fake["root"] / "labels", "--work", fake["work"])
+    assert out.index("평가용(Validation)") < out.index("학습용(Training)")
+
+
+def test_12_evaluate_skips_missing_backends(fake):
+    out = run("evaluate.py", "--models", "sherpa:/no/such/dir", "sensevoice:/no/such/dir", "moonshine:no-such-org/no-such-model", "--work", fake["root"] / "work_eval_only", "--limit", "2")
+    assert out.count("건너뜀") >= 3
+
+
+def test_13_evaluate_helpers():
+    import evaluate
+
+    assert evaluate.split_spec("sherpa:/x/y") == ("sherpa", "/x/y")
+    assert evaluate.split_spec("moonshine-ai/moonshine-tiny-ko")[0] == "moonshine"
+    assert evaluate.split_spec("openai/whisper-base") == ("whisper", "openai/whisper-base")
+    items = [{"text": "나는 학교에 갔어요", "seconds": 2.0, "grade": "초1", "noise": "clean"}] * 3
+    m = evaluate.group_metrics(items, ["나는 학교에 갔어요", "나는 학교에 갔어여", ""])
+    assert m["all"]["n"] == 3 and 0 < m["all"]["cer"] < 1 and "초1" in m["by_grade"]
+    sc = evaluate.scoring_metrics(items, ["나는 학교에 갔어요"] * 3, [0.0, 0.34], 1, 0.5)
+    assert sc[0]["false_alarm_eojeol_rate"] == 0.0
+    assert sc[0]["miss_rate_one_syllable"] == 0.0  # 기준 0 이면 한 글자 바꾼 어절을 다 잡는다

@@ -1,7 +1,8 @@
 """학습용·평가용 부분집합을 고르고, 필요한 wav만 원천 zip에서 꺼내 16kHz 16bit mono 로 저장한다.
 
     python build_subset.py --labels data/labels --sources data/source
-    python build_subset.py --labels data/labels --sources data/source --train-hours 25 --eval-hours 4 --noise-ratio 85:15
+    python build_subset.py --labels data/labels --sources data/source --eval-hours 4 --noise-ratio 85:15
+    python build_subset.py ... --train-hours 25                  # (선택) 학습용도 함께
     python build_subset.py ... --dry-run          # 고르기만 하고 wav는 만들지 않아요
 
 고르는 방법
@@ -9,6 +10,8 @@
   - 화자 단위로 나눠요: 평가는 Validation 라벨에서 뽑고, 평가에 들어간 화자는 학습에서 빼요.
     (Validation이 없으면 학습 화자 중 일부를 평가로 떼어 놓아요.)
   - 학년이 고르게, 무소음:소음 = 기본 85:15, 화자도 고르게(화자마다 번갈아 한 발화씩) 담아요.
+기본은 '평가만'(--eval-hours 4, --train-hours 0)이에요. 그래서 라벨 + Validation 원천 일부만 받으면 돼요.
+  학습용도 만들려면 --train-hours 25 (나중에 학습할 때).
 결과: work/audio/..., work/train.jsonl, work/eval.jsonl, work/subset_report.json
 이어서 하기: 같은 명령을 다시 실행하면 이미 만든 wav는 건너뛰어요(같은 --seed·조건이면 같은 것을 골라요).
 이름·전사 글은 화면에 찍지 않아요. 화자는 익명 키로만 적어요.
@@ -213,7 +216,7 @@ def main(argv=None) -> None:
     ap.add_argument("--category", choices=["formal", "informal"], default="formal", help="기본: 정형(formal)")
     ap.add_argument("--noise-ratio", default="85:15", help="무소음:소음 비율(기본 85:15)")
     ap.add_argument("--unknown-noise", choices=["clean", "skip"], default="clean", help="소음 칸 값을 해석 못 한 발화를 무소음으로 칠지(기본) 뺄지")
-    ap.add_argument("--train-hours", type=float, default=25.0)
+    ap.add_argument("--train-hours", type=float, default=0.0, help="학습용 시간(기본 0 = 평가만 만들어요. 나중에 학습할 때 25 정도)")
     ap.add_argument("--eval-hours", type=float, default=4.0)
     ap.add_argument("--min-sec", type=float, default=0.5)
     ap.add_argument("--max-sec", type=float, default=30.0)
@@ -305,7 +308,7 @@ def main(argv=None) -> None:
     assert not (train_speakers & eval_speakers), "화자가 학습과 평가에 겹쳤어요(코드 오류)"
     say(f"\n고른 결과: 학습 {fmt_hours(sum(i[2] for i in train_sel))}시간({len(train_sel):,}개, 화자 {len(train_speakers)}명), "
         f"평가 {fmt_hours(sum(i[2] for i in eval_sel))}시간({len(eval_sel):,}개, 화자 {len(eval_speakers)}명) — 화자 겹침 0명")
-    if sum(i[2] for i in train_sel) < a.train_hours * 3600 * 0.9:
+    if a.train_hours > 0 and sum(i[2] for i in train_sel) < a.train_hours * 3600 * 0.9:
         say(f"[알림] 학습 시간이 목표({a.train_hours}시간)에 못 미쳐요. 원천 zip을 더 내려받아 주세요.")
     if sum(i[2] for i in eval_sel) < a.eval_hours * 3600 * 0.9:
         say(f"[알림] 평가 시간이 목표({a.eval_hours}시간)에 못 미쳐요. Validation 원천(VS_) zip을 더 내려받아 주세요.")
@@ -316,6 +319,8 @@ def main(argv=None) -> None:
     report: Counter = Counter()
     result = extract_audio({"train": train_sel, "valid": eval_sel}, zips, index, work, a, report)
     for split, name in (("train", "train.jsonl"), ("valid", "eval.jsonl")):
+        if split == "train" and a.train_hours <= 0:
+            continue  # 평가만 만들 때는 학습 목록을 쓰지 않는다
         items = sorted(result[split], key=lambda it: (it["grade"], it["id"]))
         with open(work / name, "w", encoding="utf-8") as f:
             for it in items:

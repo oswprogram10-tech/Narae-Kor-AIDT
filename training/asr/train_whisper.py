@@ -182,7 +182,7 @@ def main(argv=None) -> None:
     say(f"학습 발화 {len(tr_ds):,}개, 평가 손실용 {len(ev_ds):,}개 | 장치 {device} | 모델 {base_id}{' + LoRA' if a.lora else ''}")
     say(f"한 걸음 = {batch} × {a.accum} = {batch * a.accum}개, 전체 {max_steps:,}걸음, 학습률 {lr}, 워밍업 {warmup}걸음")
 
-    model = WhisperForConditionalGeneration.from_pretrained(base_id, torch_dtype=torch.float32)
+    model = WhisperForConditionalGeneration.from_pretrained(base_id, dtype=torch.float32)
     model.generation_config.language = "ko"
     model.generation_config.task = "transcribe"
     model.generation_config.forced_decoder_ids = None

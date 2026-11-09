@@ -7,3 +7,5 @@ scipy>=1.13
 numpy>=1.26
 tqdm>=4.66
 # 시험용(선택): pip install pytest
+# 선택: Moonshine은 transformers 5.x, sherpa-onnx·SenseVoice 평가에는 아래가 필요해요(없으면 그 모델만 건너뛰어요).
+#   pip install sherpa-onnx

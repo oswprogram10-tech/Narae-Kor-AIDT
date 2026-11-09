@@ -1,7 +1,9 @@
 # 아동 낭독 음성 인식 학습 도구 (`training/asr/`)
 
-AI Hub 「한국어 아동 음성 데이터」(미디어젠, 아동 낭독 발화)로 **Whisper(tiny/base/small)** 를 아이들 낭독에 맞게 다듬고, 정확도를 재는 도구 묶음이에요.
+AI Hub 「한국어 아동 음성 데이터」(미디어젠, 아동 낭독 발화)로 **여러 음성 인식 모델(Whisper, Moonshine, sherpa-onnx, SenseVoice)이 아이들 낭독을 얼마나 잘 받아 적는지 재는** 도구 묶음이에요. 지금은 **평가 중심**이에요(학습은 맨 뒤 "선택" 절).
 국어나래의 낭독 유창성 실험(6단계 3차)을 위한 준비 단계예요. ONNX 내보내기와 브라우저 연결은 다음 단계에서 해요.
+
+**순서 한눈에 보기**: 설치 → 라벨 받기 → 라벨 살펴보기(`inspect`/`scan`) → 평가용 원천(Validation)만 받기 → `build_subset`(평가만) → `evaluate` → 숫자 표를 공유
 
 > **이 도구는 선생님의 윈도우 노트북(국내)에서만 돌려요.** 음성·전사 글을 이 저장소, 클라우드, Kaggle, Hugging Face, 채팅 어디에도 올리지 마세요(아래 약관).
 
@@ -13,7 +15,7 @@ AI Hub 「한국어 아동 음성 데이터」(미디어젠, 아동 낭독 발�
 | 1번: 출처 표시 | 이 데이터를 쓴 모든 결과물(모델 설명서, 논문, 발표 자료)에 **"한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용"** 이라고 적어요. `train_whisper.py` 가 만드는 `MODEL_CARD.md` 에는 이미 들어 있어요. |
 | 8·9번: 개인정보 | 라벨 JSON에는 화자 이름(`SpeakerName`)이 있어요. 이 도구는 읽자마자 버리고, 출력·저장하지 않아요. 화자는 파일 이름에서 뽑은 코드의 **익명 키**로만 다뤄요. 데이터에서 개인정보를 발견하면 약관대로 신고·삭제하고, 누구인지 알아내려 하지 않아요. |
 
-그래서 저(개발 도우미)에게 알려 줄 때는 **숫자 통계와 칸(필드) 이름만** 보내 주세요(맨 아래 9절).
+그래서 저(개발 도우미)에게 알려 줄 때는 **숫자 통계와 칸(필드) 이름만** 보내 주세요(8절).
 
 ## 2. 설치 (윈도우, WSL 필요 없음)
 
@@ -39,13 +41,13 @@ python check_env.py
 ```text
 training\asr\
   data\labels\   ← 라벨 zip(TL_*.zip, VL_*.zip …)을 여기에
-  data\source\   ← 원천 wav zip(TS_*.zip, VS_*.zip …)을 여기에
+  data\source\   ← 원천 wav zip(평가용은 VS_*.zip)을 여기에
   work\          ← 도구가 만드는 결과(자동으로 생겨요. 저장소에는 올라가지 않아요)
 ```
 
 `--labels`, `--sources` 로 다른 폴더를 줄 수도 있어요(여러 개 가능). 하위 폴더는 알아서 찾아요.
 
-## 4. 단계별 명령
+## 4. 단계별 명령 (평가 중심)
 
 ### 0단계. 환경 확인
 ```powershell
@@ -53,11 +55,10 @@ python check_env.py
 ```
 GPU 이름, 메모리, 작은 행렬곱 시험까지 해 봐요. "준비됐어요"가 나오면 통과예요.
 
-### 1단계. 분할 압축 이어 붙이기
-AI Hub는 큰 파일을 `이름.zip.part0`, `이름.zip.part1`, … 로 나눠 줘요.
+### 1단계. 라벨 받기
+AI Hub에서 **라벨링 데이터**(`TL_*`, `VL_*`)를 받아 `data\labels\` 에 둬요. 라벨은 용량이 작아요. 분할 압축(`이름.zip.part0`, `.part1`, …)이면 이어 붙여요(WSL 필요 없음).
 ```powershell
 python merge_parts.py data\labels
-python merge_parts.py data\source
 ```
 조각 번호가 빠졌거나 크기가 0인 조각이 있으면 그 묶음은 이어 붙이지 않고 알려 줘요. 디스크가 모자라면 `--delete-parts` 로 이어 붙인 뒤 조각을 지워요.
 
@@ -66,75 +67,62 @@ python merge_parts.py data\source
 python inspect_labels.py --labels data\labels
 ```
 키 경로, 값의 종류, 문자열 길이, 범주형 칸(`DataCategory`, `SchoolYear`, `Age`, `AgeGroup`, `NoiseEnviron`, `RecordingEnviron`, `Gender`, `SamplingRate`)의 빈도표, 파일 이름의 '모양'만 보여 줘요. 이름·전사 글·지역·방언의 값은 나오지 않아서 **출력을 그대로 채팅에 붙여도 안전해요.**
-"fields.json 의 칸을 찾았는지" 줄에 `못 찾음`이 있으면 3절의 설정 파일을 고쳐야 해요(저에게 이 출력을 보여 주세요).
+"fields.json 의 칸을 찾았는지" 줄에 `못 찾음`이 있으면 5절의 설정 파일을 고쳐야 해요(저에게 이 출력을 보여 주세요).
 
-### 3단계. 전체 훑어서 어떤 묶음을 받을지 정하기
+### 3단계. 훑어서 어떤 평가용 원천을 받을지 정하기
 ```powershell
-python scan_labels.py --labels data\labels --sources data\source
+python scan_labels.py --labels data\labels
 ```
-라벨 zip을 풀지 않고 전부 읽어서 **학년 × 정형/비정형 × 소음** 별 시간·발화 수·화자 수 표를 보여 줘요. 마지막 표는 **원천 zip별 '초등 정형' 시간**이에요. 시간이 큰 묶음부터 학습 25시간 + 평가 4시간이 채워지도록 원천 zip(TS_/VS_)만 내려받으면 돼요. 결과는 `work\scan.json`(숫자만)에 저장돼요.
+라벨 zip을 풀지 않고 전부 읽어서 **학년 × 정형/비정형 × 소음** 별 시간·발화 수·화자 수 표를 보여 줘요. 마지막의 **"원천 zip 추천: 평가용(Validation)"** 표가 핵심이에요 — 시간이 큰 묶음부터 누적 4시간(넉넉히 5~6시간)이 채워질 만큼만 `VS_` 원천 zip을 받으면 돼요. 결과는 `work\scan.json`(숫자만)에 저장돼요.
 라벨 zip ↔ 원천 zip 짝은 이름으로 짐작해요(기본 `TL_`→`TS_`, `VL_`→`VS_`; 바꾸려면 `fields.json` 의 `zip_pairs`).
 
-### 4단계. 전사 기호 확인
+### 4단계. 평가용 원천(Validation)만 받기
+위 표에서 고른 `VS_*.zip` 만 받아 `data\source\` 에 둬요(분할이면 `python merge_parts.py data\source`). 학습용(`TS_*`)은 지금 받지 않아도 돼요. 받은 뒤 `python scan_labels.py --labels data\labels --sources data\source` 를 다시 하면 "내려받음" 칸으로 확인돼요.
+
+### 5단계. (선택) 전사 기호 확인
 ```powershell
 python normalize.py report-chars --labels data\labels
 ```
-전사에 나온 **글자 종류와 빈도만**(한글 음절 제외) 보여 줘요. `b/ n/ o/ l/ u/`, `*`, `+`, 괄호 같은 기호가 실제로 어떻게 쓰이는지 확인해서, 기본 규칙(`fields.json` 의 `normalize`)이 맞는지 봐요. 규칙을 직접 시험해 보려면 `python normalize.py try "(2)/(이) 학년 b/ 입니다"`.
+전사에 나온 **글자 종류와 빈도만**(한글 음절 제외) 보여 줘요. `b/ n/ o/ l/ u/`, `*`, `+`, 괄호 같은 기호가 실제로 어떻게 쓰이는지 확인해서, 기본 규칙(`fields.json` 의 `normalize`)이 맞는지 봐요. 규칙 시험: `python normalize.py try "(2)/(이) 학년 b/ 입니다"`.
 
-### 5단계. 학습·평가 묶음 만들기
+### 6단계. 평가 묶음 만들기 (평가만)
 ```powershell
 python build_subset.py --labels data\labels --sources data\source
 ```
-- 기본 조건: 정형, 초등 1~6학년(학년 칸이 없으면 나이 7~13), 무소음:소음 = 85:15, 학습 25시간, 평가 4시간, 길이 0.5~30초.
-- **화자 단위로 나눠요.** 평가는 Validation 라벨에서 고르고, 평가에 들어간 화자는 학습에서 빼요. 학년은 고르게 담아요.
-- 필요한 wav만 원천 zip에서 꺼내 16kHz mono 16bit로 `work\audio\`에 저장해요. 같은 명령을 다시 실행하면 이미 만든 것은 건너뛰어요(이어서 하기).
-- `--dry-run` 을 붙이면 고르기만 하고 wav는 안 만들어요. 옵션: `--train-hours`, `--eval-hours`, `--grades 1-6`, `--noise-ratio 85:15`.
+- 기본이 **평가만**이에요(`--eval-hours 4`, `--train-hours 0`). 정형, 초등 1~6학년(학년 칸이 없으면 나이 7~13), 무소음:소음 = 85:15, 길이 0.5~30초, 학년이 고르게, 화자도 고르게.
+- Validation 라벨에서 고르고, 필요한 wav만 원천 zip에서 꺼내 16kHz mono 16bit로 `work\audio\` 에 저장해요. 결과: `work\eval.jsonl`, `work\subset_report.json`. 같은 명령을 다시 하면 이미 만든 wav는 건너뛰어요(이어서 하기).
+- `--dry-run` 은 고르기만 해요. 옵션: `--eval-hours`, `--grades 1-6`, `--noise-ratio 85:15`.
+- (학습을 하게 되면 `--train-hours 25` 를 더해요. 평가 화자는 학습에서 빠져요.)
 
-### 6단계. 특징 미리 계산 (학습 중 CPU 부담을 줄여요)
-```powershell
-python prepare_features.py --model base
-```
-`work\feats\*.npy` 에 저장해요(발화당 약 0.5MB, 25시간이면 대략 10~20GB). 이어서 할 수 있어요.
-
-### 7단계. 학습
-먼저 **속도 시험**으로 걸음당 시간, GPU 메모리, 예상 총 시간을 봐요.
-```powershell
-python train_whisper.py --model base --speedtest
-```
-괜찮으면 본 학습:
-```powershell
-python train_whisper.py --model base            # 기본: 배치 4 × 누적 8 = 한 걸음에 32개
-python train_whisper.py --model base --resume   # 끊겼다면 이어서
-python train_whisper.py --model small --lora    # small은 LoRA로(메모리 절약)
-```
-- 모델: `tiny`, `base`, `small`. 학습률 기본값은 tiny 3.75e-5, base 2.5e-5, small LoRA 1e-3.
-- 100걸음마다 `work\runs\<이름>\ckpt\last.pt` 로 저장해요. Ctrl+C 로 멈추면 그 자리를 저장하고 끝나요.
-- 메모리 부족(OOM)이 나면 `--batch 2 --accum 16` 처럼 배치를 줄이고 누적을 늘려요(곱은 같게).
-- `--max-steps N` 으로 걸음 수를 정할 수 있어요(기본은 3바퀴).
-- 끝나면 `work\runs\<이름>\final\`(바로 평가에 쓸 수 있는 모델), `log.csv`(손실 기록), `MODEL_CARD.md`(출처 표시 문구 포함, 학습 데이터는 포함하지 않는다고 적혀 있어요)가 생겨요.
-
-### 8단계. 평가
+### 7단계. 평가
 ```powershell
 python evaluate.py                                                   # openai/whisper-base, openai/whisper-small
-python evaluate.py --models openai/whisper-base work\runs\base\final
-python evaluate.py --models work\runs\small-lora\final --elmenwol    # 공개된 아동 음성 모델 elmenwol/whisper-small_aihub_child 도 비교
+python evaluate.py --elmenwol                                        # + elmenwol/whisper-small_aihub_child
+python evaluate.py --moonshine                                       # + moonshine-ai/moonshine-tiny-ko, moonshine-base-ko
+python evaluate.py --models sherpa:C:\models\zipformer-ko-72m sensevoice:C:\models\sensevoice
 ```
-결과는 숫자 표만 `work\eval_*.json` 에 저장돼요. 전사 예시는 `--show-examples 3` 을 줄 때만 **내 화면에** 나와요.
-- **CER**(공백 뺀 글자 기준), **WER**(어절 기준), 학년별·소음별, **RTF**(실시간 배수: 1보다 작으면 실시간보다 빨라요).
-- **낭독 채점 지표**(아래 7절의 어절 맞춤 사용)
-  - 오경보율: 아이가 정확히 읽었는데 오류(대치·삭제)로 표시된 어절 비율(발화 단위도 같이).
-  - 놓침률: 원문 어절을 한 글자만 다르게 바꿔 놓았을 때(아이가 그렇게 잘못 읽은 상황) 오류로 못 잡은 비율.
-  - 어절을 '같다'고 볼 글자 오류율 기준(`--max-cer`, 기본 `0,0.34`)에 따라 두 값이 어떻게 달라지는지 같이 나와요. 기준을 느슨하게 하면 오경보는 줄지만 놓침이 늘어요.
+`--models` 에는 `[백엔드:]모델` 을 여러 개 줄 수 있어요(접두사가 없으면 whisper, 이름에 moonshine 이 있으면 moonshine).
 
-## 5. 노트북으로 오래 학습할 때
+| 백엔드 | 모델 | 필요한 것 |
+| --- | --- | --- |
+| `whisper:` | `openai/whisper-small`, `openai/whisper-base`, `elmenwol/whisper-small_aihub_child` 또는 학습 결과 폴더 | torch, transformers |
+| `moonshine:` | `moonshine-ai/moonshine-tiny-ko`, `moonshine-ai/moonshine-base-ko` | transformers(Moonshine 지원 버전). 이름이 다르면 `--moonshine-ids` 로 바꿔요. 도구가 HF에 있는지 확인하고 없으면 알려 줘요 |
+| `sherpa:` | 한국어 zipformer 스트리밍 모델 **폴더**(예: kangkyu/icefall-asr-ko-streaming-zipformer-72m 를 받아 둔 폴더: int8 encoder/decoder/joiner + tokens.txt) | `pip install sherpa-onnx`. `--sherpa-chunk 64` 이 파일 이름의 chunk 크기를 골라요 |
+| `sensevoice:` | sherpa-onnx용 SenseVoice 폴더(`model.int8.onnx` + `tokens.txt`) | `pip install sherpa-onnx`(선택) |
 
-- **전원 어댑터를 꼭 연결**하고, 윈도우 전원 모드를 **최고 성능**으로 해요. 덮개를 닫아도 잠들지 않게 설정해요(설정 → 시스템 → 전원).
-- **쿨러 받침**을 쓰거나 통풍이 잘 되는 곳에 두고, 온도가 너무 오르면 속도가 떨어지니 `nvidia-smi` 로 가끔 봐요.
-- 윈도우 자동 업데이트 재시작을 미뤄 두세요. 그래도 끊기면 `--resume` 으로 이어 가요.
-- 다른 무거운 프로그램(브라우저 동영상, 게임)은 닫아요. GPU 메모리를 같이 써요.
-- 디스크 200GB: zip(원천) 몇 십 GB + `work\audio` + `work\feats`(10~20GB)가 들어가요. 다 만든 뒤 원천 zip을 지워도 `work`는 그대로 쓸 수 있어요.
+설치되지 않은 백엔드나 없는 모델은 "건너뜀"이라고 알리고 다음 모델로 가요. 모델은 하나씩 올리고 내려서 GTX 1060 6GB에서도 돌아요(`--batch` 로 줄일 수 있고, `--device cpu` 도 돼요).
 
-## 6. 설정 파일 `fields.json`
+모델마다 같은 표로 나와요: **CER**(공백 뺀 글자 기준), **어절 WER**, 학년별·소음별, **RTF**(1보다 작으면 실시간보다 빨라요, 장치 cpu/cuda 표시), **모델 파일 크기(MB)**, 그리고 **낭독 채점 지표**(아래 6절의 어절 맞춤):
+- 오경보율: 아이가 정확히 읽었는데 오류(대치·삭제)로 표시된 어절 비율(발화 단위도 같이).
+- 놓침률: 원문 어절을 한 글자만 다르게 바꿔 놓았을 때(아이가 그렇게 잘못 읽은 상황) 오류로 못 잡은 비율.
+- 어절을 '같다'고 볼 글자 오류율 기준(`--max-cer`, 기본 `0,0.34`)에 따라 두 값이 어떻게 달라지는지 같이 나와요. 기준을 느슨하게 하면 오경보는 줄지만 놓침이 늘어요.
+
+결과는 숫자 표만 `work\eval_*.json` 에 저장돼요. 전사 예시는 `--show-examples 3` 을 줄 때만 **내 화면에** 나와요(저장·공유하지 마세요).
+
+### 8단계. 결과 숫자 표를 채팅에 공유
+`evaluate.py` 맨 끝의 **"비교 요약" 표**(모델·크기·CER·WER·RTF·오경보·놓침)와 `work\eval_*.json` 의 숫자를 그대로 붙여 주세요. 글·음성·이름 없이 숫자만이라 안전해요(8절).
+
+## 5. 설정 파일 `fields.json`
 
 JSON의 칸 이름이 문서와 조금 달라도 고칠 수 있게 모든 경로를 이 파일에 모았어요(`--fields 내파일.json` 으로 일부만 덮어쓰는 것도 돼요).
 
@@ -145,7 +133,7 @@ JSON의 칸 이름이 문서와 조금 달라도 고칠 수 있게 모든 경로
 - `normalize`: 전사 기호 처리 규칙.
 - `sensitive_keys`: 읽자마자 버릴 칸 이름(기본: `SpeakerName`, 지역, 방언 …).
 
-## 7. 어절 맞춤 채점(앱과 공유)
+## 6. 어절 맞춤 채점(앱과 공유)
 
 낭독 유창성 채점은 원문 어절과 인식 결과 어절을 레벤시테인으로 맞춰요.
 
@@ -154,7 +142,7 @@ JSON의 칸 이름이 문서와 조금 달라도 고칠 수 있게 모든 경로
 - 공통 시험 자료: `tests/fixtures/fluency-align.json`(저장소 맨 위 `tests/`). TS 시험(`npm test`)과 파이썬 시험(`pytest training/asr/tests`)이 둘 다 통과해야 해요.
 - 규칙: 문장부호는 지우고 숫자는 그대로 비교해요. 같은 비용이면 일치 > 대치 > 삭제 > 삽입 순으로 골라요. **대치·삭제만 오류**로 세고, 끼워 넣은 말·되풀이는 오류가 아니라 읽은 시간으로 반영돼요(`wcpm` = 바르게 읽은 어절 ÷ 걸린 분). 띄어쓰기가 달라 어절이 갈라지거나 붙으면 오류로 세요(보수적으로).
 
-## 8. 도구 자체 시험 (가짜 데이터)
+## 7. 도구 자체 시험 (가짜 데이터)
 
 실제 데이터 없이 도구가 도는지 확인해요. `tests/make_fake_aihub.py` 가 AI Hub 모양의 **가짜** zip(가짜 이름 포함, 사인파 음성, 분할 파일)을 만들고, merge → inspect → scan → build_subset → (whisper-tiny 2걸음 CPU 학습) → evaluate 를 돌려요. 모든 출력과 만든 파일에 가짜 이름이 새지 않는지도 검사해요.
 ```powershell
@@ -163,7 +151,7 @@ python -m pytest tests -q
 ```
 Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 시험은 건너뛰어요(건너뜀 표시).
 
-## 9. 저에게 알려 주면 되는 것 / 보내지 말 것
+## 8. 저에게 알려 주면 되는 것 / 보내지 말 것
 
 **보내도 되는 것(숫자·이름만)**
 - `inspect_labels.py` 출력 전체(구조만 나와요), `scan_labels.py` 의 표, `normalize.py report-chars` 의 글자 빈도.
@@ -174,7 +162,7 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 - 음성 파일, 전사 글(문장 내용), 화자 이름, 라벨 JSON 원본, `work/` 안의 파일들, `--show-examples` 로 본 예시.
 - 학습한 모델 파일도 공개하기 전에 약관(출처 표시 등)을 다시 확인해요.
 
-## 10. 문제 해결
+## 9. 문제 해결
 
 | 증상 | 해결 |
 | --- | --- |
@@ -184,3 +172,18 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 | `못 찾음` 칸이 있음 | `inspect_labels.py` 로 실제 키 이름을 보고 `fields.json` 을 고쳐요. |
 | 화자 수가 너무 적게 나옴 | `speaker.regex` 가 맞지 않는 거예요. '파일 이름 모양'을 알려 주세요. |
 | 학습이 너무 느림 | `--speedtest` 로 확인. 걸음당 시간이 길면 `tiny`/`base`, 발화 수를 줄이거나 `--max-steps` 를 줄여요. |
+
+## 10. 선택: 나중에 학습하기
+
+지금은 평가가 목적이라 학습은 하지 않아요. 나중에 해 보고 싶을 때만 아래를 쓰세요(`train_whisper.py`, `prepare_features.py`). 학습용 데이터는 `build_subset.py --train-hours 25` 와 학습용 원천(`TS_*`)이 필요해요.
+
+```powershell
+python build_subset.py --labels data\labels --sources data\source --train-hours 25
+python prepare_features.py --model base
+python train_whisper.py --model base --speedtest   # 30걸음만 돌려 걸음당 시간·GPU 메모리·예상 시간 보기
+python train_whisper.py --model base               # 학습(100걸음마다 저장), 끊기면 --resume
+python train_whisper.py --model small --lora       # small은 LoRA
+```
+fp32(1060은 fp16 가속이 없어요), 기본 배치 4 × 누적 8, OOM이면 `--batch 2 --accum 16`. 끝나면 `work\runs\<이름>\final\`(평가에 바로 쓸 수 있어요), `log.csv`, `MODEL_CARD.md`(출처 표시 문구 포함, 학습 데이터는 포함하지 않는다고 적혀 있어요)가 생겨요. 학습한 모델은 `python evaluate.py --models work\runs\base\final` 로 비교해요.
+
+노트북으로 오래 돌릴 때: 전원 어댑터 연결, 전원 모드 **최고 성능**, 덮개를 닫아도 잠들지 않게, 쿨러 받침, 윈도우 자동 재시작 미루기, 무거운 프로그램 닫기, 중간 저장(`--resume`)을 믿고 쓰기.
