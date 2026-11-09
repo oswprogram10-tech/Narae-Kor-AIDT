@@ -5,6 +5,7 @@ import { CardView, SourceCardView } from "@/components/CardView";
 import { BarChart } from "@/components/BarChart";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { setShareApproved } from "@/app/actions/teacher";
+import { CHECKLIST_ITEMS, METHOD_LABELS, DEBATE_STEPS, debateSteps } from "@/core/speaking";
 import type { ArtifactAlert, ArtifactStatus as Status } from "@/lib/artifact-dashboard";
 
 const STATUS_LABEL: Record<string, string> = { in_progress: "만드는 중", submitted: "제출함", returned: "돌려줌" };
@@ -345,6 +346,192 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="card p-4">
       <div className="text-xs text-stone-500">{label}</div>
       <div className="mt-1 text-2xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+const SIDE_LABEL = { pro: "찬성", con: "반대", "": "아직 안 골랐어요" } as const;
+const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+
+export function DebateTeacher({ status }: { status: Status }) {
+  const rows = status.rows;
+  const info = status.debate;
+  const steps = debateSteps(info?.seconds);
+  const changed = info && Object.keys(info.seconds).length > 0;
+  return (
+    <div className="space-y-4">
+      <AutoRefresh />
+      <Alerts rows={rows} />
+      <section className="card space-y-1 text-sm" aria-label="토론 설정">
+        <div><span className="font-semibold">논제</span> <span data-testid="teacher-motion">{info?.motion}</span></div>
+        <div className="text-stone-600">
+          단계별 시간{changed ? "(바꾼 시간 있음)" : "(기본)"}: {steps.map((s, i) => `${DEBATE_STEPS[i].label} ${mmss(s.seconds)}`).join(" · ")}
+        </div>
+      </section>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="시작" value={`${rows.filter((r) => r.submissionId).length}/${rows.length}`} />
+        <Stat label="제출" value={`${rows.filter((r) => r.status === "submitted").length}`} />
+        <Stat label="찬성" value={`${rows.filter((r) => r.debate?.stats.side === "pro").length}`} />
+        <Stat label="반대" value={`${rows.filter((r) => r.debate?.stats.side === "con").length}`} />
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-stone-50 text-left text-stone-500">
+            <tr>
+              <th className="px-3 py-2">번호</th>
+              <th className="px-3 py-2">별명</th>
+              <th className="px-3 py-2">상태</th>
+              <th className="px-3 py-2">편</th>
+              <th className="px-3 py-2">근거</th>
+              <th className="px-3 py-2">자료·출처 있는 근거</th>
+              <th className="px-3 py-2">예상 반론</th>
+              <th className="px-3 py-2">점검 경고</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {rows.map((r) => (
+              <tr key={r.studentId} className={r.alert ? "bg-red-50" : ""} data-student={r.number}>
+                <td className="px-3 py-2 font-semibold">{r.number}</td>
+                <td className="px-3 py-2">{r.nickname}<AlertBadge alert={r.alert} /></td>
+                <td className="px-3 py-2">{r.status ? STATUS_LABEL[r.status] ?? r.status : "시작 전"}</td>
+                <td className="px-3 py-2">{r.debate?.stats.side ? SIDE_LABEL[r.debate.stats.side] : "-"}</td>
+                <td className="px-3 py-2">{r.debate?.stats.reasons ?? "-"}</td>
+                <td className="px-3 py-2">{r.debate ? `${r.debate.stats.withSupport} / ${r.debate.stats.withSource}` : "-"}</td>
+                <td className="px-3 py-2">{r.debate?.stats.rebuttals ?? "-"}</td>
+                <td className="px-3 py-2" data-testid={`warn-${r.number}`}>{r.debate?.stats.warnings ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <section className="card space-y-3 p-0" aria-label="학생별 토론 준비">
+        <div className="border-b border-black/5 px-3 py-2 font-semibold">학생이 준비한 내용 <span className="text-xs font-normal text-stone-500">선생님만 볼 수 있어요. 눌러서 펼쳐 보세요.</span></div>
+        <ul className="divide-y divide-black/5">
+          {rows.filter((r) => r.debate && (r.debate.artifact.claim || r.debate.stats.reasons > 0)).map((r) => {
+            const d = r.debate!;
+            const a = d.artifact;
+            return (
+              <li key={r.studentId} data-work={r.number}>
+                <details className="px-3 py-2">
+                  <summary className="cursor-pointer text-sm">
+                    <b>{r.number}번</b> {r.nickname} · {a.side ? SIDE_LABEL[a.side] : "편 안 고름"} · 근거 {d.stats.reasons}개 · 경고 {d.stats.warnings}
+                    {r.status === "submitted" && <span className="ml-2 text-brand-700">제출함</span>}
+                  </summary>
+                  <div className="mt-2 space-y-3 text-sm">
+                    <p><b>주장</b> {a.claim || "-"}</p>
+                    <ul className="space-y-2">
+                      {a.reasons.filter((x) => x.text.trim()).map((x, i) => (
+                        <li key={x.id} className="rounded-lg border border-black/10 bg-stone-50 p-2">
+                          <b>근거 {i + 1}</b> {x.text}
+                          <div className="text-stone-600">뒷받침 자료: {x.support || "-"} · 출처: {x.source || "-"}</div>
+                        </li>
+                      ))}
+                    </ul>
+                    <ul className="space-y-2">
+                      {a.rebuttals.filter((x) => x.expected.trim() || x.answer.trim()).map((x, i) => (
+                        <li key={x.id} className="rounded-lg border border-black/10 bg-stone-50 p-2">
+                          <b>예상 반론 {i + 1}</b> {x.expected || "-"}
+                          <div className="text-stone-600">내 대답: {x.answer || "-"}</div>
+                        </li>
+                      ))}
+                    </ul>
+                    {a.reflection.trim() && <p><b>토론 뒤 한 줄</b> {a.reflection}</p>}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 점검 경고는 제출을 막지 않는 권유예요(근거·자료·출처 빠짐, 과장 표현, 상대를 깎아내리는 말 등).</p>
+    </div>
+  );
+}
+
+export function InterviewTeacher({ status }: { status: Status }) {
+  const rows = status.rows;
+  return (
+    <div className="space-y-4">
+      <AutoRefresh />
+      <Alerts rows={rows} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Stat label="시작" value={`${rows.filter((r) => r.submissionId).length}/${rows.length}`} />
+        <Stat label="제출" value={`${rows.filter((r) => r.status === "submitted").length}`} />
+        <Stat label="질문 곤란 가능(전체)" value={`${rows.reduce((n, r) => n + (r.interview?.stats.sensitiveQuestions ?? 0), 0)}`} />
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-stone-50 text-left text-stone-500">
+            <tr>
+              <th className="px-3 py-2">번호</th>
+              <th className="px-3 py-2">별명</th>
+              <th className="px-3 py-2">상태</th>
+              <th className="px-3 py-2">질문</th>
+              <th className="px-3 py-2">닫힌 질문</th>
+              <th className="px-3 py-2">곤란할 수 있는 질문</th>
+              <th className="px-3 py-2">확인표</th>
+              <th className="px-3 py-2">알게 된 것</th>
+              <th className="px-3 py-2">점검 경고</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {rows.map((r) => (
+              <tr key={r.studentId} className={r.alert ? "bg-red-50" : ""} data-student={r.number}>
+                <td className="px-3 py-2 font-semibold">{r.number}</td>
+                <td className="px-3 py-2">{r.nickname}<AlertBadge alert={r.alert} /></td>
+                <td className="px-3 py-2">{r.status ? STATUS_LABEL[r.status] ?? r.status : "시작 전"}</td>
+                <td className="px-3 py-2">{r.interview?.stats.questions ?? "-"}</td>
+                <td className="px-3 py-2">{r.interview?.stats.closedQuestions ?? "-"}</td>
+                <td className="px-3 py-2">{r.interview?.stats.sensitiveQuestions ?? "-"}</td>
+                <td className="px-3 py-2">{r.interview ? `${r.interview.stats.checklistDone}/${CHECKLIST_ITEMS.length}` : "-"}</td>
+                <td className="px-3 py-2">{r.interview?.stats.learned ?? "-"}</td>
+                <td className="px-3 py-2" data-testid={`warn-${r.number}`}>{r.interview?.stats.warnings ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <section className="card space-y-3 p-0" aria-label="학생별 면담 질문지">
+        <div className="border-b border-black/5 px-3 py-2 font-semibold">학생이 준비한 내용 <span className="text-xs font-normal text-stone-500">선생님만 볼 수 있어요. 눌러서 펼쳐 보세요.</span></div>
+        <ul className="divide-y divide-black/5">
+          {rows.filter((r) => r.interview && (r.interview.stats.questions > 0 || r.interview.artifact.purpose)).map((r) => {
+            const d = r.interview!;
+            const a = d.artifact;
+            return (
+              <li key={r.studentId} data-work={r.number}>
+                <details className="px-3 py-2">
+                  <summary className="cursor-pointer text-sm">
+                    <b>{r.number}번</b> {r.nickname} · {a.interviewee || "면담할 사람 미정"} · 질문 {d.stats.questions}개
+                    {r.status === "submitted" && <span className="ml-2 text-brand-700">제출함</span>}
+                  </summary>
+                  <div className="mt-2 space-y-2 text-sm">
+                    <p><b>목적</b> {a.purpose || "-"} · <b>면담할 사람</b> {a.interviewee || "-"} · <b>방법</b> {a.method ? METHOD_LABELS[a.method] : "-"}</p>
+                    <ol className="list-decimal space-y-1 pl-5">
+                      {a.questions.filter((q) => q.text.trim()).map((q) => {
+                        const no = a.questions.indexOf(q) + 1;
+                        const tags = [d.closedQuestionNos.includes(no) ? "닫힌 질문" : "", d.sensitiveQuestionNos.includes(no) ? "곤란할 수 있음" : ""].filter(Boolean);
+                        return (
+                          <li key={q.id} value={no}>
+                            {q.text}
+                            {tags.map((t) => <span key={t} className="ml-2 rounded bg-sun-100 px-1.5 py-0.5 text-xs font-semibold text-stone-800">{t}</span>)}
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    <p>
+                      <b>절차 확인표</b>{" "}
+                      {CHECKLIST_ITEMS.map((c) => `${a.checklist[c.id] ? "✓" : "□"} ${c.label}`).join(" · ")}
+                    </p>
+                    {a.learned.some((t) => t.trim()) && <p><b>알게 된 것</b> {a.learned.filter((t) => t.trim()).join(" / ")}</p>}
+                    {a.wonder.trim() && <p><b>더 궁금해진 것</b> {a.wonder}</p>}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 점검 경고는 제출을 막지 않는 권유예요(닫힌 질문, 곤란할 수 있는 질문, 이름으로 보이는 면담 대상 등).</p>
     </div>
   );
 }

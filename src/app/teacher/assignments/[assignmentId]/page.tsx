@@ -15,7 +15,7 @@ import { findActivity } from "@/lib/activities";
 import { grammarStatus } from "@/lib/grammar-dashboard";
 import { artifactStatus } from "@/lib/artifact-dashboard";
 import { artifactActivity, isArtifactKind, type ArtifactKind } from "@/core/artifact";
-import { CardnewsTeacher, DiaryTeacher, ImpressionTeacher } from "./ArtifactStatus";
+import { CardnewsTeacher, DebateTeacher, DiaryTeacher, ImpressionTeacher, InterviewTeacher } from "./ArtifactStatus";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -27,9 +27,9 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
   const [teacher] = await db.select().from(schema.teachers).where(eq(schema.teachers.id, teacherId));
   const isArtifact = isArtifactKind(a.kind);
   const aStatus = isArtifact ? await artifactStatus(id, klass.id, a.kind as ArtifactKind) : null;
-  const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media" || a.kind === "literature" || isArtifact;
+  const isGrammar = a.kind === "grammar" || a.kind === "reading" || a.kind === "media" || a.kind === "literature" || a.kind === "listening" || isArtifact;
   const rows = isGrammar ? [] : await assignmentStatus(id, klass.id);
-  const gStatus = isGrammar && !isArtifact ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" || a.kind === "literature" ? a.kind : "grammar") : null;
+  const gStatus = isGrammar && !isArtifact ? await grammarStatus(id, klass.id, a.activityId, a.kind === "reading" || a.kind === "media" || a.kind === "literature" || a.kind === "listening" ? a.kind : "grammar") : null;
   const available = assignableProviders();
 
   return (
@@ -47,14 +47,14 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
             <div className="text-sm text-stone-500">
               {isArtifact
                 ? (artifactActivity(a.kind)?.title ?? "제작 활동")
-                : a.kind === "reading" || a.kind === "media" || a.kind === "literature"
-                ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : a.kind === "literature" ? "문학 활동" : "읽기 활동"))
+                : a.kind === "reading" || a.kind === "media" || a.kind === "literature" || a.kind === "listening"
+                ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : a.kind === "literature" ? "문학 활동" : a.kind === "listening" ? "듣기 활동" : "읽기 활동"))
                 : isGrammar
                   ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
                   : getGenre(a.genreId)?.name} · {a.standardCodes.map((c) => `[${c}]`).join(" ")}
             </div>
             <h1 className="text-2xl font-bold">{a.title}</h1>
-            <p className="mt-1 max-w-2xl text-stone-600">{a.prompt}</p>
+            <p className="mt-1 max-w-2xl text-stone-600">{a.kind === "debate" ? `논제: ${a.prompt}` : a.prompt}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {!isGrammar && (
@@ -88,7 +88,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         </form>
         )}
         {aStatus ? (
-          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : a.kind === "impression" ? <ImpressionTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
+          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : a.kind === "impression" ? <ImpressionTeacher status={aStatus} /> : a.kind === "debate" ? <DebateTeacher status={aStatus} /> : a.kind === "interview" ? <InterviewTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
         ) : gStatus ? (
           <GrammarStatus assignmentId={id} initial={gStatus} />
         ) : (

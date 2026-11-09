@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const csv =
     isArtifactKind(kind)
       ? await artifactCsv(id, owned.klass.id, kind)
-      : kind === "grammar" || kind === "reading" || kind === "media" || kind === "literature"
+      : kind === "grammar" || kind === "reading" || kind === "media" || kind === "literature" || kind === "listening"
       ? await grammarCsv(id, owned.klass.id, owned.assignment.activityId, kind)
       : await assignmentCsv(id, owned.klass.id, owned.assignment.rubric.map((r) => r.key));
   // 엑셀에서 한글이 깨지지 않도록 BOM을 붙인다.

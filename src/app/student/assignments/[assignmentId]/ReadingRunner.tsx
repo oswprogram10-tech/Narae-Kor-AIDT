@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Passage } from "@/core/reading/types";
 import type { ProgressSummary } from "@/lib/grammar-rules";
 import type { MoodPoint, RelationEdge } from "@/core/literature";
+import { EMPTY_USAGE, type ListeningUsage } from "@/lib/listening-rules";
+import { ListeningPanel, sentenceLabel, useKoreanVoice, type ListeningCtx } from "./ListeningPanel";
 import type { LiteratureExtras, LockedReadingItem, StudentMediaItem, StudentSearchResult, StudentSearchView } from "@/lib/reading-rules";
 
 type Entry = StudentMediaItem | LockedReadingItem;
@@ -72,10 +74,13 @@ export function ReadingRunner({
   solvedIds,
   initialSummary,
   initialLiterature,
+  kind,
 }: {
   submissionId: number;
   title: string;
   isOpen: boolean;
+  /** 듣기 활동이면 지문 자리에 '듣기 자료' 상자를 보여 준다 */
+  kind?: "reading" | "media" | "literature" | "listening";
   items: Entry[];
   passages: Passage[];
   solvedIds: string[];
@@ -92,6 +97,27 @@ export function ReadingRunner({
   const firstOpen = initialItems.findIndex((i) => !solvedIds.includes(i.id));
   const [index, setIndex] = useState(firstOpen === -1 ? initialItems.length : firstOpen);
   const [passageOpen, setPassageOpen] = useState(true);
+
+  // 듣기 활동: 소리 준비, 글 보이기, 학생 기기에서 센 횟수(서버에 아직 안 보낸 증가분)
+  const isListening = kind === "listening";
+  const voice = useKoreanVoice(isListening);
+  const [textOpen, setTextOpen] = useState(false);
+  const unsent = useRef<ListeningUsage>({ ...EMPTY_USAGE });
+  const noSound = isListening && voice.status === "none";
+  const listening: ListeningCtx | undefined = isListening
+    ? {
+        voice,
+        textOpen: textOpen || noSound,
+        onShowText: () => {
+          unsent.current.transcript_views += 1;
+          setTextOpen(true);
+        },
+        onHideText: () => setTextOpen(false),
+        onBump: (key) => {
+          unsent.current[key] += 1;
+        },
+      }
+    : undefined;
 
   const { items, passages } = view;
   const total = items.length;
@@ -122,6 +148,11 @@ export function ReadingRunner({
       <header className="space-y-2">
         <Link href="/student" className="text-sm text-stone-500 underline">← 목록으로</Link>
         <h1 className="text-xl font-bold">{title}</h1>
+        {isListening && (
+          <p data-testid="listening-notice" className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700">
+            🎧 듣기 활동: 먼저 들어 보고, 필요하면 ‘글로 보기’를 눌러도 돼요. 글로 보는 것도 좋은 방법이니 걱정하지 않아도 돼요.
+          </p>
+        )}
         <div className="flex items-center gap-3">
           <div
             className="h-3 flex-1 overflow-hidden rounded-full bg-stone-200"
@@ -167,6 +198,11 @@ export function ReadingRunner({
           submissionId={submissionId}
           isLast={index === total - 1}
           lit={lit}
+          listening={listening}
+          takeUsage={() => ({ ...unsent.current })}
+          usageSent={(sent) => {
+            for (const k of Object.keys(sent) as (keyof ListeningUsage)[]) unsent.current[k] = Math.max(0, unsent.current[k] - sent[k]);
+          }}
           onSolved={(s, next, extras) => {
             setSolved((prev) => new Set(prev).add(current!.id));
             setSummary(s);
@@ -192,6 +228,9 @@ function ItemView({
   submissionId,
   isLast,
   lit,
+  listening,
+  takeUsage,
+  usageSent,
   onSolved,
   onNext,
 }: {
@@ -203,6 +242,9 @@ function ItemView({
   submissionId: number;
   isLast: boolean;
   lit: LiteratureExtras;
+  listening?: ListeningCtx;
+  takeUsage: () => ListeningUsage;
+  usageSent: (sent: ListeningUsage) => void;
   onSolved: (s: ProgressSummary, next?: View, extras?: LiteratureExtras) => void;
   onNext: () => void;
 }) {
@@ -228,6 +270,8 @@ function ItemView({
   const passage = passages[0];
 
   const sentenceText = (id: string) => passages.flatMap((p) => p.paragraphs.flatMap((x) => x.sentences)).find((s) => s.id === id)?.text ?? "";
+  // 듣기 활동에서 글이 숨겨져 있을 때는 문장 글 대신 '몇 번 말차례의 몇 번째 문장'으로 가리킨다.
+  const sentenceShown = (id: string) => (listening && !listening.textOpen ? sentenceLabel(passage, id) : sentenceText(id));
   const paragraphNo = (pid: string) => (passage?.paragraphs.findIndex((p) => p.id === pid) ?? -1) + (passage?.page ? 0 : 1);
 
   const seenQuery = queryNo !== null ? seen[queryNo] : undefined;
@@ -307,12 +351,16 @@ function ItemView({
               ? { type: "choice", option: option! }
               : { type: "choice-with-evidence", option: option!, sentenceId: sentenceId! };
     setBusy(true);
+    const taken = listening ? takeUsage() : undefined;
+    const usage = taken && taken.listen_plays + taken.line_replays + taken.transcript_views > 0 ? taken : undefined;
     try {
       const res = await fetch(`/api/reading/${submissionId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId: item.id, answer }),
+        body: JSON.stringify({ itemId: item.id, answer, ...(usage ? { usage } : {}) }),
       });
+      // 답을 받은 서버가 횟수도 기록했으니 보낸 만큼은 다시 보내지 않는다
+      if (usage) usageSent(usage);
       const data = (await res.json().catch(() => ({}))) as Partial<Result> & { error?: string };
       if (!res.ok || data.progress === undefined) {
         setNotice({ kind: "error", text: data.error ?? "잠시 뒤에 다시 눌러 주세요." });
@@ -375,7 +423,19 @@ function ItemView({
 
   return (
     <div className={`grid gap-4 lg:items-start ${passages.length === 1 ? "lg:grid-cols-2" : ""}`}>
-      {passage && (
+      {passage && listening && (
+        <ListeningPanel
+          passage={passage}
+          ctx={listening}
+          picking={picking && !locked}
+          scopeParagraphId={scope}
+          selected={marked}
+          done={done}
+          targets={targets}
+          onPick={(id) => setSentenceId(id)}
+        />
+      )}
+      {passage && !listening && (
         <PassagePanel
           passages={passages}
           fresh={fresh}
@@ -405,11 +465,11 @@ function ItemView({
             {sentenceId ? (
               <>
                 <span className="mr-2 text-sm text-stone-500">내가 고른 문장</span>
-                {sentenceText(sentenceId)}
+                {sentenceShown(sentenceId)}
               </>
             ) : (
               <span className="text-stone-500">
-                {scope ? `${paragraphNo(scope)}문단` : "지문"}에서 문장을 눌러 골라요.
+                {scope ? `${paragraphNo(scope)}문단` : listening ? "듣기 자료" : "지문"}에서 문장을 눌러 골라요.
               </span>
             )}
           </p>
@@ -449,12 +509,12 @@ function ItemView({
               {optionList(item.feelings)}
             </div>
             <div>
-              <div className="label">3. 그렇게 생각한 문장을 지문에서 눌러 보세요</div>
+              <div className="label">3. 그렇게 생각한 {listening ? "말을 듣기 자료에서" : "문장을 지문에서"} 눌러 보세요</div>
               <p className="rounded-xl bg-stone-50 p-3 text-stone-700" aria-live="polite">
                 {sentenceId ? (
                   <>
                     <span className="mr-2 text-sm text-stone-500">근거로 고른 문장</span>
-                    {sentenceText(sentenceId)}
+                    {sentenceShown(sentenceId)}
                   </>
                 ) : (
                   <span className="text-stone-500">아직 고르지 않았어요.</span>
@@ -558,7 +618,7 @@ function ItemView({
                   <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
                     {i + 1}
                   </span>
-                  {sentenceText(id)}
+                  {sentenceShown(id)}
                 </p>
                 <div className="flex gap-2">
                   {item.labels.map((l) => (
@@ -666,12 +726,12 @@ function ItemView({
               {optionList(item.options)}
             </div>
             <div>
-              <div className="label">2. 그렇게 생각한 문장을 지문에서 눌러 보세요</div>
+              <div className="label">2. 그렇게 생각한 {listening ? "말을 듣기 자료에서" : "문장을 지문에서"} 눌러 보세요</div>
               <p className="rounded-xl bg-stone-50 p-3 text-stone-700" aria-live="polite">
                 {sentenceId ? (
                   <>
                     <span className="mr-2 text-sm text-stone-500">근거로 고른 문장</span>
-                    {sentenceText(sentenceId)}
+                    {sentenceShown(sentenceId)}
                   </>
                 ) : (
                   <span className="text-stone-500">아직 고르지 않았어요.</span>

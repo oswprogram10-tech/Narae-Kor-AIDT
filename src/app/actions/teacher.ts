@@ -18,6 +18,9 @@ import { activitiesForGrade } from "@/core/grammar";
 import { activitiesForGrade as readingActivitiesForGrade } from "@/core/reading";
 import { mediaActivitiesForGrade } from "@/core/media";
 import { getReplyCharacter, literatureActivitiesForGrade } from "@/core/literature";
+import { listeningActivitiesForGrade } from "@/core/listening";
+import { DEBATE_LIMITS, DEBATE_MOTIONS, DEBATE_STEPS, STEP_SECONDS_MAX, STEP_SECONDS_MIN } from "@/core/speaking";
+import { cleanDebateSeconds } from "@/lib/assignment-settings";
 import { teacherSubmission } from "@/lib/submissions";
 import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
@@ -100,6 +103,28 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
   if (isArtifactKind(kind)) {
     const activity = artifactActivity(kind);
     if (!activity || !artifactActivitiesForGrade(klass.grade).includes(activity)) return { error: "이 활동은 5~6학년 학급에서만 낼 수 있어요." };
+    // 토론: 논제(목록에서 고르거나 직접 쓰기)와 단계별 시간(고르지 않으면 기본 시간)
+    let prompt = activity.description;
+    let settings: { debateSeconds: Record<string, number> } | null = null;
+    if (kind === "debate") {
+      // 논제: 정해 둔 목록의 id이거나 직접 쓴 글(앞뒤 공백은 자른다)
+      const choice = String(form.get("motionChoice") ?? "");
+      const motion = choice === "custom" ? String(form.get("motionCustom") ?? "").trim() : (DEBATE_MOTIONS.find((m) => m.id === choice)?.text ?? "");
+      if (!motion) return { error: "논제를 정해 주세요." };
+      if (Array.from(motion).length > DEBATE_LIMITS.motion) return { error: `논제는 ${DEBATE_LIMITS.motion}자 안으로 써 주세요.` };
+      prompt = motion;
+      const given: Record<string, number> = {};
+      for (const step of DEBATE_STEPS) {
+        const raw = String(form.get(`sec_${step.id}`) ?? "").trim();
+        if (raw === "") continue;
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return { error: `${step.label} 시간은 숫자로 써 주세요.` };
+        if (n < STEP_SECONDS_MIN || n > STEP_SECONDS_MAX) return { error: `${step.label} 시간은 ${STEP_SECONDS_MIN}~${STEP_SECONDS_MAX}초 사이로 정해 주세요.` };
+        given[step.id] = n;
+      }
+      const seconds = cleanDebateSeconds(given);
+      settings = seconds ? { debateSeconds: seconds } : null;
+    }
     const db = await getDb();
     const [a] = await db
       .insert(schema.assignments)
@@ -110,15 +135,16 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
         activityId: null,
         genreId: "",
         standardCodes: [activity.standardCode],
-        prompt: activity.description,
+        prompt,
         organizer: [],
         rubric: [],
         coachEnabled: false,
+        settings,
       })
       .returning({ id: schema.assignments.id });
     redirect(`/teacher/assignments/${a.id}`);
   }
-  if (kind === "grammar" || kind === "reading" || kind === "media" || kind === "literature") {
+  if (kind === "grammar" || kind === "reading" || kind === "media" || kind === "literature" || kind === "listening") {
     const activities =
       kind === "reading"
         ? readingActivitiesForGrade(klass.grade)
@@ -126,7 +152,9 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
           ? mediaActivitiesForGrade(klass.grade)
           : kind === "literature"
             ? literatureActivitiesForGrade(klass.grade)
-            : activitiesForGrade(klass.grade);
+            : kind === "listening"
+              ? listeningActivitiesForGrade(klass.grade)
+              : activitiesForGrade(klass.grade);
     const activity = activities.find((x) => x.id === String(form.get("activityId") ?? ""));
     if (!activity) return { error: "활동을 골라 주세요." };
     const db = await getDb();

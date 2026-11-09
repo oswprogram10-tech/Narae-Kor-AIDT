@@ -47,8 +47,8 @@ export default async function ClassPage({ params }: { params: Promise<{ classId:
                   ? (artifactActivity(a.kind)?.title ?? "제작 활동")
                   : a.kind === "grammar"
                     ? (getActivity(a.activityId ?? "")?.title ?? "문법·어휘 활동")
-                    : a.kind === "reading" || a.kind === "media" || a.kind === "literature"
-                      ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : a.kind === "literature" ? "문학 활동" : "읽기 활동"))
+                    : a.kind === "reading" || a.kind === "media" || a.kind === "literature" || a.kind === "listening"
+                      ? (findActivity(a.activityId ?? "")?.title ?? (a.kind === "media" ? "매체 활동" : a.kind === "literature" ? "문학 활동" : a.kind === "listening" ? "듣기 활동" : "읽기 활동"))
                       : getGenre(a.genreId)?.name}</span>
                 <span>·</span>
                 <span>{a.standardCodes.map((c) => `[${c}]`).join(" ")}</span>

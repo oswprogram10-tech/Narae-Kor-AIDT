@@ -36,6 +36,13 @@
       "when": 1794001894076,
       "tag": "0004_damp_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794195632740,
+      "tag": "0005_early_shaman",
+      "breakpoints": true
     }
   ]
 }

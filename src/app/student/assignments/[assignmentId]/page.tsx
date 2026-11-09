@@ -18,6 +18,10 @@ import { isArtifactKind } from "@/core/artifact";
 import { CardnewsMaker } from "./CardnewsMaker";
 import { DiaryMaker } from "./DiaryMaker";
 import { ImpressionMaker } from "./ImpressionMaker";
+import { DebateMaker } from "./DebateMaker";
+import { InterviewMaker } from "./InterviewMaker";
+import { withMotion } from "@/core/speaking";
+import { debateSecondsOf } from "@/lib/assignment-settings";
 import { impressionGalleryFor, galleryFor, storedArtifact } from "@/lib/artifacts";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -71,6 +75,23 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
         />
       );
     }
+    if (art.kind === "debate") {
+      // 논제는 교사가 정한 값(과제의 prompt)이다.
+      return (
+        <DebateMaker
+          submissionId={submission.id}
+          title={assignment.title}
+          motion={assignment.prompt}
+          seconds={debateSecondsOf(assignment.settings)}
+          isOpen={assignment.isOpen}
+          initial={withMotion(art, assignment.prompt)}
+          status={submission.status}
+        />
+      );
+    }
+    if (art.kind === "interview") {
+      return <InterviewMaker submissionId={submission.id} title={assignment.title} prompt={assignment.prompt} isOpen={assignment.isOpen} initial={art} status={submission.status} />;
+    }
     if (art.kind === "media-diary") {
       return <DiaryMaker submissionId={submission.id} title={assignment.title} prompt={assignment.prompt} isOpen={assignment.isOpen} initial={art} status={submission.status} />;
     }
@@ -88,6 +109,7 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
         submissionId={submission.id}
         title={assignment.title}
         isOpen={assignment.isOpen}
+        kind={assignment.kind}
         items={view.items}
         passages={view.passages}
         solvedIds={solvedIds}

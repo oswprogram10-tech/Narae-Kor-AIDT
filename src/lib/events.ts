@@ -16,6 +16,7 @@ export type Verb =
   | "return"
   | "grammar_answer"
   | "reading_answer"
+  | "listening_usage"
   | "artifact_safety"
   | "share"
   | "reaction"

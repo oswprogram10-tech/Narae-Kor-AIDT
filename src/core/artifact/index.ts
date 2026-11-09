@@ -233,6 +233,20 @@ export const ARTIFACT_ACTIVITIES: readonly ArtifactActivity[] = [
     standardCode: "6국05-04",
     minGrade: 5,
   },
+  {
+    kind: "debate",
+    title: "토론 준비와 토론 타이머",
+    description: "논제에서 내 편을 고르고, 주장과 근거(뒷받침 자료·출처)를 나무 모양으로 세우고, 상대편의 반론에 답할 말을 미리 준비해요. 토론할 때는 단계별 타이머를 써요. 채점하지 않고, 녹음도 하지 않아요.",
+    standardCode: "6국01-07",
+    minGrade: 5,
+  },
+  {
+    kind: "interview",
+    title: "면담 질문지",
+    description: "면담할 사람과 목적을 정하고 질문 3~8개를 만들어, 대답을 자세히 들을 수 있는 질문인지 점검해요. 면담 절차를 확인하고, 면담 뒤에 알게 된 것을 정리해요. 채점하지 않고, 녹음 기능도 없어요.",
+    standardCode: "6국01-04",
+    minGrade: 5,
+  },
 ];
 
 export const artifactActivity = (kind: string): ArtifactActivity | undefined => ARTIFACT_ACTIVITIES.find((x) => x.kind === kind);

@@ -39,6 +39,8 @@ export function GrammarStatus({ assignmentId, initial }: { assignmentId: number;
   const alerts = students.filter((r) => r.alert);
   const started = students.filter((s) => s.submissionId && s.updatedAt);
   const done = students.filter((s) => s.total > 0 && s.solved === s.total);
+  // 듣기 활동: 학생 기기에서 센 횟수(연구용). 글로 본 것은 잘못이 아니라 듣기 방법의 하나로 보여 준다.
+  const showListening = students.some((s) => s.listening);
 
   return (
     <div className="space-y-4">
@@ -65,6 +67,7 @@ export function GrammarStatus({ assignmentId, initial }: { assignmentId: number;
               <th className="px-3 py-2">첫 시도 정답</th>
               <th className="px-3 py-2">도움 받아 완료</th>
               <th className="px-3 py-2">힌트 본 문제</th>
+              {showListening && <th className="px-3 py-2">들은 횟수 / 글로 보기</th>}
               <th className="px-3 py-2">마지막 활동</th>
             </tr>
           </thead>
@@ -92,13 +95,18 @@ export function GrammarStatus({ assignmentId, initial }: { assignmentId: number;
                   <td className="px-3 py-2">{r.firstTry}</td>
                   <td className="px-3 py-2">{r.revealed > 0 ? <span className="text-orange-700">{r.revealed}</span> : 0}</td>
                   <td className="px-3 py-2">{r.hintItems}</td>
+                  {showListening && (
+                    <td className="px-3 py-2 text-xs text-stone-600" data-testid={`listening-${r.number}`} title={r.listening ? `전체 들려주기 ${r.listening.plays}회, 다시 듣기 ${r.listening.replays}회, 글로 보기 ${r.listening.views}회` : undefined}>
+                      {r.listening ? `${r.listening.heard}회 / ${r.listening.views}회` : "-"}
+                    </td>
+                  )}
                   <td className="px-3 py-2 text-stone-500">{m === null ? "-" : m === 0 ? "방금" : `${m}분 전`}</td>
                 </tr>
               );
             })}
             {students.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-stone-500">
+                <td colSpan={showListening ? 8 : 7} className="px-3 py-6 text-center text-stone-500">
                   아직 학급에 들어온 학생이 없어요. 학급 페이지의 참여 코드를 알려 주세요.
                 </td>
               </tr>
