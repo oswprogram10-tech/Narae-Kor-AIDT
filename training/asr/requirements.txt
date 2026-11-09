@@ -1,0 +1,9 @@
+# PyTorch는 여기에 넣지 않았어요. README의 설치 단계에서 GTX 1060(Pascal)을 지원하는 CUDA 12.6 빌드로 따로 설치해요.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+transformers==5.22.2
+peft==0.21.2
+soundfile>=0.12
+scipy>=1.13
+numpy>=1.26
+tqdm>=4.66
+# 시험용(선택): pip install pytest
