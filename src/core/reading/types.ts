@@ -1,6 +1,7 @@
 // 읽기 활동 핵심부의 자료 형식. Next.js·DB에 의존하지 않는다.
 
-export type Genre = "설명하는 글" | "의견이 담긴 글" | "논설문" | "이야기" | "동화" | "시";
+export type Genre = "설명하는 글" | "의견이 담긴 글" | "논설문" | "이야기" | "동화" | "시" | "대화" | "발표" | "연설";
+// 대화·발표·연설은 듣기 자료(소리·말 나래)의 갈래다. 말차례 하나가 문단 하나다.
 
 export interface Sentence {
   /** 지문 안에서 겹치지 않는 번호. 예: "s2-3"(2문단 3번째 문장) */
@@ -11,6 +12,11 @@ export interface Sentence {
 export interface Paragraph {
   /** 예: "p2" */
   id: string;
+  /**
+   * 듣기 자료(대화·발표·연설)에서만 쓴다: 이 말차례를 말한 사람(지어낸 이름이나 "엄마" 같은 역할).
+   * 문단 하나가 말차례 하나다. 읽기 지문에서는 쓰지 않는다.
+   */
+  speaker?: string;
   sentences: Sentence[];
 }
 
