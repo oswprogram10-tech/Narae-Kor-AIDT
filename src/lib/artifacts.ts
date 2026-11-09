@@ -15,7 +15,7 @@ import {
 } from "@/core/artifact";
 import { checkCardnews, isStickerId, LIMITS as CARD_LIMITS, STICKER_IDS, type Card } from "@/core/cardnews";
 import { IMPRESSION_STICKER_IDS, LIMITS as IMPRESSION_LIMITS, isImpressionStickerId } from "@/core/impression";
-import { bandOfGrade, checkDebate, checkInterview, checkPresentation, withBand, withMotion } from "@/core/speaking";
+import { DEBATE_STICKER_IDS, bandOfGrade, checkDebate, checkInterview, checkPresentation, isDebateStickerId, sharedDebateView, withBand, withMotion, type SharedDebate } from "@/core/speaking";
 import { presentationSecondsOf } from "@/lib/assignment-settings";
 import { DISTRESS_REPLY, PERSONAL_INFO_REPLY } from "@/core/coach/guard";
 import { logEvent } from "@/lib/events";
@@ -46,7 +46,7 @@ export type ArtifactOutcome =
 
 /** 이 과제 종류와 상태에서 학생이 제작물을 고칠 수 있는가 */
 function lockMessage(kind: ArtifactKind, submission: Submission): string | null {
-  if ((kind === "cardnews" || kind === "impression") && submission.shareApproved) {
+  if ((kind === "cardnews" || kind === "impression" || kind === "debate") && submission.shareApproved) {
     return "공유가 승인된 작품은 더 고칠 수 없어요. 고치고 싶으면 선생님께 말씀드려 보세요.";
   }
   // 토론·면담·발표 준비는 제출한 뒤에도 고쳐서 다시 낼 수 있다(토론 뒤 한 줄·면담 뒤 정리는 제출한 뒤에 쓰는 경우가 많다).
@@ -137,9 +137,15 @@ export async function saveArtifact(
   if (!isArtifactKind(assignment.kind)) return { status: 404, error: "찾을 수 없어요." };
   const kind = assignment.kind;
   if (!assignment.isOpen) return { status: 403, error: "선생님이 과제를 닫았어요." };
-  const locked = lockMessage(kind, submission);
+  // 공유가 승인된 토론 준비는 갤러리에 나간 부분을 고칠 수 없지만, 공유되지 않는 '토론 뒤 한 줄'은 계속 쓸 수 있다.
+  const reflectionOnly = kind === "debate" && submission.shareApproved;
+  const locked = reflectionOnly ? null : lockMessage(kind, submission);
   if (locked) return { status: 409, error: locked };
   const prev = await withAssignmentFixed(storedArtifact(submission, kind), assignment);
+  if (reflectionOnly) {
+    const sent = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>).reflection : undefined;
+    raw = { ...prev, reflection: typeof sent === "string" ? sent : prev.kind === "debate" ? prev.reflection : "" };
+  }
   const sanitized = sanitizeArtifact(kind, raw, prev);
   const next = sanitized ? await withAssignmentFixed(sanitized, assignment) : null;
   const scan = next ? scanSafety(submission.artifact ? prev : null, next) : null;
@@ -266,7 +272,7 @@ export interface GalleryWork {
 }
 
 /** 승인된 작품 행과 스티커 행을 모은다. 승인 안 된 작품·다른 반 작품은 절대 들어가지 않는다. */
-async function approvedWorks(assignmentId: number, classId: number, kind: "cardnews" | "impression") {
+async function approvedWorks(assignmentId: number, classId: number, kind: "cardnews" | "impression" | "debate") {
   const db = await getDb();
   const [a] = await db
     .select()
@@ -346,6 +352,31 @@ export async function impressionGalleryFor(assignmentId: number, classId: number
   return { title: found.a.title, works };
 }
 
+export interface DebateGalleryWork {
+  submissionId: number;
+  nickname: string;
+  own: boolean;
+  shared: SharedDebate;
+  counts: Record<string, number>;
+  mine: string[];
+}
+
+/** 토론 갤러리: 승인된 같은 반 작품의 편·주장·근거만 나간다(예상 반론·토론 뒤 한 줄은 나가지 않는다). */
+export async function debateGalleryFor(assignmentId: number, classId: number, viewerId: number): Promise<{ title: string; motion: string; works: DebateGalleryWork[] } | null> {
+  const found = await approvedWorks(assignmentId, classId, "debate");
+  if (!found) return null;
+  const works: DebateGalleryWork[] = [];
+  for (const { s, nickname } of found.rows) {
+    const art = storedArtifact(s, "debate");
+    if (art.kind !== "debate") continue;
+    const shared = sharedDebateView(art);
+    if (!shared) continue;
+    const { counts, mine } = reactionSummary(found.rx, s.id, viewerId, DEBATE_STICKER_IDS);
+    works.push({ submissionId: s.id, nickname, own: s.studentId === viewerId, shared, counts, mine });
+  }
+  return { title: found.a.title, motion: found.a.prompt, works };
+}
+
 export type ReactionOutcome =
   | { status: 400 | 403 | 404; error: string }
   | { status: 200; on: boolean; counts: Record<string, number>; mine: string[] };
@@ -353,7 +384,7 @@ export type ReactionOutcome =
 /** 스티커를 붙이거나 떼는 토글. 본인 작품에는 남길 수 없고, 승인된 같은 반 작품에만 남길 수 있다. */
 export async function toggleReaction(studentId: number, classId: number, submissionId: unknown, stickerId: unknown): Promise<ReactionOutcome> {
   if (typeof submissionId !== "number" || !Number.isInteger(submissionId)) return { status: 400, error: "작품을 확인해 주세요." };
-  if (!isStickerId(stickerId) && !isImpressionStickerId(stickerId)) return { status: 400, error: "스티커를 확인해 주세요." };
+  if (!isStickerId(stickerId) && !isImpressionStickerId(stickerId) && !isDebateStickerId(stickerId)) return { status: 400, error: "스티커를 확인해 주세요." };
   const db = await getDb();
   const [row] = await db
     .select({ s: schema.submissions, a: schema.assignments })
@@ -361,8 +392,8 @@ export async function toggleReaction(studentId: number, classId: number, submiss
     .innerJoin(schema.assignments, eq(schema.submissions.assignmentId, schema.assignments.id))
     .where(eq(schema.submissions.id, submissionId));
   // 다른 반 작품이거나 승인 전이면 있는지조차 알려 주지 않는다.
-  if (!row || row.a.classId !== classId || (row.a.kind !== "cardnews" && row.a.kind !== "impression") || !row.s.shareApproved) return { status: 404, error: "찾을 수 없어요." };
-  const stickerIds: readonly string[] = row.a.kind === "impression" ? IMPRESSION_STICKER_IDS : STICKER_IDS;
+  if (!row || row.a.classId !== classId || (row.a.kind !== "cardnews" && row.a.kind !== "impression" && row.a.kind !== "debate") || !row.s.shareApproved) return { status: 404, error: "찾을 수 없어요." };
+  const stickerIds: readonly string[] = row.a.kind === "impression" ? IMPRESSION_STICKER_IDS : row.a.kind === "debate" ? DEBATE_STICKER_IDS : STICKER_IDS;
   if (!stickerIds.includes(stickerId)) return { status: 400, error: "스티커를 확인해 주세요." };
   if (row.s.studentId === studentId) return { status: 403, error: "내 작품에는 스티커를 붙일 수 없어요." };
   const where = and(
@@ -380,7 +411,7 @@ export async function toggleReaction(studentId: number, classId: number, submiss
   return { status: 200, on: !existing, counts, mine: all.filter((r) => r.reactorId === studentId).map((r) => r.stickerId) };
 }
 
-/** 교사의 공유 승인·승인 취소. 제출한 카드뉴스·인상적인 부분 나누기만 승인할 수 있다. */
+/** 교사의 공유 승인·승인 취소. 제출한 카드뉴스·인상적인 부분 나누기·토론 준비만 승인할 수 있다. */
 export async function setShareApproved(teacherId: number, submissionId: number, approved: boolean): Promise<boolean> {
   const db = await getDb();
   const [row] = await db
@@ -389,7 +420,7 @@ export async function setShareApproved(teacherId: number, submissionId: number, 
     .innerJoin(schema.assignments, eq(schema.submissions.assignmentId, schema.assignments.id))
     .innerJoin(schema.classes, eq(schema.assignments.classId, schema.classes.id))
     .where(and(eq(schema.submissions.id, submissionId), eq(schema.classes.teacherId, teacherId)));
-  if (!row || (row.a.kind !== "cardnews" && row.a.kind !== "impression")) return false;
+  if (!row || (row.a.kind !== "cardnews" && row.a.kind !== "impression" && row.a.kind !== "debate")) return false;
   if (approved && row.s.status !== "submitted") return false;
   await db
     .update(schema.submissions)

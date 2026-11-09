@@ -54,3 +54,5 @@ export {
   type PresentationWarning,
   type PresentationWarningKind,
 } from "./presentation";
+
+export { DEBATE_STICKERS, DEBATE_STICKER_IDS, isDebateStickerId, sharedDebateView, type DebateSticker, type SharedDebate } from "./share";

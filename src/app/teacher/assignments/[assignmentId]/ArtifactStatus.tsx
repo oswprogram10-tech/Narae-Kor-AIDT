@@ -5,7 +5,7 @@ import { CardView, SourceCardView } from "@/components/CardView";
 import { BarChart } from "@/components/BarChart";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { setShareApproved } from "@/app/actions/teacher";
-import { CHECKLIST_ITEMS, METHOD_LABELS, DEBATE_STEPS, PURPOSE_LABELS, SELF_CHECK_ITEMS, AID_LABELS, debateSteps, formatSeconds } from "@/core/speaking";
+import { DEBATE_STICKERS, CHECKLIST_ITEMS, METHOD_LABELS, DEBATE_STEPS, PURPOSE_LABELS, SELF_CHECK_ITEMS, AID_LABELS, debateSteps, formatSeconds } from "@/core/speaking";
 import type { ArtifactAlert, ArtifactStatus as Status } from "@/lib/artifact-dashboard";
 
 const STATUS_LABEL: Record<string, string> = { in_progress: "만드는 중", submitted: "제출함", returned: "돌려줌" };
@@ -368,11 +368,13 @@ export function DebateTeacher({ status }: { status: Status }) {
           단계별 시간{changed ? "(바꾼 시간 있음)" : "(기본)"}: {steps.map((s, i) => `${DEBATE_STEPS[i].label} ${mmss(s.seconds)}`).join(" · ")}
         </div>
       </section>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
         <Stat label="시작" value={`${rows.filter((r) => r.submissionId).length}/${rows.length}`} />
         <Stat label="제출" value={`${rows.filter((r) => r.status === "submitted").length}`} />
         <Stat label="찬성" value={`${rows.filter((r) => r.debate?.stats.side === "pro").length}`} />
         <Stat label="반대" value={`${rows.filter((r) => r.debate?.stats.side === "con").length}`} />
+        <Stat label="공유 승인" value={`${rows.filter((r) => r.debate?.approved).length}`} />
+        <Stat label="받은 스티커(전체)" value={`${rows.reduce((s, r) => s + (r.debate?.reactionTotal ?? 0), 0)}`} />
       </div>
       <div className="card overflow-x-auto p-0">
         <table className="w-full min-w-[760px] text-sm">
@@ -386,6 +388,8 @@ export function DebateTeacher({ status }: { status: Status }) {
               <th className="px-3 py-2">자료·출처 있는 근거</th>
               <th className="px-3 py-2">예상 반론</th>
               <th className="px-3 py-2">점검 경고</th>
+              <th className="px-3 py-2">받은 스티커</th>
+              <th className="px-3 py-2">공유</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/5">
@@ -399,6 +403,18 @@ export function DebateTeacher({ status }: { status: Status }) {
                 <td className="px-3 py-2">{r.debate ? `${r.debate.stats.withSupport} / ${r.debate.stats.withSource}` : "-"}</td>
                 <td className="px-3 py-2">{r.debate?.stats.rebuttals ?? "-"}</td>
                 <td className="px-3 py-2" data-testid={`warn-${r.number}`}>{r.debate?.stats.warnings ?? "-"}</td>
+                <td className="px-3 py-2" data-testid={`got-${r.number}`}>{r.debate?.reactionTotal ?? 0}</td>
+                <td className="px-3 py-2">
+                  {r.debate && r.submissionId && (
+                    <form action={setShareApproved.bind(null, r.submissionId, !r.debate.approved)}>
+                      {r.debate.approved ? (
+                        <button className="btn-ghost px-3 py-1 text-xs">승인 취소</button>
+                      ) : (
+                        <button className="btn-primary px-3 py-1 text-xs" disabled={r.status !== "submitted"}>공유 승인</button>
+                      )}
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -416,6 +432,8 @@ export function DebateTeacher({ status }: { status: Status }) {
                   <summary className="cursor-pointer text-sm">
                     <b>{r.number}번</b> {r.nickname} · {a.side ? SIDE_LABEL[a.side] : "편 안 고름"} · 근거 {d.stats.reasons}개 · 경고 {d.stats.warnings}
                     {r.status === "submitted" && <span className="ml-2 text-brand-700">제출함</span>}
+                    {d.approved && <span className="ml-2 rounded bg-brand-100 px-2 py-0.5 text-xs text-brand-700">공유 중</span>}
+                    {d.approved && <span className="ml-2 text-xs text-stone-600">{DEBATE_STICKERS.map((s) => `${s.emoji}${d.reactions[s.id] ?? 0}`).join(" ")}</span>}
                   </summary>
                   <div className="mt-2 space-y-3 text-sm">
                     <p><b>주장</b> {a.claim || "-"}</p>
@@ -443,7 +461,7 @@ export function DebateTeacher({ status }: { status: Status }) {
           })}
         </ul>
       </section>
-      <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 점검 경고는 제출을 막지 않는 권유예요(근거·자료·출처 빠짐, 과장 표현, 상대를 깎아내리는 말 등).</p>
+      <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 제출한 토론 준비를 읽고 ‘공유 승인’을 누르면 같은 반 갤러리에 편·주장·근거만 보여요(예상 반론과 토론 뒤 한 줄은 공유되지 않아요). 점검 경고는 제출을 막지 않는 권유예요(근거·자료·출처 빠짐, 과장 표현, 상대를 깎아내리는 말 등).</p>
     </div>
   );
 }

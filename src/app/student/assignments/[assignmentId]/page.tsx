@@ -87,6 +87,8 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
           isOpen={assignment.isOpen}
           initial={withMotion(art, assignment.prompt)}
           status={submission.status}
+          assignmentId={assignment.id}
+          approved={submission.shareApproved}
         />
       );
     }

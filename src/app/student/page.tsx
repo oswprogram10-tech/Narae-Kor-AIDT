@@ -37,7 +37,7 @@ export default async function StudentHome() {
     }
     if (isArtifactKind(a.kind)) {
       if (!s) return "시작하기";
-      if ((a.kind === "cardnews" || a.kind === "impression") && s.shareApproved) return "공유됨 ✓";
+      if ((a.kind === "cardnews" || a.kind === "impression" || a.kind === "debate") && s.shareApproved) return "공유됨 ✓";
       return s.status === "submitted" ? "제출 ✓" : "만드는 중";
     }
     return !s

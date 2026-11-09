@@ -177,8 +177,8 @@ describe("토론·면담 저장·제출·현황", () => {
   it("토론: 교사 CSV 열", async () => {
     const csv = await dash.artifactCsv(debateId, classId, "debate");
     const [header, ...lines] = csv.trim().split("\n");
-    expect(header).toBe(DEBATE_CSV_HEADER.join(","));
-    expect(header).toBe("student_number,status,side,reasons,with_support,with_source,rebuttals,warnings,safety_alert");
+    expect(header).toBe([...DEBATE_CSV_HEADER.slice(0, -1), "shared", "reactions_received", "safety_alert"].join(","));
+    expect(header).toBe("student_number,status,side,reasons,with_support,with_source,rebuttals,warnings,shared,reactions_received,safety_alert");
     const r1 = lines.map((l) => l.split(",")).find((c) => c[0] === "1")!;
     expect(r1.slice(0, 4)).toEqual(["1", "submitted", "con", "1"]);
     expect(csv).not.toContain("수업 시간이 줄지");

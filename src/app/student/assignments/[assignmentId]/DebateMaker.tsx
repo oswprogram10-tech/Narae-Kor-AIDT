@@ -35,7 +35,12 @@ export function DebateMaker({
   isOpen,
   initial,
   status,
+  assignmentId,
+  approved,
 }: {
+  assignmentId: number;
+  /** 선생님이 반 공유를 승인했는가(승인되면 편·주장·근거·반론은 고칠 수 없다. 토론 뒤 한 줄은 공유되지 않아 계속 쓸 수 있다) */
+  approved: boolean;
   submissionId: number;
   title: string;
   motion: string;
@@ -46,6 +51,7 @@ export function DebateMaker({
   status: string;
 }) {
   const locked = !isOpen;
+  const frozen = locked || approved;
   const { art, change, flush, state, error, safety, clearSafety } = useArtifactSave<DebateArtifact>(submissionId, initial, locked);
   const [tab, setTab] = useState(1);
   // 점검 단계를 본 뒤부터는 빠진 것 안내도 해당 칸 옆에 보여 준다(쓰는 도중에는 말투에 대한 안내만 바로 보여 준다)
@@ -119,7 +125,7 @@ export function DebateMaker({
                 key={side}
                 type="button"
                 data-side={side}
-                disabled={locked}
+                disabled={frozen}
                 aria-pressed={art.side === side}
                 onClick={() => change({ ...art, side }, true)}
                 className={`min-h-16 rounded-2xl border-4 px-3 py-4 text-xl font-bold ${
@@ -143,7 +149,7 @@ export function DebateMaker({
           </p>
           <div data-testid="claim-box" className="rounded-2xl border-4 border-brand-600 bg-brand-50 p-3">
             <label htmlFor="claim" className="label">내 주장 (한 문장) {art.side && <span className="font-normal text-stone-600">· {SIDE_TEXT[art.side]} 편</span>}</label>
-            <input id="claim" className="input" maxLength={L.claim} disabled={locked} value={art.claim} onChange={(e) => change({ ...art, claim: e.target.value })} placeholder="예: 쉬는 시간을 늘려야 합니다." />
+            <input id="claim" className="input" maxLength={L.claim} disabled={frozen} value={art.claim} onChange={(e) => change({ ...art, claim: e.target.value })} placeholder="예: 쉬는 시간을 늘려야 합니다." />
             <p className="mt-1 text-right text-xs text-stone-500">{art.claim.length}/{L.claim}</p>
             {fieldWarn("claim", art.claim)}
           </div>
@@ -158,7 +164,7 @@ export function DebateMaker({
                     <button
                       type="button"
                       className="min-h-11 min-w-11 rounded-xl border border-black/15 px-3 text-sm hover:bg-stone-50 disabled:opacity-50"
-                      disabled={locked || art.reasons.length <= 1}
+                      disabled={frozen || art.reasons.length <= 1}
                       aria-label={`${i + 1}번 근거 지우기`}
                       onClick={() => change({ ...art, reasons: art.reasons.filter((x) => x.id !== r.id) }, true)}
                     >
@@ -167,17 +173,17 @@ export function DebateMaker({
                   </div>
                   <div>
                     <label className="label" htmlFor={`rt-${r.id}`}>근거 (왜 그렇게 생각하나요?)</label>
-                    <input id={`rt-${r.id}`} className="input" maxLength={L.reason} disabled={locked} value={r.text} onChange={(e) => setReason(r.id, { text: e.target.value })} />
+                    <input id={`rt-${r.id}`} className="input" maxLength={L.reason} disabled={frozen} value={r.text} onChange={(e) => setReason(r.id, { text: e.target.value })} />
                     {fieldWarn(`reason.${r.id}.text`, r.text)}
                   </div>
                   <div>
                     <label className="label" htmlFor={`rs-${r.id}`}>뒷받침 자료 (조사한 것, 겪은 일)</label>
-                    <textarea id={`rs-${r.id}`} className="input min-h-16" maxLength={L.support} disabled={locked} value={r.support} onChange={(e) => setReason(r.id, { support: e.target.value })} />
+                    <textarea id={`rs-${r.id}`} className="input min-h-16" maxLength={L.support} disabled={frozen} value={r.support} onChange={(e) => setReason(r.id, { support: e.target.value })} />
                     {fieldWarn(`reason.${r.id}.support`, r.support)}
                   </div>
                   <div>
                     <label className="label" htmlFor={`ro-${r.id}`}>출처 (어디에서 알게 됐나요?)</label>
-                    <input id={`ro-${r.id}`} className="input" maxLength={L.source} disabled={locked} value={r.source} onChange={(e) => setReason(r.id, { source: e.target.value })} placeholder="예: 우리 반 설문, 사회 교과서" />
+                    <input id={`ro-${r.id}`} className="input" maxLength={L.source} disabled={frozen} value={r.source} onChange={(e) => setReason(r.id, { source: e.target.value })} placeholder="예: 우리 반 설문, 사회 교과서" />
                     {fieldWarn(`reason.${r.id}.source`, r.source)}
                   </div>
                 </div>
@@ -187,7 +193,7 @@ export function DebateMaker({
           <button
             type="button"
             className="btn-ghost min-h-11"
-            disabled={locked || art.reasons.length >= REASON_MAX}
+            disabled={frozen || art.reasons.length >= REASON_MAX}
             onClick={() => {
               const r = newReason(art.reasons);
               if (r) change({ ...art, reasons: [...art.reasons, r] }, true);
@@ -214,7 +220,7 @@ export function DebateMaker({
                   <button
                     type="button"
                     className="min-h-11 min-w-11 rounded-xl border border-black/15 px-3 text-sm hover:bg-stone-50 disabled:opacity-50"
-                    disabled={locked || art.rebuttals.length <= 1}
+                    disabled={frozen || art.rebuttals.length <= 1}
                     aria-label={`${i + 1}번 반론 지우기`}
                     onClick={() => change({ ...art, rebuttals: art.rebuttals.filter((x) => x.id !== b.id) }, true)}
                   >
@@ -223,12 +229,12 @@ export function DebateMaker({
                 </div>
                 <div>
                   <label className="label" htmlFor={`be-${b.id}`}>상대편이 할 것 같은 반론</label>
-                  <input id={`be-${b.id}`} className="input" maxLength={L.expected} disabled={locked} value={b.expected} onChange={(e) => setRebuttal(b.id, { expected: e.target.value })} />
+                  <input id={`be-${b.id}`} className="input" maxLength={L.expected} disabled={frozen} value={b.expected} onChange={(e) => setRebuttal(b.id, { expected: e.target.value })} />
                   {fieldWarn(`rebuttal.${b.id}.expected`, b.expected)}
                 </div>
                 <div>
                   <label className="label" htmlFor={`ba-${b.id}`}>그때 내가 할 대답</label>
-                  <textarea id={`ba-${b.id}`} className="input min-h-16" maxLength={L.answer} disabled={locked} value={b.answer} onChange={(e) => setRebuttal(b.id, { answer: e.target.value })} />
+                  <textarea id={`ba-${b.id}`} className="input min-h-16" maxLength={L.answer} disabled={frozen} value={b.answer} onChange={(e) => setRebuttal(b.id, { answer: e.target.value })} />
                   {fieldWarn(`rebuttal.${b.id}.answer`, b.answer)}
                 </div>
               </li>
@@ -237,7 +243,7 @@ export function DebateMaker({
           <button
             type="button"
             className="btn-ghost min-h-11"
-            disabled={locked || art.rebuttals.length >= REBUTTAL_MAX}
+            disabled={frozen || art.rebuttals.length >= REBUTTAL_MAX}
             onClick={() => {
               const r = newRebuttal(art.rebuttals);
               if (r) change({ ...art, rebuttals: [...art.rebuttals, r] }, true);
@@ -313,9 +319,19 @@ export function DebateMaker({
             </div>
           )}
           {submitted && !msg && <p className="text-sm text-stone-600">이미 냈어요. 고쳐서 다시 낼 수도 있어요.</p>}
+          {approved ? (
+            <p className="rounded-xl border border-brand-500 bg-brand-50 p-3 text-sm text-brand-700" data-testid="share-approved">
+              🎉 선생님이 반 친구들에게 보여 주기로 했어요. 편·주장·근거만 보여요. 예상 반론과 토론 뒤 한 줄은 친구들에게 보이지 않아요. 보여 주기로 한 뒤에는 더 고칠 수 없어요. 토론 뒤 한 줄은 계속 쓸 수 있어요.{" "}
+              <Link href={`/student/assignments/${assignmentId}/gallery`} className="font-semibold underline">갤러리에서 보기</Link>
+            </p>
+          ) : (
+            <p className="rounded-xl bg-stone-50 p-3 text-sm text-stone-700" data-testid="share-info">
+              {submitted ? "냈어요. " : ""}선생님이 반 친구들에게 보여 주기로 하면 갤러리에 보여요. 보이는 것은 내 편, 주장, 근거뿐이에요. 예상 반론과 토론 뒤 한 줄은 보이지 않아요.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn-ghost min-h-11" onClick={() => go(5)}>이전</button>
-            <button type="button" className="btn-primary min-h-11" disabled={busy || locked || problems.length > 0} onClick={submit}>
+            <button type="button" className="btn-primary min-h-11" disabled={busy || frozen || problems.length > 0} onClick={submit}>
               {submitted ? "고쳐서 다시 내기" : "선생님께 내기"}
             </button>
           </div>

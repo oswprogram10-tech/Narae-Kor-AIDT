@@ -5,7 +5,7 @@ import { fieldLabel, type Artifact, type ArtifactKind, type SafetyKind } from "@
 import { checkCardnews, STICKER_IDS, type CardnewsArtifact } from "@/core/cardnews";
 import { IMPRESSION_STICKER_IDS, getImpressionWork, sentenceInWork, type ImpressionArtifact } from "@/core/impression";
 import { CATEGORY_IDS, classAverages, summarizeDiary, type DiaryArtifact, type DiarySummary, type Minutes } from "@/core/diary";
-import { checkInterview, type DebateArtifact, type InterviewArtifact, type PresentationArtifact } from "@/core/speaking";
+import { DEBATE_STICKER_IDS, checkInterview, type DebateArtifact, type InterviewArtifact, type PresentationArtifact } from "@/core/speaking";
 import { storedArtifact, stepOf } from "@/lib/artifacts";
 import {
   debateCsvCells,
@@ -54,7 +54,7 @@ export interface ArtifactRow {
     reflection: string;
   } | null;
   diary: { artifact: DiaryArtifact; summary: DiarySummary } | null;
-  debate: { artifact: DebateArtifact; stats: DebateStats } | null;
+  debate: { artifact: DebateArtifact; stats: DebateStats; approved: boolean; reactions: Record<string, number>; reactionTotal: number } | null;
   interview: { artifact: InterviewArtifact; stats: InterviewStats; closedQuestionNos: number[]; sensitiveQuestionNos: number[] } | null;
   presentation: { artifact: PresentationArtifact; stats: PresentationStats } | null;
   impression: {
@@ -116,7 +116,7 @@ export async function artifactStatus(assignmentId: number, classId: number, kind
       }
     }
     const mineRx = s ? rx.filter((r) => r.submissionId === s.id) : [];
-    const reactions: Record<string, number> = Object.fromEntries((kind === "impression" ? IMPRESSION_STICKER_IDS : STICKER_IDS).map((id) => [id, mineRx.filter((r) => r.stickerId === id).length]));
+    const reactions: Record<string, number> = Object.fromEntries((kind === "impression" ? IMPRESSION_STICKER_IDS : kind === "debate" ? DEBATE_STICKER_IDS : STICKER_IDS).map((id) => [id, mineRx.filter((r) => r.stickerId === id).length]));
     return {
       studentId: st.id,
       number: st.number,
@@ -142,7 +142,7 @@ export async function artifactStatus(assignmentId: number, classId: number, kind
             }
           : null,
       diary: s && art?.kind === "media-diary" ? { artifact: art, summary: summarizeDiary(art) } : null,
-      debate: s && art?.kind === "debate" ? { artifact: art, stats: debateStats(art) } : null,
+      debate: s && art?.kind === "debate" ? { artifact: art, stats: debateStats(art), approved: s.shareApproved, reactions, reactionTotal: mineRx.length } : null,
       interview:
         s && art?.kind === "interview"
           ? (() => {
@@ -230,8 +230,10 @@ export async function artifactCsv(assignmentId: number, classId: number, kind: A
       );
     }
   } else if (kind === "debate") {
-    lines.push(DEBATE_CSV_HEADER.join(","));
-    for (const r of rows) lines.push([r.number, r.status ?? "not_started", ...debateCsvCells(r.debate?.artifact ?? null), r.alert?.kind ?? ""].join(","));
+    lines.push([...DEBATE_CSV_HEADER.slice(0, -1), "shared", "reactions_received", "safety_alert"].join(","));
+    for (const r of rows) {
+      lines.push([r.number, r.status ?? "not_started", ...debateCsvCells(r.debate?.artifact ?? null), r.debate?.approved ? "y" : "n", r.debate?.reactionTotal ?? 0, r.alert?.kind ?? ""].join(","));
+    }
   } else if (kind === "presentation") {
     lines.push(PRESENTATION_CSV_HEADER.join(","));
     const target = presentation?.targetSeconds ?? 0;
