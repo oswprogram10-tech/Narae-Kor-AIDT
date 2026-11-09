@@ -12,7 +12,8 @@
     sensevoice:<모델 폴더>           sherpa-onnx 의 SenseVoice 오프라인 인식기(model.int8.onnx + tokens.txt)
   설치되지 않은 백엔드(pip install sherpa-onnx 등)나 없는 모델은 알리고 건너뛰어요. 모델은 하나씩 올리고 내려서 GTX 1060 6GB 에서도 돌아요.
 결과는 숫자 표만 work/eval_<모델>.json 에 저장해요(전사 글은 저장하지 않아요). 예시는 --show-examples 일 때만 화면에 나와요.
-  - CER: 공백을 뺀 글자 기준, WER: 어절 기준(둘 다 편집 거리 ÷ 정답 길이).
+  - CER: 공백을 뺀 글자 기준, WER: 어절 기준이며 띄어쓰기를 무시해요(인식 결과의 공백을 지우고 글자로 맞춘 뒤 어절별로 셈:
+      (대치·삭제 어절 + 끼워 넣은 덩어리) ÷ 원문 어절 수). 공백 어절 그대로 따지는 예전 WER 는 WERsp 열(참고용)로 남겨요.
   - 낭독 채점 지표(어절 맞춤, fluency.py): 아이가 정확히 읽었다고 가정하고 정답 글을 원문으로 삼았을 때
       오경보율 = 정답인데 오류(대치·삭제)로 표시된 어절 비율, 발화 단위도 함께.
       놓침률 = 원문의 어절 일부를 '한 글자만 다른 어절'로 바꿔 놓았을 때(아이가 그렇게 잘못 읽은 상황) 오류로 못 잡은 비율.
@@ -48,15 +49,23 @@ def nospace(s: str) -> str:
 
 
 def cer_wer(pairs: list[tuple[str, str]]) -> dict:
-    ce = cn = we = wn = 0
+    ce = cn = we = wn = se = 0
     for ref, hyp in pairs:
         r, h = nospace(ref), nospace(hyp)
         ce += levenshtein(list(r), list(h))
         cn += len(r)
-        rw, hw = ref.split(), hyp.split()
-        we += levenshtein(rw, hw)
-        wn += len(rw)
-    return {"n": len(pairs), "cer": round(ce / cn, 4) if cn else None, "wer": round(we / wn, 4) if wn else None}
+        # WER(띄어쓰기 무시): 글자 단위 맞춤을 어절별로 모은 결과
+        a = align_eojeol(ref, hyp)
+        we += sum(1 for x in a.items if x[2] != "match") + len(a.insertions)
+        wn += len(a.items)
+        # 참고: 공백 어절을 그대로 따지는 예전 WER
+        se += levenshtein(ref.split(), hyp.split())
+    return {
+        "n": len(pairs),
+        "cer": round(ce / cn, 4) if cn else None,
+        "wer": round(we / wn, 4) if wn else None,
+        "wer_spacing": round(se / wn, 4) if wn else None,
+    }
 
 
 def group_metrics(items: list[dict], hyps: list[str]) -> dict:
@@ -408,7 +417,7 @@ def main(argv=None) -> None:
         save_json(work / f"eval_{slug(spec)}.json", res)
         summary.append(res)
         al = res["all"]
-        say(f"CER {al['cer']}  WER(어절) {al['wer']}  RTF {res['rtf']}({dev})  파일 크기 {size}MB  (발화 {al['n']}개)")
+        say(f"CER {al['cer']}  WER(띄어쓰기 무시) {al['wer']}  WERsp(띄어쓰기 따짐, 참고) {al['wer_spacing']}  RTF {res['rtf']}({dev})  파일 크기 {size}MB  (발화 {al['n']}개)")
         for k, v in res["by_grade"].items():
             say(f"  학년 {k}: CER {v['cer']} WER {v['wer']} (n={v['n']})")
         for k, v in res["by_noise"].items():
@@ -420,10 +429,11 @@ def main(argv=None) -> None:
             for it, h in list(zip(items, hyps))[: a.show_examples]:
                 say(f"  정답: {it['text']}\n  인식: {h}")
     say("\n== 비교 요약(숫자만 — 이 표는 채팅에 붙여도 돼요) ==")
-    say(f"{'모델':<40}{'백엔드':<11}{'장치':<6}{'크기MB':>8}{'CER':>8}{'WER':>8}{'RTF':>8}{'오경보':>8}{'놓침':>8}")
+    say("(WER = 띄어쓰기 무시 어절 오류율, WERsp = 띄어쓰기까지 따진 예전 WER(참고), 오경보·놓침도 띄어쓰기 무시)")
+    say(f"{'모델':<40}{'백엔드':<11}{'장치':<6}{'크기MB':>8}{'CER':>8}{'WER':>8}{'WERsp':>8}{'RTF':>8}{'오경보':>8}{'놓침':>8}")
     for r in summary:
         sc = r["scoring"][0] if r["scoring"] else {}
-        say(f"{r['model'][-39:]:<40}{r['backend']:<11}{r['device']:<6}{r['size_mb']!s:>8}{r['all']['cer']!s:>8}{r['all']['wer']!s:>8}{r['rtf']!s:>8}{sc.get('false_alarm_eojeol_rate')!s:>8}{sc.get('miss_rate_one_syllable')!s:>8}")
+        say(f"{r['model'][-39:]:<40}{r['backend']:<11}{r['device']:<6}{r['size_mb']!s:>8}{r['all']['cer']!s:>8}{r['all']['wer']!s:>8}{r['all']['wer_spacing']!s:>8}{r['rtf']!s:>8}{sc.get('false_alarm_eojeol_rate')!s:>8}{sc.get('miss_rate_one_syllable')!s:>8}")
     for m, why in skipped:
         say(f"(건너뜀) {m}: {why}")
     say(f"\n저장: {work}/eval_*.json (숫자만)")

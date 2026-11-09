@@ -18,8 +18,8 @@ interface Case {
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/fluency-align.json", import.meta.url), "utf8")) as { cases: Case[] };
 
 describe("낭독 어절 맞춤: 공통 시험 자료", () => {
-  it("시험 자료는 15쌍 이상", () => {
-    expect(fixture.cases.length).toBeGreaterThanOrEqual(15);
+  it("시험 자료는 25쌍 이상", () => {
+    expect(fixture.cases.length).toBeGreaterThanOrEqual(25);
   });
 
   for (const c of fixture.cases) {
@@ -34,6 +34,23 @@ describe("낭독 어절 맞춤: 공통 시험 자료", () => {
       expect(s.wcpm).toBeCloseTo(c.wcpm, 9);
     });
   }
+});
+
+describe("낭독 어절 맞춤: 띄어쓰기 옵션", () => {
+  const ref = "그는 괜찮은 척하려고 애쓰는 것 같았다";
+  const hyp = "걔는괜찮은척하려고애쓰는것같았다";
+
+  it("기본(ignore)은 띄어쓰기에 흔들리지 않는다", () => {
+    expect(fluencyScore(ref, hyp, 60).errors).toEqual([0]);
+    expect(fluencyScore(ref, hyp, 60, { spacing: "ignore" }).errors).toEqual([0]);
+  });
+
+  it("strict는 예전 동작(공백 어절 단위)", () => {
+    const a = alignEojeol(ref, hyp, { spacing: "strict" });
+    expect(a.items.every((x) => x.op !== "match")).toBe(true);
+    expect(fluencyScore(ref, hyp, 60, { spacing: "strict" }).correct).toBe(0);
+    expect(alignEojeol("할 수 있다", "할수 있다", { spacing: "strict" }).items.map((x) => x.op)).toEqual(["sub", "del", "match"]);
+  });
 });
 
 describe("낭독 어절 맞춤: 기본 함수", () => {
