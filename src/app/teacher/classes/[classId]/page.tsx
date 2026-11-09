@@ -37,7 +37,10 @@ export default async function ClassPage({ params }: { params: Promise<{ classId:
             <h1 className="text-2xl font-bold">
               {klass.name} <span className="text-base font-normal text-stone-500">{klass.grade}학년</span>
             </h1>
-            <Link href={`/teacher/classes/${classId}/assignments/new`} className="btn-primary">+ 과제 만들기</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/teacher/classes/${classId}/discussion`} className="btn-ghost">🚦 토의 말차례 신호등</Link>
+              <Link href={`/teacher/classes/${classId}/assignments/new`} className="btn-primary">+ 과제 만들기</Link>
+            </div>
           </div>
           {assignments.length === 0 && <p className="card text-stone-600">아직 과제가 없어요.</p>}
           {assignments.map((a) => (
