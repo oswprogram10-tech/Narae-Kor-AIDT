@@ -22,3 +22,4 @@ export {
 export * from "./local/catalog";
 export { TransformersLocalRuntime, detectDevice, type LocalRuntimeOptions, type LoadProgress, type LocalDevice } from "./local/runtime";
 export * from "./grammar";
+export * from "./speaking";

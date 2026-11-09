@@ -8,24 +8,44 @@ import type { DiaryArtifact } from "@/core/diary";
 import { emptyImpression, sanitizeImpression, submitProblems as impressionProblems } from "@/core/impression";
 import type { ImpressionArtifact } from "@/core/impression";
 
-export type Artifact = CardnewsArtifact | DiaryArtifact | ImpressionArtifact;
+import {
+  debateFields,
+  debateSubmitProblems,
+  emptyDebate,
+  emptyInterview,
+  interviewFields,
+  interviewSubmitProblems,
+  sanitizeDebate,
+  sanitizeInterview,
+  withDebateFields,
+  withInterviewFields,
+} from "@/core/speaking";
+import type { DebateArtifact, InterviewArtifact } from "@/core/speaking";
+
+export type Artifact = CardnewsArtifact | DiaryArtifact | ImpressionArtifact | DebateArtifact | InterviewArtifact;
 export type ArtifactKind = Artifact["kind"];
 
-export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary", "impression"];
+export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary", "impression", "debate", "interview"];
 export const isArtifactKind = (x: unknown): x is ArtifactKind => typeof x === "string" && (ARTIFACT_KINDS as readonly string[]).includes(x);
 
 export function emptyArtifact(kind: ArtifactKind): Artifact {
+  if (kind === "debate") return emptyDebate();
+  if (kind === "interview") return emptyInterview();
   return kind === "cardnews" ? emptyCardnews() : kind === "impression" ? emptyImpression() : emptyDiary();
 }
 
 /** 밖에서 들어온 값을 해당 종류의 안전한 형식으로 고친다. 형식이 맞지 않으면 null. */
 export function sanitizeArtifact(kind: ArtifactKind, raw: unknown, prev?: Artifact | null): Artifact | null {
   if (kind === "cardnews") return sanitizeCardnews(raw, prev?.kind === "cardnews" ? prev : null);
+  if (kind === "debate") return sanitizeDebate(raw, prev?.kind === "debate" ? prev : null);
+  if (kind === "interview") return sanitizeInterview(raw);
   if (kind === "impression") return sanitizeImpression(raw, prev?.kind === "impression" ? prev : null);
   return sanitizeDiary(raw, prev?.kind === "media-diary" ? prev : null);
 }
 
 export function submitProblems(a: Artifact): string[] {
+  if (a.kind === "debate") return debateSubmitProblems(a);
+  if (a.kind === "interview") return interviewSubmitProblems(a);
   return a.kind === "cardnews" ? cardnewsProblems(a) : a.kind === "impression" ? impressionProblems(a) : diaryProblems(a);
 }
 
@@ -37,6 +57,8 @@ export interface TextField {
 
 /** 학생이 쓴 모든 글 칸 */
 export function fieldsOf(a: Artifact): TextField[] {
+  if (a.kind === "debate") return debateFields(a);
+  if (a.kind === "interview") return interviewFields(a);
   if (a.kind === "cardnews") {
     const f: TextField[] = [
       { key: "plan.topic", text: a.plan.topic },
@@ -58,6 +80,8 @@ export function fieldsOf(a: Artifact): TextField[] {
 
 /** 글 칸의 내용을 바꾼 새 제작물(원본은 그대로). 없는 칸은 건너뛴다. */
 export function withFields(a: Artifact, values: Record<string, string>): Artifact {
+  if (a.kind === "debate") return withDebateFields(a, values);
+  if (a.kind === "interview") return withInterviewFields(a, values);
   const next = structuredClone(a);
   const set = (key: string, text: string) => {
     if (next.kind === "impression") {
@@ -146,6 +170,22 @@ export function scanSafety(prev: Artifact | null, next: Artifact): SafetyScan {
 
 /** 칸 이름을 학생·교사 화면용 한글로 */
 export function fieldLabel(a: Artifact, key: string): string {
+  if (a.kind === "debate") {
+    if (key === "claim") return "내 주장";
+    if (key === "reflection") return "토론을 마친 뒤 한 줄";
+    const r = /^reason\.([a-z0-9]+)\.(text|support|source)$/.exec(key);
+    if (r) return `${a.reasons.findIndex((x) => x.id === r[1]) + 1}번 근거${{ text: "", support: " 뒷받침 자료", source: " 출처" }[r[2]]}`;
+    const b = /^rebuttal\.([a-z0-9]+)\.(expected|answer)$/.exec(key);
+    if (b) return `${a.rebuttals.findIndex((x) => x.id === b[1]) + 1}번 ${b[2] === "expected" ? "예상 반론" : "내 대답"}`;
+    return "쓴 글";
+  }
+  if (a.kind === "interview") {
+    const q = /^question\.([a-z0-9]+)$/.exec(key);
+    if (q) return `${a.questions.findIndex((x) => x.id === q[1]) + 1}번 질문`;
+    const l = /^learned\.(\d)$/.exec(key);
+    if (l) return `알게 된 것 ${Number(l[1]) + 1}`;
+    return { purpose: "면담 목적", interviewee: "면담할 사람", wonder: "더 궁금해진 것" }[key] ?? "쓴 글";
+  }
   if (a.kind === "cardnews") {
     const m = /^card\.([a-z0-9]+)\.(title|body)$/.exec(key);
     if (m) {
