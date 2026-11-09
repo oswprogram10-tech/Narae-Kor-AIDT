@@ -19,8 +19,8 @@ import { activitiesForGrade as readingActivitiesForGrade } from "@/core/reading"
 import { mediaActivitiesForGrade } from "@/core/media";
 import { getReplyCharacter, literatureActivitiesForGrade } from "@/core/literature";
 import { listeningActivitiesForGrade } from "@/core/listening";
-import { DEBATE_LIMITS, DEBATE_MOTIONS, DEBATE_STEPS, STEP_SECONDS_MAX, STEP_SECONDS_MIN } from "@/core/speaking";
-import { cleanDebateSeconds } from "@/lib/assignment-settings";
+import { DEBATE_LIMITS, DEBATE_MOTIONS, DEBATE_STEPS, PRESENTATION_SECONDS_DEFAULT, PRESENTATION_SECONDS_MAX, PRESENTATION_SECONDS_MIN, STEP_SECONDS_MAX, STEP_SECONDS_MIN, presentationStandardCode } from "@/core/speaking";
+import { cleanDebateSeconds, cleanPresentationSeconds, type AssignmentSettings } from "@/lib/assignment-settings";
 import { teacherSubmission } from "@/lib/submissions";
 import { PROVIDER_IDS } from "@/core/providers";
 import { logEvent } from "@/lib/events";
@@ -102,10 +102,11 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
   const kind = String(form.get("kind") ?? "writing");
   if (isArtifactKind(kind)) {
     const activity = artifactActivity(kind);
-    if (!activity || !artifactActivitiesForGrade(klass.grade).includes(activity)) return { error: "이 활동은 5~6학년 학급에서만 낼 수 있어요." };
+    if (!activity || !artifactActivitiesForGrade(klass.grade).includes(activity)) return { error: `이 활동은 ${activity?.minGrade ?? 5}학년 이상 학급에서만 낼 수 있어요.` };
     // 토론: 논제(목록에서 고르거나 직접 쓰기)와 단계별 시간(고르지 않으면 기본 시간)
     let prompt = activity.description;
-    let settings: { debateSeconds: Record<string, number> } | null = null;
+    let settings: AssignmentSettings | null = null;
+    let standardCode = activity.standardCode;
     if (kind === "debate") {
       // 논제: 정해 둔 목록의 id이거나 직접 쓴 글(앞뒤 공백은 자른다)
       const choice = String(form.get("motionChoice") ?? "");
@@ -125,6 +126,19 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
       const seconds = cleanDebateSeconds(given);
       settings = seconds ? { debateSeconds: seconds } : null;
     }
+    // 발표 준비: 목표 시간(분, 1~5, 비우면 3분)과 학급 학년에 맞는 성취기준
+    if (kind === "presentation") {
+      const raw = String(form.get("presentationMinutes") ?? "").trim();
+      let seconds = PRESENTATION_SECONDS_DEFAULT;
+      if (raw !== "") {
+        const minutes = Number(raw);
+        if (!Number.isFinite(minutes)) return { error: "목표 시간은 숫자(분)로 써 주세요." };
+        if (minutes * 60 < PRESENTATION_SECONDS_MIN || minutes * 60 > PRESENTATION_SECONDS_MAX) return { error: `목표 시간은 ${PRESENTATION_SECONDS_MIN / 60}~${PRESENTATION_SECONDS_MAX / 60}분 사이로 정해 주세요.` };
+        seconds = cleanPresentationSeconds(minutes * 60) ?? PRESENTATION_SECONDS_DEFAULT;
+      }
+      settings = { presentationSeconds: seconds };
+      standardCode = presentationStandardCode(klass.grade);
+    }
     const db = await getDb();
     const [a] = await db
       .insert(schema.assignments)
@@ -134,7 +148,7 @@ export async function createAssignment(_: FormState, form: FormData): Promise<Fo
         kind,
         activityId: null,
         genreId: "",
-        standardCodes: [activity.standardCode],
+        standardCodes: [standardCode],
         prompt,
         organizer: [],
         rubric: [],

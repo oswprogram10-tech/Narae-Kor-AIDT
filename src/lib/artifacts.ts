@@ -15,7 +15,8 @@ import {
 } from "@/core/artifact";
 import { checkCardnews, isStickerId, LIMITS as CARD_LIMITS, STICKER_IDS, type Card } from "@/core/cardnews";
 import { IMPRESSION_STICKER_IDS, LIMITS as IMPRESSION_LIMITS, isImpressionStickerId } from "@/core/impression";
-import { checkDebate, checkInterview, withMotion } from "@/core/speaking";
+import { bandOfGrade, checkDebate, checkInterview, checkPresentation, withBand, withMotion } from "@/core/speaking";
+import { presentationSecondsOf } from "@/lib/assignment-settings";
 import { DISTRESS_REPLY, PERSONAL_INFO_REPLY } from "@/core/coach/guard";
 import { logEvent } from "@/lib/events";
 
@@ -48,7 +49,7 @@ function lockMessage(kind: ArtifactKind, submission: Submission): string | null 
   if ((kind === "cardnews" || kind === "impression") && submission.shareApproved) {
     return "공유가 승인된 작품은 더 고칠 수 없어요. 고치고 싶으면 선생님께 말씀드려 보세요.";
   }
-  // 토론·면담은 제출한 뒤에도 고쳐서 다시 낼 수 있다(토론 뒤 한 줄·면담 뒤 정리는 제출한 뒤에 쓰는 경우가 많다).
+  // 토론·면담·발표 준비는 제출한 뒤에도 고쳐서 다시 낼 수 있다(토론 뒤 한 줄·면담 뒤 정리는 제출한 뒤에 쓰는 경우가 많다).
   if (kind === "media-diary" && submission.status === "submitted") return "이미 냈어요. 선생님이 돌려주면 다시 고칠 수 있어요.";
   return null;
 }
@@ -62,19 +63,29 @@ const contentKey = (a: Artifact): string =>
         ? JSON.stringify({ e: a.entries, r: a.reflection })
         : JSON.stringify(a);
 
-/** 단계가 저장되는 제작물(카드뉴스·일지·인상 나누기)의 지금 단계. 토론·면담은 단계를 저장하지 않는다(화면 안 탭일 뿐). */
-export const stepOf = (a: Artifact): number | null => (a.kind === "debate" || a.kind === "interview" ? null : a.step);
+/** 단계가 저장되는 제작물(카드뉴스·일지·인상 나누기)의 지금 단계. 토론·면담·발표 준비는 단계를 저장하지 않는다(화면 안 탭일 뿐). */
+export const stepOf = (a: Artifact): number | null => (a.kind === "debate" || a.kind === "interview" || a.kind === "presentation" ? null : a.step);
 
-/** 토론은 논제를 교사가 정한 값(과제의 prompt)으로 늘 덮어쓴다. 학생은 논제를 바꿀 수 없다. */
-function withAssignmentMotion(a: Artifact, assignment: Assignment): Artifact {
-  return a.kind === "debate" ? withMotion(a, assignment.prompt) : a;
+/**
+ * 토론은 논제를 교사가 정한 값(과제의 prompt)으로, 발표 준비는 학년대를 학급 학년으로 늘 덮어쓴다.
+ * 학생은 이 값을 바꿀 수 없다.
+ */
+async function withAssignmentFixed(a: Artifact, assignment: Assignment): Promise<Artifact> {
+  if (a.kind === "debate") return withMotion(a, assignment.prompt);
+  if (a.kind === "presentation") {
+    const db = await getDb();
+    const [k] = await db.select({ grade: schema.classes.grade }).from(schema.classes).where(eq(schema.classes.id, assignment.classId));
+    return withBand(a, bandOfGrade(k?.grade ?? 3));
+  }
+  return a;
 }
 
-/** 길이로 자르기 전 원문 검사에서, 논제 칸은 교사 값으로 덮어쓰이므로 학생이 보낸 값은 보지 않는다. */
+/** 길이로 자르기 전 원문 검사에서, 논제·학년대는 서버 값으로 덮어쓰이므로 학생이 보낸 값은 보지 않는다. */
 function rawWithoutMotion(raw: unknown, kind: ArtifactKind): unknown {
-  if (kind !== "debate" || !raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  const { motion: _motion, ...rest } = raw as Record<string, unknown>;
+  if ((kind !== "debate" && kind !== "presentation") || !raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const { motion: _motion, band: _band, ...rest } = raw as Record<string, unknown>;
   void _motion;
+  void _band;
   return rest;
 }
 
@@ -128,9 +139,9 @@ export async function saveArtifact(
   if (!assignment.isOpen) return { status: 403, error: "선생님이 과제를 닫았어요." };
   const locked = lockMessage(kind, submission);
   if (locked) return { status: 409, error: locked };
-  const prev = withAssignmentMotion(storedArtifact(submission, kind), assignment);
+  const prev = await withAssignmentFixed(storedArtifact(submission, kind), assignment);
   const sanitized = sanitizeArtifact(kind, raw, prev);
-  const next = sanitized ? withAssignmentMotion(sanitized, assignment) : null;
+  const next = sanitized ? await withAssignmentFixed(sanitized, assignment) : null;
   const scan = next ? scanSafety(submission.artifact ? prev : null, next) : null;
   if (!scan?.kind) {
     // 칸 점검에 안 걸렸거나 모양이 틀린 요청이어도, 잘리기 전 원문에 위험 신호·개인 정보가 있으면 저장하지 않고 안내한다.
@@ -172,7 +183,7 @@ export async function submitArtifact(submission: Submission, assignment: Assignm
   if (!assignment.isOpen) return { status: 403, error: "선생님이 과제를 닫았어요." };
   const locked = lockMessage(kind, submission);
   if (locked) return { status: 409, error: locked };
-  const stored = withAssignmentMotion(storedArtifact(submission, kind), assignment);
+  const stored = await withAssignmentFixed(storedArtifact(submission, kind), assignment);
   // 제출 때도 모든 글 칸을 다시 점검한다.
   const scan = scanSafety(emptyArtifact(kind), stored);
   const db = await getDb();
@@ -196,6 +207,14 @@ export async function submitArtifact(submission: Submission, assignment: Assignm
     ...(final.kind === "cardnews" ? { warnings: final.submitWarnings, cards: final.cards.length, resubmit: !!submission.submittedAt } : {}),
     ...(final.kind === "debate" ? { warnings: checkDebate(final).length, resubmit: !!submission.submittedAt } : {}),
     ...(final.kind === "interview" ? { warnings: checkInterview(final).length, resubmit: !!submission.submittedAt } : {}),
+    ...(final.kind === "presentation"
+      ? {
+          warnings: checkPresentation(final, presentationSecondsOf(assignment.settings)).length,
+          practiceRuns: final.practice.length,
+          lastPracticeSeconds: final.practice[final.practice.length - 1] ?? null,
+          resubmit: !!submission.submittedAt,
+        }
+      : {}),
   });
   return { status: 200, artifact: final, savedAt: now.toISOString(), submitted: true };
 }

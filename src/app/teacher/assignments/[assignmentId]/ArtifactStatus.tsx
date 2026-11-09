@@ -5,7 +5,7 @@ import { CardView, SourceCardView } from "@/components/CardView";
 import { BarChart } from "@/components/BarChart";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { setShareApproved } from "@/app/actions/teacher";
-import { CHECKLIST_ITEMS, METHOD_LABELS, DEBATE_STEPS, debateSteps } from "@/core/speaking";
+import { CHECKLIST_ITEMS, METHOD_LABELS, DEBATE_STEPS, PURPOSE_LABELS, SELF_CHECK_ITEMS, AID_LABELS, debateSteps, formatSeconds } from "@/core/speaking";
 import type { ArtifactAlert, ArtifactStatus as Status } from "@/lib/artifact-dashboard";
 
 const STATUS_LABEL: Record<string, string> = { in_progress: "만드는 중", submitted: "제출함", returned: "돌려줌" };
@@ -532,6 +532,126 @@ export function InterviewTeacher({ status }: { status: Status }) {
         </ul>
       </section>
       <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 점검 경고는 제출을 막지 않는 권유예요(닫힌 질문, 곤란할 수 있는 질문, 이름으로 보이는 면담 대상 등).</p>
+    </div>
+  );
+}
+
+export function PresentationTeacher({ status }: { status: Status }) {
+  const rows = status.rows;
+  const target = status.presentation?.targetSeconds ?? 180;
+  return (
+    <div className="space-y-4">
+      <AutoRefresh />
+      <Alerts rows={rows} />
+      <section className="card space-y-1 text-sm" aria-label="발표 설정">
+        <div>
+          <span className="font-semibold">목표 발표 시간</span> <span data-testid="teacher-target">{formatSeconds(target)}</span>
+        </div>
+      </section>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="시작" value={`${rows.filter((r) => r.submissionId).length}/${rows.length}`} />
+        <Stat label="제출" value={`${rows.filter((r) => r.status === "submitted").length}`} />
+        <Stat label="연습해 본 학생" value={`${rows.filter((r) => (r.presentation?.stats.practiceRuns ?? 0) > 0).length}`} />
+        <Stat label="연습 횟수(전체)" value={`${rows.reduce((n, r) => n + (r.presentation?.stats.practiceRuns ?? 0), 0)}`} />
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full min-w-[820px] text-sm">
+          <thead className="bg-stone-50 text-left text-stone-500">
+            <tr>
+              <th className="px-3 py-2">번호</th>
+              <th className="px-3 py-2">별명</th>
+              <th className="px-3 py-2">상태</th>
+              <th className="px-3 py-2">목적</th>
+              <th className="px-3 py-2">내용·자료 연결</th>
+              <th className="px-3 py-2">점검 경고</th>
+              <th className="px-3 py-2">연습 횟수</th>
+              <th className="px-3 py-2">마지막 연습</th>
+              <th className="px-3 py-2">돌아보기 평균(1~3)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {rows.map((r) => {
+              const st = r.presentation?.stats;
+              return (
+                <tr key={r.studentId} className={r.alert ? "bg-red-50" : ""} data-student={r.number}>
+                  <td className="px-3 py-2 font-semibold">{r.number}</td>
+                  <td className="px-3 py-2">{r.nickname}<AlertBadge alert={r.alert} /></td>
+                  <td className="px-3 py-2">{r.status ? STATUS_LABEL[r.status] ?? r.status : "시작 전"}</td>
+                  <td className="px-3 py-2">{st?.purpose ? PURPOSE_LABELS[st.purpose as keyof typeof PURPOSE_LABELS] : "-"}</td>
+                  <td className="px-3 py-2">{st ? `${st.points} / ${st.pointsWithSource}` : "-"}</td>
+                  <td className="px-3 py-2" data-testid={`warn-${r.number}`}>{st?.warnings ?? "-"}</td>
+                  <td className="px-3 py-2" data-testid={`runs-${r.number}`}>{st?.practiceRuns ?? "-"}</td>
+                  <td className="px-3 py-2" data-testid={`last-${r.number}`}>{st?.lastPractice != null ? formatSeconds(st.lastPractice) : "-"}</td>
+                  <td className="px-3 py-2" data-testid={`selfavg-${r.number}`}>{st?.selfCheckAverage ?? "-"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <section className="card space-y-3 p-0" aria-label="학생별 발표 준비">
+        <div className="border-b border-black/5 px-3 py-2 font-semibold">학생이 준비한 짜임표 <span className="text-xs font-normal text-stone-500">선생님만 볼 수 있어요. 눌러서 펼쳐 보세요.</span></div>
+        <ul className="divide-y divide-black/5">
+          {rows.filter((r) => r.presentation && (r.presentation.artifact.topic || r.presentation.stats.points > 0)).map((r) => {
+            const d = r.presentation!;
+            const a = d.artifact;
+            const srcName = (id: string) => {
+              const i = a.sources.findIndex((x) => x.id === id);
+              return i < 0 ? "" : `자료${i + 1}`;
+            };
+            return (
+              <li key={r.studentId} data-work={r.number}>
+                <details className="px-3 py-2">
+                  <summary className="cursor-pointer text-sm">
+                    <b>{r.number}번</b> {r.nickname} · {a.topic || "주제 없음"} · 내용 {d.stats.points}개 · 연습 {d.stats.practiceRuns}번 · 경고 {d.stats.warnings}
+                    {r.status === "submitted" && <span className="ml-2 text-brand-700">제출함</span>}
+                  </summary>
+                  <div className="mt-2 space-y-3 text-sm">
+                    <p>
+                      <b>목적</b> {a.purpose ? PURPOSE_LABELS[a.purpose] : "-"} · <b>듣는 사람</b> {a.audience || "-"} · <b>학년대</b> {a.band === "5-6" ? "5~6학년" : "3~4학년"}
+                    </p>
+                    <ul className="space-y-1">
+                      {a.sources.filter((x) => x.name.trim() || x.keyInfo.trim()).map((x) => (
+                        <li key={x.id} className="rounded-lg border border-black/10 bg-stone-50 p-2">
+                          <b>{srcName(x.id)}</b> {x.name || "-"} · 출처: {x.from || "-"}
+                          <div className="text-stone-600">핵심 정보: {x.keyInfo || "-"}</div>
+                          {x.trust && (
+                            <div className="text-stone-600">믿을 만한가: 누가 만들었나 {x.trust.who ? "✓" : "-"} · 언제 {x.trust.when ? "✓" : "-"} · 근거 {x.trust.evidence ? "✓" : "-"}</div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <table className="w-full table-fixed border border-black/10 text-left" aria-label="짜임표">
+                      <tbody className="divide-y divide-black/10">
+                        <tr><th className="w-20 bg-stone-50 px-2 py-1">처음</th><td className="px-2 py-1">{a.opening || "-"}</td></tr>
+                        {a.points.filter((x) => x.text.trim()).map((x, i) => (
+                          <tr key={x.id}>
+                            <th className="bg-stone-50 px-2 py-1">가운데 {i + 1}</th>
+                            <td className="px-2 py-1">
+                              {x.text}
+                              <div className="text-stone-600">
+                                자료: {x.sourceIds.map(srcName).filter(Boolean).join(", ") || "없음"}
+                                {a.band === "5-6" && <> · 보조 매체: {x.aid ? AID_LABELS[x.aid] : "-"}</>}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr><th className="bg-stone-50 px-2 py-1">끝</th><td className="px-2 py-1">{a.closing || "-"}</td></tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      <b>연습</b> {a.practice.length ? a.practice.map((p) => formatSeconds(p)).join(" → ") : "아직 없어요"} · <b>돌아보기</b>{" "}
+                      {SELF_CHECK_ITEMS.map((i) => `${i.label} ${a.selfCheck[i.id] || "-"}`).join(" · ")}
+                    </p>
+                    {a.reflection.trim() && <p><b>연습 뒤 한 줄</b> {a.reflection}</p>}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      <p className="text-xs text-stone-500">5초마다 자동으로 새로 고칩니다. 점검 경고는 제출을 막지 않는 권유예요(자료·출처 빠짐, 안 쓴 자료, 과장 표현, 메모로 어림한 시간, 연습 시간). 연습 시간은 숫자만 저장하고 녹음·촬영은 없어요.</p>
     </div>
   );
 }

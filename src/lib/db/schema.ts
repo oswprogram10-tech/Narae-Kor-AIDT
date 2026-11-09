@@ -50,10 +50,10 @@ export const assignments = pgTable("assignments", {
   classId: integer("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   // writing(글쓰기) | grammar(문법·어휘 활동) | reading(읽기 활동) | media(매체 활동, 읽기 화면 재사용) | literature(문학 활동, 읽기 화면 재사용) | listening(듣기 활동, 읽기 화면 재사용)
-  // | cardnews(카드뉴스 만들기) | media-diary(매체 이용 성찰 일지) | impression(인상적인 부분 나누기) | debate(토론 준비) | interview(면담 질문지).
+  // | cardnews(카드뉴스 만들기) | media-diary(매체 이용 성찰 일지) | impression(인상적인 부분 나누기) | debate(토론 준비) | interview(면담 질문지) | presentation(발표 준비).
   // grammar·reading·media·literature·listening이면 activityId에 활동 id를 둔다. 제작물 종류는 활동 id 없이 제출물의 artifact에 저장한다.
   // debate이면 prompt에 논제를 둔다.
-  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media" | "literature" | "listening" | "cardnews" | "media-diary" | "impression" | "debate" | "interview">().notNull().default("writing"),
+  kind: text("kind").$type<"writing" | "grammar" | "reading" | "media" | "literature" | "listening" | "cardnews" | "media-diary" | "impression" | "debate" | "interview" | "presentation">().notNull().default("writing"),
   activityId: text("activity_id"),
   genreId: text("genre_id").notNull(),
   standardCodes: jsonb("standard_codes").$type<string[]>().notNull(),
@@ -64,7 +64,7 @@ export const assignments = pgTable("assignments", {
   // 이 과제의 코치 AI: auto(기본 순서) | local | claude | gemini | openai
   coachProvider: text("coach_provider").notNull().default("auto"),
   isOpen: boolean("is_open").default(true).notNull(),
-  // 과제 종류별 교사 설정(없으면 null). 토론: { debateSeconds: { 단계 id: 초 } }. 형식·검사는 src/lib/assignment-settings.ts.
+  // 과제 종류별 교사 설정(없으면 null). 토론: { debateSeconds: { 단계 id: 초 } }. 발표 준비: { presentationSeconds: 목표 시간(초) }. 형식·검사는 src/lib/assignment-settings.ts.
   settings: jsonb("settings").$type<AssignmentSettings | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

@@ -118,3 +118,89 @@ export interface SpeakingWarning {
   target?: string;
   message: string;
 }
+
+// ── 발표 준비 [4국01-05](3~4학년) · [6국01-05](5~6학년) ─────────────────────────
+
+export const SOURCE_MAX = 4;
+export const POINT_MAX = 3;
+export const POINT_MIN = 2;
+export const PRACTICE_MAX = 10;
+export const PRACTICE_SECONDS_MAX = 1800;
+/** 목표 발표 시간(초): 교사가 1~5분 사이로 정한다 */
+export const PRESENTATION_SECONDS_MIN = 60;
+export const PRESENTATION_SECONDS_MAX = 300;
+export const PRESENTATION_SECONDS_DEFAULT = 180;
+
+/** 발표 준비의 칸은 메모라서 짧게 쓴다(원고 전체를 쓰게 하지 않는다). */
+export const PRESENTATION_LIMITS = {
+  topic: 40,
+  audience: 30,
+  name: 30,
+  from: 40,
+  keyInfo: 60,
+  opening: 80,
+  point: 80,
+  closing: 80,
+  reflection: 100,
+} as const;
+
+export type PresentationBand = "3-4" | "5-6";
+export type PresentationPurpose = "inform" | "persuade" | "share";
+export const PRESENTATION_PURPOSES: readonly PresentationPurpose[] = ["inform", "persuade", "share"];
+export const PURPOSE_LABELS: Record<PresentationPurpose, string> = { inform: "알리기", persuade: "설득하기", share: "겪은 일 나누기" };
+
+export type PresentationAid = "photo" | "table" | "graph" | "object" | "video" | "none";
+export const PRESENTATION_AIDS: readonly PresentationAid[] = ["photo", "table", "graph", "object", "video", "none"];
+export const AID_LABELS: Record<PresentationAid, string> = { photo: "사진", table: "표", graph: "그래프", object: "실물", video: "영상", none: "없음" };
+
+export type SelfCheckId = "volume" | "pace" | "eyes" | "posture" | "gesture";
+/** 연습 뒤 돌아보기(준언어·비언어, [4국01-03]) */
+export const SELF_CHECK_ITEMS: readonly { id: SelfCheckId; label: string; hint: string }[] = [
+  { id: "volume", label: "목소리 크기", hint: "뒤에 앉은 친구도 들리게" },
+  { id: "pace", label: "빠르기", hint: "너무 빠르지 않게" },
+  { id: "eyes", label: "눈 맞춤", hint: "듣는 사람을 바라보며" },
+  { id: "posture", label: "바른 자세", hint: "몸을 흔들지 않고" },
+  { id: "gesture", label: "몸짓", hint: "알맞은 손짓으로" },
+];
+/** 0 = 아직 안 함, 1~3 = 단계 */
+export const SELF_CHECK_LEVELS = ["아직 안 했어요", "더 연습해요", "괜찮아요", "잘했어요"] as const;
+
+export interface PresentationSource {
+  id: string;
+  /** 자료 이름 */
+  name: string;
+  /** 출처 */
+  from: string;
+  /** 이 자료에서 쓸 핵심 정보 */
+  keyInfo: string;
+  /** 믿을 만한가 스스로 체크(5~6학년만) */
+  trust?: { who: boolean; when: boolean; evidence: boolean };
+}
+
+export interface PresentationPoint {
+  id: string;
+  /** 중요한 내용 메모 */
+  text: string;
+  /** 이 내용에 쓸 자료(자료 id) */
+  sourceIds: string[];
+  /** 보조 매체(5~6학년만) */
+  aid: PresentationAid | null;
+}
+
+export interface PresentationArtifact {
+  kind: "presentation";
+  /** 학년대. 학급 학년으로 호스트가 withBand로 늘 덮어쓴다(학생 값이 아니다). */
+  band: PresentationBand;
+  topic: string;
+  purpose: PresentationPurpose | null;
+  audience: string;
+  sources: PresentationSource[];
+  opening: string;
+  points: PresentationPoint[];
+  closing: string;
+  /** 연습에 걸린 시간(초), 오래된 것부터. 숫자만 저장한다. */
+  practice: number[];
+  selfCheck: Record<SelfCheckId, number>;
+  /** 연습 뒤 한 줄 */
+  reflection: string;
+}

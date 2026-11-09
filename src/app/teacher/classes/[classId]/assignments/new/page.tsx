@@ -11,6 +11,7 @@ import { mediaActivitiesForGrade } from "@/core/media";
 import { literatureActivitiesForGrade } from "@/core/literature";
 import { listeningActivitiesForGrade } from "@/core/listening";
 import { artifactActivitiesForGrade } from "@/core/artifact";
+import { presentationStandardCode } from "@/core/speaking";
 import { NewAssignmentForm } from "./NewAssignmentForm";
 
 export default async function NewAssignment({ params }: { params: Promise<{ classId: string }> }) {
@@ -46,8 +47,9 @@ export default async function NewAssignment({ params }: { params: Promise<{ clas
     kind: x.kind,
     title: x.title,
     description: x.description,
-    standardCode: x.standardCode,
-    statement: getStandard(x.standardCode)?.statement ?? "",
+    // 발표 준비는 학급 학년에 맞는 성취기준(3~4학년 4국01-05, 5~6학년 6국01-05)
+    standardCode: x.kind === "presentation" ? presentationStandardCode(klass.grade) : x.standardCode,
+    statement: getStandard(x.kind === "presentation" ? presentationStandardCode(klass.grade) : x.standardCode)?.statement ?? "",
   }));
   return (
     <>

@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { createAssignment, type FormState } from "@/app/actions/teacher";
 import { FormMessage } from "@/components/FormMessage";
-import { DEBATE_LIMITS, DEBATE_MOTIONS, DEBATE_STEPS, STEP_SECONDS_MAX, STEP_SECONDS_MIN } from "@/core/speaking";
+import { DEBATE_LIMITS, DEBATE_MOTIONS, DEBATE_STEPS, PRESENTATION_SECONDS_DEFAULT, PRESENTATION_SECONDS_MAX, PRESENTATION_SECONDS_MIN, STEP_SECONDS_MAX, STEP_SECONDS_MIN } from "@/core/speaking";
 
 interface GenreOption {
   id: string;
@@ -25,7 +25,7 @@ interface ActivityOption {
 }
 
 interface ArtifactOption {
-  kind: "cardnews" | "media-diary" | "impression" | "debate" | "interview";
+  kind: "cardnews" | "media-diary" | "impression" | "debate" | "interview" | "presentation";
   title: string;
   description: string;
   standardCode: string;
@@ -51,7 +51,7 @@ export function NewAssignmentForm({
   listeningActivities: ActivityOption[];
   artifactActivities: ArtifactOption[];
 }) {
-  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "literature" | "listening" | "cardnews" | "media-diary" | "impression" | "debate" | "interview">("writing");
+  const [kind, setKind] = useState<"writing" | "grammar" | "reading" | "media" | "literature" | "listening" | "cardnews" | "media-diary" | "impression" | "debate" | "interview" | "presentation">("writing");
   const activityMap = { grammar: grammarActivities, reading: readingActivities, media: mediaActivities, literature: literatureActivities, listening: listeningActivities };
   const artifact = artifactActivities.find((x) => x.kind === kind);
   const activities = kind === "writing" || artifact ? [] : activityMap[kind as "grammar" | "reading" | "media" | "literature" | "listening"];
@@ -162,6 +162,22 @@ export function NewAssignmentForm({
               </fieldset>
             </div>
           )}
+          {artifact.kind === "presentation" && (
+            <div>
+              <label className="label" htmlFor="pminutes">목표 발표 시간 (분, {PRESENTATION_SECONDS_MIN / 60}~{PRESENTATION_SECONDS_MAX / 60}분, 비워 두면 {PRESENTATION_SECONDS_DEFAULT / 60}분)</label>
+              <input
+                className="input w-28"
+                id="pminutes"
+                name="presentationMinutes"
+                type="number"
+                inputMode="decimal"
+                min={PRESENTATION_SECONDS_MIN / 60}
+                max={PRESENTATION_SECONDS_MAX / 60}
+                step={0.5}
+                placeholder={String(PRESENTATION_SECONDS_DEFAULT / 60)}
+              />
+            </div>
+          )}
           <p className="text-sm text-stone-500">
             {artifact.kind === "cardnews"
               ? "정답 채점 없이 단계·스스로 점검·선생님 승인으로 운영해요. 학생이 쓴 모든 글에 위험 신호·개인 정보 점검이 돌아가고, 걸리면 이 화면에 알림이 떠요. 사진은 올리지 않아요."
@@ -169,6 +185,8 @@ export function NewAssignmentForm({
               ? "채점하지 않아요. 학생이 작품에서 고른 문장과 쓴 글을 선생님이 읽고 공유를 승인하면, 같은 문장을 고른 친구끼리 모아 보여요. 친구는 정해 둔 스티커로만 반응하고, 글에는 위험 신호·개인 정보 점검이 돌아가요. 5~6학년 학급에서만 낼 수 있어요."
               : artifact.kind === "debate"
               ? "채점하지 않아요. 학생은 논제에서 내 편을 고르고 논거 나무와 예상 반론을 준비한 뒤 스스로 점검하고 제출해요. 타이머는 학생 기기 안에서만 돌고, 녹음하지 않아요. 글에는 위험 신호·개인 정보 점검이 돌아가고 반 친구와 공유하지 않아요."
+              : artifact.kind === "presentation"
+              ? "채점하지 않아요. 학생은 주제·자료·처음/가운데/끝 짜임표를 짧은 메모로 만들고 스스로 점검한 뒤, 스톱워치로 목표 시간에 맞춰 연습하고 목소리·눈 맞춤·자세를 스스로 돌아봐요. 스톱워치는 학생 기기 안에서만 돌고, 녹음·촬영은 없어요. 글에는 위험 신호·개인 정보 점검이 돌아가고 반 친구와 공유하지 않아요. 3~4학년은 [4국01-05], 5~6학년은 [6국01-05]로 만들어져요(5~6학년에는 자료 믿을 만한가 체크와 보조 매체 고르기가 더해져요)."
               : artifact.kind === "interview"
               ? "채점하지 않아요. 학생은 면담 계획과 질문 3~8개를 만들고 절차 확인표와 스스로 점검을 거쳐 제출해요. 녹음 기능은 없고, 면담할 사람은 이름 대신 하는 일로 적게 안내해요. 반 친구와 공유하지 않아요."
               : "채점하지 않아요. 선생님은 학생별 요약과 학급 평균만 보고, 학생끼리 공유하지 않아요. 자유로 쓴 글에는 위험 신호·개인 정보 점검이 돌아가요."}

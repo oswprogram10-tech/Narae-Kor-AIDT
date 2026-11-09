@@ -1,9 +1,10 @@
 // 과제 종류별 교사 설정(assignments.settings). 순수 함수라 서버·화면·시험에서 함께 쓴다.
-import { DEBATE_STEPS, debateSteps } from "@/core/speaking";
+import { DEBATE_STEPS, PRESENTATION_SECONDS_DEFAULT, PRESENTATION_SECONDS_MAX, PRESENTATION_SECONDS_MIN, debateSteps } from "@/core/speaking";
 
-/** 토론 과제: 단계 id → 초(30~300). 적은 단계만 들어 있다. */
+/** 토론 과제: 단계 id → 초(30~300). 적은 단계만 들어 있다. 발표 준비: 목표 시간(초, 60~300). */
 export interface AssignmentSettings {
   debateSeconds?: Record<string, number>;
+  presentationSeconds?: number;
 }
 
 /**
@@ -28,4 +29,16 @@ export function cleanDebateSeconds(raw: unknown): Record<string, number> | undef
 export function debateSecondsOf(settings: unknown): Record<string, number> | undefined {
   if (!settings || typeof settings !== "object") return undefined;
   return cleanDebateSeconds((settings as AssignmentSettings).debateSeconds);
+}
+
+/** 밖에서 들어온 발표 목표 시간(초)을 60~300초 정수로 자른다. 숫자가 아니면 undefined. */
+export function cleanPresentationSeconds(raw: unknown): number | undefined {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+  return Math.min(PRESENTATION_SECONDS_MAX, Math.max(PRESENTATION_SECONDS_MIN, Math.round(raw)));
+}
+
+/** 저장된 설정에서 발표 목표 시간(초)을 꺼낸다. 없거나 깨졌으면 기본(180초). */
+export function presentationSecondsOf(settings: unknown): number {
+  if (!settings || typeof settings !== "object") return PRESENTATION_SECONDS_DEFAULT;
+  return cleanPresentationSeconds((settings as AssignmentSettings).presentationSeconds) ?? PRESENTATION_SECONDS_DEFAULT;
 }

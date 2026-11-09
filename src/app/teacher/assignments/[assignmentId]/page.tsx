@@ -15,7 +15,7 @@ import { findActivity } from "@/lib/activities";
 import { grammarStatus } from "@/lib/grammar-dashboard";
 import { artifactStatus } from "@/lib/artifact-dashboard";
 import { artifactActivity, isArtifactKind, type ArtifactKind } from "@/core/artifact";
-import { CardnewsTeacher, DebateTeacher, DiaryTeacher, ImpressionTeacher, InterviewTeacher } from "./ArtifactStatus";
+import { CardnewsTeacher, DebateTeacher, DiaryTeacher, ImpressionTeacher, InterviewTeacher, PresentationTeacher } from "./ArtifactStatus";
 
 export default async function AssignmentDashboard({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { teacherId } = await requireTeacher();
@@ -88,7 +88,7 @@ export default async function AssignmentDashboard({ params }: { params: Promise<
         </form>
         )}
         {aStatus ? (
-          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : a.kind === "impression" ? <ImpressionTeacher status={aStatus} /> : a.kind === "debate" ? <DebateTeacher status={aStatus} /> : a.kind === "interview" ? <InterviewTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
+          a.kind === "cardnews" ? <CardnewsTeacher status={aStatus} /> : a.kind === "impression" ? <ImpressionTeacher status={aStatus} /> : a.kind === "debate" ? <DebateTeacher status={aStatus} /> : a.kind === "interview" ? <InterviewTeacher status={aStatus} /> : a.kind === "presentation" ? <PresentationTeacher status={aStatus} /> : <DiaryTeacher status={aStatus} />
         ) : gStatus ? (
           <GrammarStatus assignmentId={id} initial={gStatus} />
         ) : (

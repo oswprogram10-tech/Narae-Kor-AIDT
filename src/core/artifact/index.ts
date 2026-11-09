@@ -15,22 +15,28 @@ import {
   emptyInterview,
   interviewFields,
   interviewSubmitProblems,
+  emptyPresentation,
+  presentationFields,
+  presentationSubmitProblems,
   sanitizeDebate,
   sanitizeInterview,
+  sanitizePresentation,
   withDebateFields,
   withInterviewFields,
+  withPresentationFields,
 } from "@/core/speaking";
-import type { DebateArtifact, InterviewArtifact } from "@/core/speaking";
+import type { DebateArtifact, InterviewArtifact, PresentationArtifact } from "@/core/speaking";
 
-export type Artifact = CardnewsArtifact | DiaryArtifact | ImpressionArtifact | DebateArtifact | InterviewArtifact;
+export type Artifact = CardnewsArtifact | DiaryArtifact | ImpressionArtifact | DebateArtifact | InterviewArtifact | PresentationArtifact;
 export type ArtifactKind = Artifact["kind"];
 
-export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary", "impression", "debate", "interview"];
+export const ARTIFACT_KINDS: readonly ArtifactKind[] = ["cardnews", "media-diary", "impression", "debate", "interview", "presentation"];
 export const isArtifactKind = (x: unknown): x is ArtifactKind => typeof x === "string" && (ARTIFACT_KINDS as readonly string[]).includes(x);
 
 export function emptyArtifact(kind: ArtifactKind): Artifact {
   if (kind === "debate") return emptyDebate();
   if (kind === "interview") return emptyInterview();
+  if (kind === "presentation") return emptyPresentation();
   return kind === "cardnews" ? emptyCardnews() : kind === "impression" ? emptyImpression() : emptyDiary();
 }
 
@@ -39,6 +45,7 @@ export function sanitizeArtifact(kind: ArtifactKind, raw: unknown, prev?: Artifa
   if (kind === "cardnews") return sanitizeCardnews(raw, prev?.kind === "cardnews" ? prev : null);
   if (kind === "debate") return sanitizeDebate(raw, prev?.kind === "debate" ? prev : null);
   if (kind === "interview") return sanitizeInterview(raw);
+  if (kind === "presentation") return sanitizePresentation(raw, prev?.kind === "presentation" ? prev : null);
   if (kind === "impression") return sanitizeImpression(raw, prev?.kind === "impression" ? prev : null);
   return sanitizeDiary(raw, prev?.kind === "media-diary" ? prev : null);
 }
@@ -46,6 +53,7 @@ export function sanitizeArtifact(kind: ArtifactKind, raw: unknown, prev?: Artifa
 export function submitProblems(a: Artifact): string[] {
   if (a.kind === "debate") return debateSubmitProblems(a);
   if (a.kind === "interview") return interviewSubmitProblems(a);
+  if (a.kind === "presentation") return presentationSubmitProblems(a);
   return a.kind === "cardnews" ? cardnewsProblems(a) : a.kind === "impression" ? impressionProblems(a) : diaryProblems(a);
 }
 
@@ -59,6 +67,7 @@ export interface TextField {
 export function fieldsOf(a: Artifact): TextField[] {
   if (a.kind === "debate") return debateFields(a);
   if (a.kind === "interview") return interviewFields(a);
+  if (a.kind === "presentation") return presentationFields(a);
   if (a.kind === "cardnews") {
     const f: TextField[] = [
       { key: "plan.topic", text: a.plan.topic },
@@ -82,6 +91,7 @@ export function fieldsOf(a: Artifact): TextField[] {
 export function withFields(a: Artifact, values: Record<string, string>): Artifact {
   if (a.kind === "debate") return withDebateFields(a, values);
   if (a.kind === "interview") return withInterviewFields(a, values);
+  if (a.kind === "presentation") return withPresentationFields(a, values);
   const next = structuredClone(a);
   const set = (key: string, text: string) => {
     if (next.kind === "impression") {
@@ -186,6 +196,13 @@ export function fieldLabel(a: Artifact, key: string): string {
     if (l) return `알게 된 것 ${Number(l[1]) + 1}`;
     return { purpose: "면담 목적", interviewee: "면담할 사람", wonder: "더 궁금해진 것" }[key] ?? "쓴 글";
   }
+  if (a.kind === "presentation") {
+    const sr = /^source\.([a-z0-9]+)\.(name|from|keyInfo)$/.exec(key);
+    if (sr) return `${a.sources.findIndex((x) => x.id === sr[1]) + 1}번 자료 ${{ name: "이름", from: "출처", keyInfo: "핵심 정보" }[sr[2]]}`;
+    const pt = /^point\.([a-z0-9]+)\.text$/.exec(key);
+    if (pt) return `가운데 ${a.points.findIndex((x) => x.id === pt[1]) + 1}번 내용`;
+    return { topic: "발표 주제", audience: "듣는 사람", opening: "처음 메모", closing: "끝 메모", reflection: "연습 뒤 한 줄" }[key] ?? "쓴 글";
+  }
   if (a.kind === "cardnews") {
     const m = /^card\.([a-z0-9]+)\.(title|body)$/.exec(key);
     if (m) {
@@ -246,6 +263,15 @@ export const ARTIFACT_ACTIVITIES: readonly ArtifactActivity[] = [
     description: "면담할 사람과 목적을 정하고 질문 3~8개를 만들어, 대답을 자세히 들을 수 있는 질문인지 점검해요. 면담 절차를 확인하고, 면담 뒤에 알게 된 것을 정리해요. 채점하지 않고, 녹음 기능도 없어요.",
     standardCode: "6국01-04",
     minGrade: 5,
+  },
+  {
+    kind: "presentation",
+    title: "발표 준비",
+    description:
+      "발표할 주제와 목적을 정하고, 자료를 고른 뒤 처음·가운데·끝 짜임표에 짧은 메모로 정리해요. 스스로 점검하고, 스톱워치로 목표 시간에 맞춰 연습한 뒤 목소리·눈 맞춤·자세를 돌아봐요. 채점하지 않고, 녹음·촬영도 하지 않아요.",
+    // 3~4학년 기준. 5~6학년 학급에는 [6국01-05]를 쓴다(presentationStandardCode).
+    standardCode: "4국01-05",
+    minGrade: 3,
   },
 ];
 

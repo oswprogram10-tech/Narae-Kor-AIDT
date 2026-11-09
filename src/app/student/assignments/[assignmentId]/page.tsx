@@ -20,8 +20,9 @@ import { DiaryMaker } from "./DiaryMaker";
 import { ImpressionMaker } from "./ImpressionMaker";
 import { DebateMaker } from "./DebateMaker";
 import { InterviewMaker } from "./InterviewMaker";
-import { withMotion } from "@/core/speaking";
-import { debateSecondsOf } from "@/lib/assignment-settings";
+import { PresentationMaker } from "./PresentationMaker";
+import { bandOfGrade, withBand, withMotion } from "@/core/speaking";
+import { debateSecondsOf, presentationSecondsOf } from "@/lib/assignment-settings";
 import { impressionGalleryFor, galleryFor, storedArtifact } from "@/lib/artifacts";
 
 export default async function StudentAssignment({ params }: { params: Promise<{ assignmentId: string }> }) {
@@ -91,6 +92,21 @@ export default async function StudentAssignment({ params }: { params: Promise<{ 
     }
     if (art.kind === "interview") {
       return <InterviewMaker submissionId={submission.id} title={assignment.title} prompt={assignment.prompt} isOpen={assignment.isOpen} initial={art} status={submission.status} />;
+    }
+    if (art.kind === "presentation") {
+      // 학년대는 학급 학년으로 정한다(학생이 바꿀 수 없다).
+      const [k] = await db.select({ grade: schema.classes.grade }).from(schema.classes).where(eq(schema.classes.id, classId));
+      return (
+        <PresentationMaker
+          submissionId={submission.id}
+          title={assignment.title}
+          prompt={assignment.prompt}
+          targetSeconds={presentationSecondsOf(assignment.settings)}
+          isOpen={assignment.isOpen}
+          initial={withBand(art, bandOfGrade(k?.grade ?? 3))}
+          status={submission.status}
+        />
+      );
     }
     if (art.kind === "media-diary") {
       return <DiaryMaker submissionId={submission.id} title={assignment.title} prompt={assignment.prompt} isOpen={assignment.isOpen} initial={art} status={submission.status} />;
