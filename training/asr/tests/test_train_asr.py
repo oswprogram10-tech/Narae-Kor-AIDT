@@ -153,3 +153,41 @@ def test_help_works_without_torch(capsys):
         t.main(["--help"])
     assert e.value.code == 0
     assert "--family" in capsys.readouterr().out
+
+
+def test_turbo_shorthand_and_large_detection():
+    assert t.resolve_model("whisper", "turbo") == "openai/whisper-large-v3-turbo"
+    assert t.is_large("openai/whisper-large-v3-turbo") and not t.is_large("openai/whisper-small")
+    assert t.default_run_name("openai/whisper-large-v3-turbo", False) == "large-v3-turbo"
+    assert t.default_lr("whisper", "openai/whisper-large-v3-turbo", False) == 5e-6
+
+
+def test_large_plan_by_gpu_memory():
+    ok, msg = t.large_plan(5.9, False, False)  # GTX 1060
+    assert msg and "국내 GPU 클라우드" in msg and "24GB" in msg
+    assert t.large_plan(None, False, False)[1]  # CPU
+    assert t.large_plan(15.9, False, False)[1]
+    assert t.large_plan(23.5, False, False) == (True, None)  # 24GB급 → 기본 LoRA
+    assert t.large_plan(39.5, False, False) == (True, None)
+    assert t.large_plan(39.5, False, True) == (False, None)  # --full
+    assert t.large_plan(79.3, False, False) == (False, None)  # 80GB 전체 학습
+    assert t.large_plan(79.3, True, False) == (True, None)  # 직접 --lora
+
+
+def test_large_batch_and_ckpt():
+    assert t.auto_batch(23.5, True) == (2, 16)
+    assert t.auto_batch(39.5, True) == (4, 8)
+    assert t.auto_batch(79.3, True) == (8, 4)
+    assert t.resolve_batch(None, None, 79.3, True) == (8, 4)
+    assert t.default_grad_ckpt(79.3, True) is True and t.default_grad_ckpt(79.3) is False
+
+
+def test_model_card_pro():
+    card = t.build_model_card(_info("whisper", "openai/whisper-large-v3-turbo", lora=True))
+    assert "narae-asr-pro" in card and "교사 기기 전용" in card and NIA in card and "MIT" in card
+
+
+def test_feats_dir_name():
+    from asr_common import feats_dir_name
+
+    assert feats_dir_name(80) == "feats" and feats_dir_name(128) == "feats128"

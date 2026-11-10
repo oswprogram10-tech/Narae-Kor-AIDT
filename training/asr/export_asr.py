@@ -4,12 +4,14 @@
   config.json, generation_config.json, preprocessor_config.json, tokenizer 파일들
   onnx/encoder_model_quantized.onnx
   onnx/decoder_model_merged_quantized.onnx      (Whisper·Moonshine 모두 같은 이름: onnx-community 저장소 파일 목록으로 확인함)
+  --fp16 를 주면 GPU용 onnx/encoder_model_fp16.onnx, onnx/decoder_model_merged_fp16.onnx 도 함께(3단계 narae-asr-pro). dtype 은 q8 / fp16.
   MODEL_CARD.md, LICENSE.txt, manifest.json     (파일 크기·sha256)
 
 사용(내보내기 전용 가상환경의 파이썬으로 — README 10절, 학습 환경에 optimum 을 깔지 마세요):
   python export_asr.py --model work/runs/base/final --out export/narae-asr-lite
   python export_asr.py --model openai/whisper-base --out export/whisper-base-plain       # 학습 없이(크기·구조 확인용)
   python export_asr.py --model work/runs/small/final --out export/narae-asr-standard --id narae-asr-standard
+  python export_asr.py --model work/runs/large-v3-turbo/final --out export/narae-asr-pro --id narae-asr-pro --fp16   # 3단계: q8 + GPU용 fp16
 
 단계: (1) optimum 으로 fp32 ONNX 내보내기(task automatic-speech-recognition-with-past, 디코더는 merged 하나로 합침)
       (2) onnxruntime quantize_dynamic 으로 8비트 (3) 설명서·라이선스 복사, manifest.json 만들기. 중간 fp32 파일은 지워요(--keep-fp32 로 남김).
@@ -36,6 +38,8 @@ HERE = Path(__file__).resolve().parent
 
 ENCODER_Q = "onnx/encoder_model_quantized.onnx"
 DECODER_Q = "onnx/decoder_model_merged_quantized.onnx"
+ENCODER_F16 = "onnx/encoder_model_fp16.onnx"
+DECODER_F16 = "onnx/decoder_model_merged_fp16.onnx"
 
 # 폴더에 반드시 있어야 하는 파일, 있으면 같이 두는 파일(토크나이저 구현마다 달라요)
 COMMON_REQUIRED = ["config.json", "generation_config.json", "preprocessor_config.json", "tokenizer.json", "tokenizer_config.json", ENCODER_Q, DECODER_Q]
@@ -94,10 +98,15 @@ def detect_family(model: str, config: dict | None = None) -> str:
     return ""
 
 
-def expected_files(family: str) -> tuple[list[str], list[str]]:
-    """(꼭 있어야 하는 파일, 있으면 같이 두는 파일) — 폴더 안 상대 경로."""
+def expected_files(family: str, fp16: bool = False) -> tuple[list[str], list[str]]:
+    """(꼭 있어야 하는 파일, 있으면 같이 두는 파일) — 폴더 안 상대 경로. fp16=True 면 GPU용 fp16 파일도 꼭 있어야 해요."""
     optional = list(COMMON_OPTIONAL) + (WHISPER_OPTIONAL if family == "whisper" else [])
-    return list(COMMON_REQUIRED), optional
+    required = list(COMMON_REQUIRED) + ([ENCODER_F16, DECODER_F16] if fp16 else [])
+    return required, optional
+
+
+def dtypes_for(fp16: bool) -> list[str]:
+    return ["q8", "fp16"] if fp16 else ["q8"]
 
 
 def sha256_file(path: Path) -> str:
@@ -120,8 +129,8 @@ def build_manifest(folder: Path, meta: dict, skip: tuple[str, ...] = ("manifest.
     return {**meta, "files": files, "totalBytes": total, "totalMB": round(total / 2**20, 1)}
 
 
-def missing_files(folder: Path, family: str) -> list[str]:
-    required, _ = expected_files(family)
+def missing_files(folder: Path, family: str, fp16: bool = False) -> list[str]:
+    required, _ = expected_files(family, fp16)
     return [r for r in required if not (folder / r).is_file()]
 
 
@@ -210,6 +219,17 @@ def quantize(src: Path, dst: Path, weight_type: str, per_channel: bool, reduce_r
     )
 
 
+def to_fp16(src: Path, dst: Path) -> None:
+    """GPU(WebGPU 등)용 fp16 파일. 입출력은 fp32로 두어(keep_io_types) transformers.js 가 그대로 쓸 수 있어요.
+    2GB를 넘는 fp32 파일은 .onnx_data 를 같은 폴더에서 함께 읽어요(onnx.load 가 처리)."""
+    import onnx
+    from onnxruntime.transformers.float16 import convert_float_to_float16
+
+    m = onnx.load(str(src))
+    m16 = convert_float_to_float16(m, keep_io_types=True)
+    onnx.save(m16, str(dst))
+
+
 def versions() -> dict:
     out = {}
     for mod in ("torch", "transformers", "optimum", "onnx", "onnxruntime"):
@@ -230,6 +250,7 @@ def main(argv=None) -> None:
     ap.add_argument("--weight-type", choices=["quint8", "qint8"], default="quint8")
     ap.add_argument("--per-channel", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--reduce-range", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--fp16", action="store_true", help="GPU용 fp16 파일도 만들어요(3단계 narae-asr-pro)")
     ap.add_argument("--opset", type=int, default=None)
     ap.add_argument("--keep-fp32", action="store_true", help="중간 fp32 ONNX 를 <out>/_fp32 에 남겨요(비교용, 배포하면 안 돼요)")
     ap.add_argument("--force", action="store_true")
@@ -267,8 +288,13 @@ def main(argv=None) -> None:
     quantize(enc, out / ENCODER_Q, a.weight_type, a.per_channel, a.reduce_range)
     quantize(dec, out / DECODER_Q, a.weight_type, a.per_channel, a.reduce_range)
 
+    if a.fp16:
+        say("[2/4] GPU용 fp16 변환")
+        to_fp16(enc, out / ENCODER_F16)
+        to_fp16(dec, out / DECODER_F16)
+
     say("[3/4] 설정·토크나이저·설명서·라이선스 복사")
-    required, optional = expected_files(family)
+    required, optional = expected_files(family, a.fp16)
     for name in required + optional:
         if name.startswith("onnx/"):
             continue
@@ -276,7 +302,7 @@ def main(argv=None) -> None:
             if (d / name).is_file():
                 shutil.copy2(d / name, out / name)
                 break
-    miss = missing_files(out, family)
+    miss = missing_files(out, family, a.fp16)
     if miss:
         fail(f"transformers.js 가 읽는 데 필요한 파일이 빠졌어요: {miss}")
     gen = json.loads((out / "generation_config.json").read_text(encoding="utf-8"))
@@ -297,7 +323,7 @@ def main(argv=None) -> None:
         "id": a.id,
         "family": family,
         "source": a.model,
-        "dtype": "q8",
+        "dtypes": dtypes_for(a.fp16),
         "quantization": {"weightType": a.weight_type, "perChannel": a.per_channel, "reduceRange": a.reduce_range},
         "language": gen.get("language"),
         "attribution": NIA if card else None,

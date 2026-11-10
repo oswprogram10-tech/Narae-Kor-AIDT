@@ -2,9 +2,10 @@
 
     python prepare_features.py                 # train.jsonl, eval.jsonl 모두
     python prepare_features.py --model small
+    python prepare_features.py --model turbo   # 3단계(large-v3-turbo)용
 
 Moonshine 은 16kHz 원음을 그대로 입력으로 쓰므로 이 단계가 필요 없어요(train_asr.py --family moonshine 은 work/audio 의 wav 를 바로 읽어요).
-tiny·base·small 은 모두 같은 특징(80 멜 × 3000 프레임)을 써요. 이미 만든 파일은 건너뛰어서 이어서 할 수 있어요.
+tiny·base·small 은 모두 같은 특징(80 멜 × 3000 프레임, work/feats)을 써요. turbo(large-v3)는 128 멜이라 work/feats128 에 따로 만들어요. 이미 만든 파일은 건너뛰어서 이어서 할 수 있어요.
 기본 저장 형식은 float16(디스크 절반, 학습 때 float32로 읽어요). 발화 1개에 약 0.5MB(float16)예요.
 """
 from __future__ import annotations
@@ -14,9 +15,9 @@ from pathlib import Path
 
 import numpy as np
 
-from asr_common import add_common_args, load_wav_16k, read_jsonl, say, tqdm
+from asr_common import add_common_args, feats_dir_name, load_wav_16k, read_jsonl, say, tqdm
 
-MODELS = {"tiny": "openai/whisper-tiny", "base": "openai/whisper-base", "small": "openai/whisper-small"}
+MODELS = {"tiny": "openai/whisper-tiny", "base": "openai/whisper-base", "small": "openai/whisper-small", "turbo": "openai/whisper-large-v3-turbo"}
 
 
 def main(argv=None) -> None:
@@ -32,7 +33,7 @@ def main(argv=None) -> None:
     from transformers import WhisperFeatureExtractor
 
     fe = WhisperFeatureExtractor.from_pretrained(MODELS.get(a.model, a.model))
-    out_dir = work / "feats"
+    out_dir = work / feats_dir_name(fe.feature_size)  # turbo(large-v3 계열)는 128멜이라 feats128 폴더
     out_dir.mkdir(parents=True, exist_ok=True)
     made = skipped = 0
     for split in a.splits:

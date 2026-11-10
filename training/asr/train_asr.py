@@ -3,11 +3,13 @@
 국어나래의 두 단계 모델을 만드는 학습 도구예요(docs/stage6-listening-speaking.md "음성 인식 모델 두 단계 제공").
   1단계 narae-asr-lite     = openai/whisper-base (MIT)  — 선택지: moonshine-ai/moonshine-base-ko (비상업·연구만)
   2단계 narae-asr-standard = openai/whisper-small (MIT)
+  3단계 narae-asr-pro      = openai/whisper-large-v3-turbo (MIT, 8.1억) — GPU 교사 기기 전용, 국내 GPU 클라우드(24GB 이상, 권장 A100 80GB)에서만 학습
 
     python train_asr.py --family whisper --model openai/whisper-base --speedtest   # 30걸음만 돌려 속도·메모리·예상 시간 보기
     python train_asr.py --family whisper --model openai/whisper-base               # 1단계 학습(전원 연결, 중간 저장됨)
     python train_asr.py --family whisper --model openai/whisper-small              # 2단계 학습
     python train_asr.py --family whisper --model openai/whisper-small --lora       # small을 LoRA로(메모리 절약)
+    python train_asr.py --family whisper --model openai/whisper-large-v3-turbo     # 3단계(클라우드 전용: 24~40GB는 LoRA, 80GB는 전체 학습)
     python train_asr.py --family moonshine                                          # 선택: Moonshine base-ko (원음 입력, 특징 캐시 필요 없음)
     python train_asr.py --family whisper --model openai/whisper-base --resume      # 끊긴 학습 이어서 하기
 
@@ -35,7 +37,7 @@ from pathlib import Path
 
 import numpy as np
 
-from asr_common import add_common_args, die, load_wav_16k, read_jsonl, say
+from asr_common import add_common_args, die, feats_dir_name, load_wav_16k, read_jsonl, say
 
 ATTRIBUTION = "본 모델은 한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용하여 만들었습니다."
 
@@ -43,7 +45,8 @@ ATTRIBUTION = "본 모델은 한국지능정보사회진흥원(NIA) 「한국어
 FAMILIES: dict[str, dict] = {
     "whisper": {
         "default_model": "openai/whisper-base",
-        "shorthand": {"tiny": "openai/whisper-tiny", "base": "openai/whisper-base", "small": "openai/whisper-small", "medium": "openai/whisper-medium"},
+        "shorthand": {"tiny": "openai/whisper-tiny", "base": "openai/whisper-base", "small": "openai/whisper-small", "medium": "openai/whisper-medium",
+                      "turbo": "openai/whisper-large-v3-turbo", "large-v3-turbo": "openai/whisper-large-v3-turbo"},
         "lora_targets": "q_proj,k_proj,v_proj,out_proj",
         "max_label": 440,  # Whisper 디코더 한계 448
         "license": "MIT",
@@ -58,12 +61,16 @@ FAMILIES: dict[str, dict] = {
 }
 
 # 학습률 어림(전체 미세 조정). 모르는 모델은 small 값을 써요. Moonshine 값은 어림이라 --lr 로 바꿔 보세요.
-LR_BY_SIZE = {"tiny": 3.75e-5, "base": 2.5e-5, "small": 1.25e-5, "medium": 6.25e-6}
+LR_BY_SIZE = {"tiny": 3.75e-5, "base": 2.5e-5, "small": 1.25e-5, "medium": 6.25e-6, "large": 5e-6}
 LR_MOONSHINE = 3e-5
 LORA_LR = 1e-3
 
 # 앱 목록(src/core/speech/catalog.ts)에서 쓰는 가칭 id
-APP_IDS = {"openai/whisper-base": "narae-asr-lite", "openai/whisper-small": "narae-asr-standard", "moonshine-ai/moonshine-base-ko": "narae-asr-moonshine-ko"}
+APP_IDS = {"openai/whisper-base": "narae-asr-lite", "openai/whisper-small": "narae-asr-standard", "openai/whisper-large-v3-turbo": "narae-asr-pro", "moonshine-ai/moonshine-base-ko": "narae-asr-moonshine-ko"}
+
+# large급(turbo 8.1억 등)은 작은 GPU에서 학습할 수 없어요. 이 값(GiB) 미만이면 안내하고 끝내요.
+LARGE_MIN_GB = 16
+LARGE_FULL_GB = 60  # 이 이상(A100 80GB)이면 전체 학습 허용, 미만이면 기본 LoRA
 
 
 # ----------------------------------------------------------------- 순수 함수(torch 없이 시험해요)
@@ -95,12 +102,31 @@ def default_run_name(model: str, lora: bool) -> str:
     return base + ("-lora" if lora else "")
 
 
+def is_large(model: str) -> bool:
+    return "large" in model.lower() or "turbo" in model.lower()
+
+
+def large_plan(mem_gb: float | None, want_lora: bool, want_full: bool) -> tuple[bool, str | None]:
+    """large급 모델의 (LoRA로 할지, 학습할 수 없을 때의 안내 글). 안내 글이 있으면 학습하지 않고 끝내요.
+    16GiB 미만(CPU 포함): 불가. 16~60GiB(24~40GB급): 기본 LoRA(--full 로 전체 학습을 시도할 수는 있어요). 60GiB 이상(80GB): 전체 학습 허용."""
+    if mem_gb is None or mem_gb < LARGE_MIN_GB:
+        got = "GPU가 없어요" if mem_gb is None else f"GPU 메모리가 {mem_gb:.1f}GiB예요"
+        return False, f"이 모델은 국내 GPU 클라우드(24GB 이상, 권장 A100 80GB)에서 학습해요. 지금은 {got}. 이 컴퓨터(GTX 1060 등)에서는 base·small 로 학습해 주세요."
+    if want_full:
+        return False, None
+    if mem_gb < LARGE_FULL_GB:
+        return True, None
+    return want_lora, None
+
+
 def default_lr(family: str, model: str, lora: bool) -> float:
     if lora:
         return LORA_LR
     if family == "moonshine":
         return LR_MOONSHINE
     low = model.lower()
+    if is_large(model):
+        return LR_BY_SIZE["large"]
     for size in ("tiny", "base", "small", "medium"):
         if f"-{size}" in low or low == size:
             return LR_BY_SIZE[size]
@@ -122,8 +148,15 @@ def pick_precision(requested: str, cuda_available: bool, cc_major: int | None) -
     return requested, f"직접 고른 {requested}로 해요."
 
 
-def auto_batch(mem_gb: float | None) -> tuple[int, int]:
-    """GPU 메모리(GiB)로 (batch, accum) 기본값. 곱은 늘 32. 정보가 없으면(CPU 등) 6GB급과 같게."""
+def auto_batch(mem_gb: float | None, large: bool = False) -> tuple[int, int]:
+    """GPU 메모리(GiB)로 (batch, accum) 기본값. 곱은 늘 32. 정보가 없으면(CPU 등) 6GB급과 같게.
+    large급(turbo 등)은 한 단계 작게: 16~30GiB 2×16, 30~60GiB 4×8, 60GiB 이상 8×4."""
+    if large:
+        if mem_gb is None or mem_gb < 30:
+            return 2, 16
+        if mem_gb < 60:
+            return 4, 8
+        return 8, 4
     if mem_gb is None or mem_gb < 10:
         return 4, 8
     if mem_gb < 22:
@@ -133,9 +166,9 @@ def auto_batch(mem_gb: float | None) -> tuple[int, int]:
     return 32, 1
 
 
-def resolve_batch(batch: int | None, accum: int | None, mem_gb: float | None) -> tuple[int, int]:
+def resolve_batch(batch: int | None, accum: int | None, mem_gb: float | None, large: bool = False) -> tuple[int, int]:
     """직접 준 값이 먼저. 하나만 주면 곱을 자동값의 곱(32)에 맞춰 다른 하나를 정해요."""
-    ab, aa = auto_batch(mem_gb)
+    ab, aa = auto_batch(mem_gb, large)
     target = ab * aa
     if batch and accum:
         return batch, accum
@@ -146,9 +179,9 @@ def resolve_batch(batch: int | None, accum: int | None, mem_gb: float | None) ->
     return ab, aa
 
 
-def default_grad_ckpt(mem_gb: float | None) -> bool:
-    """메모리가 작을 때(22GiB 미만, 또는 GPU 없음)만 기본으로 켜요. 느려지지만 메모리를 아껴요."""
-    return mem_gb is None or mem_gb < 22
+def default_grad_ckpt(mem_gb: float | None, large: bool = False) -> bool:
+    """메모리가 작을 때(22GiB 미만, 또는 GPU 없음)만 기본으로 켜요. 느려지지만 메모리를 아껴요. large급은 늘 켜요."""
+    return large or mem_gb is None or mem_gb < 22
 
 
 def oom_hint(batch: int, accum: int, family: str, lora: bool) -> list[str]:
@@ -253,6 +286,8 @@ def build_model_card(a_info: dict, report: dict | None = None) -> str:
     ]
     if app_id:
         lines.append(f"- 앱 목록의 가칭 id: `{app_id}`")
+        if app_id == "narae-asr-pro":
+            lines.append("- 쓰임: GPU가 있는 교사 기기 전용(학생이 교사 기기 앞에서 읽는 방식, 음성은 그 기기 밖으로 나가지 않아요).")
     lines += [
         "",
         "## 학습 데이터",
@@ -306,7 +341,8 @@ class AsrDataset:
         it = self.items[i]
         if self.family == "moonshine":
             return load_wav_16k(self.work / it["audio"]).astype("float32"), self.labels[i]
-        p = self.work / "feats" / f"{it['id']}.npy"
+        # 멜 개수가 다른 모델(large-v3 계열 128개)은 폴더가 달라요(asr_common.feats_dir_name)
+        p = self.work / feats_dir_name(self.fe.feature_size) / f"{it['id']}.npy"
         if p.exists():
             feat = np.load(p).astype("float32")
         else:
@@ -344,6 +380,7 @@ def main(argv=None) -> None:
     ap.add_argument("--model", "--base-id", dest="model", default=None, help="HF id 또는 폴더(기본: whisper→openai/whisper-base, moonshine→moonshine-ai/moonshine-base-ko). Whisper는 tiny/base/small 줄임말도 돼요")
     ap.add_argument("--precision", choices=["auto", "fp32", "fp16", "bf16"], default="auto", help="auto: 계산 능력 8 이상이면 bf16, 아니면 fp32")
     ap.add_argument("--lora", action="store_true", help="LoRA로 학습(whisper-small 등에 선택)")
+    ap.add_argument("--full", action="store_true", help="large급(turbo)에서 LoRA 대신 전체 학습(기본: 60GiB 미만이면 LoRA)")
     ap.add_argument("--lora-r", type=int, default=32)
     ap.add_argument("--lora-targets", default=None, help="LoRA를 붙일 층 이름(쉼표로, 기본은 family별)")
     ap.add_argument("--name", default=None, help="결과 폴더 이름(기본: 모델 이름[-lora])")
@@ -377,9 +414,6 @@ def main(argv=None) -> None:
     if warn:
         die(warn)
     work = Path(a.work)
-    name = a.name or default_run_name(model_id, a.lora)
-    out = work / "runs" / name
-    ckpt_dir = out / "ckpt"
     device = a.device or ("cuda" if torch.cuda.is_available() else "cpu")
     on_cuda = device.startswith("cuda")
     torch.manual_seed(a.seed)
@@ -393,8 +427,19 @@ def main(argv=None) -> None:
         say(f"GPU: {props.name}, 메모리 {mem_gb:.1f}GiB, 계산 능력 {props.major}.{props.minor}")
     precision, why = pick_precision(a.precision, on_cuda, cc_major)
     say(f"정밀도: {precision} ({why})")
-    batch_req, accum = resolve_batch(a.batch, a.accum, mem_gb)
-    grad_ckpt = a.grad_ckpt if a.grad_ckpt is not None else default_grad_ckpt(mem_gb)
+    large = family == "whisper" and is_large(model_id)
+    if large:
+        use_lora, stop = large_plan(mem_gb, a.lora, a.full)
+        if stop:
+            die(stop)
+        if use_lora and not a.lora:
+            say(f"large급 모델이고 GPU 메모리가 {mem_gb:.0f}GiB라서 기본으로 LoRA로 학습해요(전체 학습은 --full).")
+        a.lora = use_lora
+    name = a.name or default_run_name(model_id, a.lora)
+    out = work / "runs" / name
+    ckpt_dir = out / "ckpt"
+    batch_req, accum = resolve_batch(a.batch, a.accum, mem_gb, large)
+    grad_ckpt = a.grad_ckpt if a.grad_ckpt is not None else default_grad_ckpt(mem_gb, large)
     lr = a.lr if a.lr is not None else default_lr(family, model_id, a.lora)
     lora_targets = a.lora_targets or FAMILIES[family]["lora_targets"]
     max_label = a.max_label or FAMILIES[family]["max_label"]

@@ -468,6 +468,11 @@ def read_jsonl(path: Path) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def feats_dir_name(n_mels: int) -> str:
+    """Whisper 특징 캐시 폴더 이름. 80멜(tiny~medium, large-v2)은 기존 'feats', 128멜(large-v3·turbo)은 'feats128'."""
+    return "feats" if int(n_mels) == 80 else f"feats{int(n_mels)}"
+
+
 def load_wav_16k(path: Path):
     """16kHz mono float32 배열. build_subset 이 만든 wav 를 읽는다."""
     import soundfile as sf

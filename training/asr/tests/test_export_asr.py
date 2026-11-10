@@ -59,3 +59,10 @@ def test_find_model_card_prefers_run_folder(tmp_path):
     assert e.find_model_card(run / "final") is None
     (run / "MODEL_CARD.md").write_text("card", encoding="utf-8")
     assert e.find_model_card(run / "final") == run / "MODEL_CARD.md"
+
+
+def test_fp16_files_are_extra_required_files():
+    assert "onnx/encoder_model_fp16.onnx" not in e.expected_files("whisper")[0]
+    req = e.expected_files("whisper", fp16=True)[0]
+    assert "onnx/encoder_model_fp16.onnx" in req and "onnx/decoder_model_merged_fp16.onnx" in req
+    assert e.dtypes_for(False) == ["q8"] and e.dtypes_for(True) == ["q8", "fp16"]
