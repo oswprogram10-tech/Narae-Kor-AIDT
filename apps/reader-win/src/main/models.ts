@@ -73,7 +73,29 @@ function fileUrl(settings: ReaderSettings, model: SpeechModelInfo, file: string)
 async function getChecked(url: string, settings: ReaderSettings, signal?: AbortSignal): Promise<Response> {
   // 세션 허용 목록과 별개로 여기서도 한 번 더 확인한다(모델 서버 출처만)
   if (!isRequestAllowed(url, allowConfigFromSettings(settings))) throw new Error("허용하지 않은 주소라서 받지 않아요.");
-  return net.fetch(url, { signal, redirect: "follow" });
+  try {
+    return await net.fetch(url, { signal, redirect: "follow" });
+  } catch (err) {
+    // 모델 서버가 허용 목록에 없는 주소로 넘기면 세션이 막는다(ERR_BLOCKED_BY_CLIENT). 어느 주소인지 알려 준다.
+    const blocked = lastBlockedOrigin();
+    if (blocked && /BLOCKED_BY_CLIENT/i.test(String(err))) {
+      throw new Error(`모델 서버가 허용하지 않은 주소(${blocked})로 넘겨서 받지 않았어요. 믿을 수 있는 주소라면 settings.json의 modelRedirectOrigins에 "${blocked}"를 더하고 앱을 다시 열어요.`);
+    }
+    throw err;
+  }
+}
+
+let blockedOrigin = "";
+/** 세션 요청 필터가 마지막으로 막은 주소의 출처(오류 안내용) */
+export function noteBlockedRequest(url: string): void {
+  try {
+    blockedOrigin = new URL(url).origin;
+  } catch {
+    /* 무시 */
+  }
+}
+function lastBlockedOrigin(): string {
+  return blockedOrigin;
 }
 
 export async function installModel(

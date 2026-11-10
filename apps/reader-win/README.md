@@ -52,7 +52,7 @@ C:\Users\<내 이름>\AppData\Roaming\국어나래 낭독 도우미\settings.jso
 ```json
 {
   "modelBaseUrl": "https://huggingface.co/",
-  "modelRedirectOrigins": ["https://cas-bridge.xethub.hf.co", "https://cdn-lfs.hf.co", "https://cdn-lfs-us-1.hf.co"],
+  "modelRedirectOrigins": ["https://us.aws.cdn.hf.co", "https://cas-bridge.xethub.hf.co", "https://cdn-lfs.hf.co", "https://cdn-lfs-us-1.hf.co"],
   "trialMode": true,
   "trialModelPaths": {
     "narae-asr-lite": "onnx-community/whisper-base/resolve/main/",

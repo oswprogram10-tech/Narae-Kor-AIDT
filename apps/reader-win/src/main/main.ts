@@ -13,7 +13,7 @@ import { parseSettingsText, type ReaderSettings } from "../lib/settings";
 import { synthSpeechLike } from "../lib/synth";
 import { checkAudio, checkBenchmarkSeconds, checkDtype, checkModelId, checkTranscribeOptions } from "../lib/validate";
 import { EngineClient } from "./engine-client";
-import { installedDtypes, installModel, modelStatus, removeModel } from "./models";
+import { installedDtypes, installModel, modelStatus, noteBlockedRequest, removeModel } from "./models";
 import { getSpeechModel, type SpeechDtype } from "../../../../src/core/speech";
 
 // 시험용: 자동 검사에서 사용자 폴더를 바꿀 수 있게 한다.
@@ -124,7 +124,11 @@ function setupSession(): void {
   const ses = session.defaultSession;
   protocol.handle(APP_SCHEME, handleAppProtocol);
   // 네트워크 허용 목록: 자체 프로토콜, 웹 서버 출처, 모델 서버 출처만. 나머지는 모두 막는다.
-  ses.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !isRequestAllowed(details.url, allow) }));
+  ses.webRequest.onBeforeRequest((details, callback) => {
+    const ok = isRequestAllowed(details.url, allow);
+    if (!ok) noteBlockedRequest(details.url);
+    callback({ cancel: !ok });
+  });
   ses.setPermissionRequestHandler((wc, permission, callback, details) => {
     const d = details as { requestingUrl?: string; mediaTypes?: string[] };
     const audioOnly = !d.mediaTypes || d.mediaTypes.every((t) => t === "audio");
