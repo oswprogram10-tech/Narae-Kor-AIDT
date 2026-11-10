@@ -79,9 +79,10 @@
 
 | 단계 | id(가칭) | 출발 모델 | 크기 | 쓰임 | 라이선스 |
 | --- | --- | --- | --- | --- | --- |
-| 1 가벼움 | `narae-asr-lite` | Moonshine base-ko(6,200만, 대안 Whisper base 7,400만) | 8비트 약 80MB | 학생 기기·브라우저 기본 | Moonshine Community License(비상업·연구 무료) / Whisper는 MIT |
+| 1 가벼움 | `narae-asr-lite` | **Whisper base(7,400만)** — 선택지로 Moonshine base-ko(6,200만, 한국어 출발점이 더 좋음) | 8비트 약 80MB | 학생 기기·브라우저 기본 | Whisper는 MIT(상업 가능, 표시 필요) / Moonshine은 Community License(비상업·연구 무료) |
 | 2 표준 | `narae-asr-standard` | Whisper small(2.4억) | 8비트 약 240MB | 교사 노트북 등 빠른 기기, 더 정확하게 | MIT(+ 학습 데이터 약관) |
 
+- 1단계 기본을 Whisper base로 정한 까닭: 나중 상업 배포 가능성(MIT). Moonshine base-ko는 원래 한국어 성능이 더 좋아 비교 실험·연구용 선택지로 함께 학습·평가한다.
 - 둘 다 같은 데이터(AI Hub 「한국어 아동 음성」 초등 낭독)로 다시 학습하고 같은 평가(오류율·오경보율·놓침률·1분 낭독 처리 시간)를 통과해야 쓴다. 기준: 오경보율(맞게 읽었는데 틀렸다고 하는 비율)을 가장 중요하게 본다.
 - 앱은 기기 성능을 재서(짧은 시험 계산) 기본 단계를 고르고, 교사가 바꿀 수 있다. 내장 언어 모델(`src/core/local/catalog.ts`)과 같은 목록·불러오기 방식을 따른다.
 - 모델 파일은 해외 저장소가 아니라 학교(국내) 서버에서 내려주는 것을 기본으로 한다(약관상 학습 모델의 국외 게시 가능 여부는 AI Hub에 확인 중). 모델 설명서에 NIA 출처 표시.
