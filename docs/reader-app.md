@@ -65,3 +65,4 @@ renderer에는 Node 기능을 주지 않는다(`contextIsolation`, `sandbox`, `n
 | 날짜 | 내용 |
 | --- | --- |
 | 2026-11-10 | 설계 |
+| 2026-11-10 | 시험판 구현·검수: `apps/reader-win`(Electron 45, 인식은 utilityProcess의 transformers.js — DirectML 먼저, 안 되면 CPU), 속도 시험 화면(앱 CPU·앱 DirectML·브라우저 WASM 비교, 녹음은 메모리만), 모델 설치(manifest sha256 확인, 안전한 경로만), 네트워크·권한·이동 허용 목록, GitHub Actions 윈도우 설치 파일 빌드. 리눅스 Electron에서 같은 소리로 앱 CPU가 브라우저 WASM보다 약 2.7배 빠름. 윈도우·DirectML·설치 파일은 사용자 노트북에서 확인 필요 |
