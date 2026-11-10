@@ -1,5 +1,6 @@
-# PyTorch는 여기에 넣지 않았어요. README의 설치 단계에서 GTX 1060(Pascal)을 지원하는 CUDA 12.6 빌드로 따로 설치해요.
-#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+# PyTorch는 여기에 넣지 않았어요. README 2절에서 컴퓨터에 맞춰 따로 설치해요.
+#   GPU 컴퓨터(학습·빠른 평가): pip install torch --index-url https://download.pytorch.org/whl/cu126
+#   CPU 실행 환경(속도 확인):   pip install torch --index-url https://download.pytorch.org/whl/cpu
 transformers==5.22.2
 peft==0.21.2
 soundfile>=0.12
@@ -7,5 +8,7 @@ scipy>=1.13
 numpy>=1.26
 tqdm>=4.66
 # 시험용(선택): pip install pytest
-# 선택: Moonshine은 transformers 5.x, sherpa-onnx·SenseVoice 평가에는 아래가 필요해요(없으면 그 모델만 건너뛰어요).
-#   pip install sherpa-onnx
+# CPU 평가의 주력: sherpa-onnx(zipformer·SenseVoice·Whisper int8). huggingface_hub는 download_models.py가 써요(transformers가 함께 깔아요).
+sherpa-onnx>=1.12
+huggingface_hub>=0.30
+# Moonshine은 transformers 5.x가 필요해요(없으면 그 모델만 건너뛰어요).

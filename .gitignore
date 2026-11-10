@@ -58,6 +58,7 @@ __pycache__/
 # 아동 음성 인식 학습 도구(training/asr): 데이터·가짜 데이터 산출물은 절대 커밋하지 않는다(AI Hub 약관)
 training/asr/work/
 training/asr/data/
+training/asr/models/
 training/asr/**/*.wav
 training/asr/**/*.npy
 training/asr/**/*.zip
