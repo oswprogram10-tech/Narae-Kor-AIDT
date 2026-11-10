@@ -125,3 +125,14 @@ def test_download_models_list_and_unknown():
         dm.download("whisper-base", Path(d), downloader=lambda **kw: calls.append(kw))
         assert (Path(d) / "whisper-base").is_dir()
     assert calls[0]["repo_id"] == "csukuangfj/sherpa-onnx-whisper-base" and "*.int8.onnx" in calls[0]["allow_patterns"]
+
+
+def test_decode_text_does_not_eagerly_str_result():
+    class Bad:
+        text = "안녕"
+
+        def __str__(self):
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "깨짐")
+
+    assert evaluate._decode_text(Bad()) == "안녕"
+    assert evaluate._decode_text("가") == "가"

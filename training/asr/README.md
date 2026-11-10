@@ -216,6 +216,7 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 | --- | --- |
 | `no kernel image is available` | PyTorch를 cu126 빌드로 다시 설치(2절). |
 | GPU가 없어서 CUDA가 안 된다고 나옴 | 실패가 아니에요. CPU 빌드 torch(2절 B)로 `--device cpu`(자동)로 돌려요. 느리면 `--limit 20`, `--max-minutes` 로 일부만. |
+| `download_models.py` 가 0% 에서 멈춤 | 회사·학교 네트워크가 Hugging Face 의 큰 파일 서버(xethub)를 막은 경우예요. `$env:HF_HUB_DISABLE_XET="1"` 을 설정하고 다시 실행해 보세요. |
 | `CUDA out of memory` / "메모리 부족" | `--batch 2 --accum 16`, 그래도 안 되면 `--batch 1 --accum 32`, 또는 더 작은 모델·LoRA. |
 | 한글 파일 이름이 깨져 보임 | 도구가 zip의 utf-8 표시를 보고 아니면 cp437→utf-8/cp949 로 되돌려 읽어요. 그래도 안 맞으면 알려 주세요. |
 | `못 찾음` 칸이 있음 | `inspect_labels.py` 로 실제 키 이름을 보고 `fields.json` 을 고쳐요. |

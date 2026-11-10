@@ -317,7 +317,12 @@ def _first(folder: Path, patterns: list[str]) -> Path:
 
 
 def _decode_text(r) -> str:
-    return r if isinstance(r, str) else getattr(r, "text", str(r))
+    if isinstance(r, str):
+        return r
+    try:
+        return r.text
+    except AttributeError:
+        return str(r)  # str(r) 를 미리 계산하지 않아요(깨진 바이트가 있으면 오류가 나요)
 
 
 def run_sherpa(spec: str, items, work: Path, a, device: str):
