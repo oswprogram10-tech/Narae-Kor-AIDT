@@ -1,7 +1,7 @@
 # 아동 낭독 음성 인식 학습 도구 (`training/asr/`)
 
 AI Hub 「한국어 아동 음성 데이터」(미디어젠, 아동 낭독 발화)로 **여러 음성 인식 모델(Whisper, Moonshine, sherpa-onnx, SenseVoice)이 아이들 낭독을 얼마나 잘 받아 적는지 재는** 도구 묶음이에요. 지금은 **평가 중심**이에요(학습은 맨 뒤 "선택" 절).
-국어나래의 낭독 유창성 실험(6단계 3차)을 위한 준비 단계예요. ONNX 내보내기와 브라우저 연결은 다음 단계에서 해요.
+국어나래의 낭독 유창성 실험(6단계 3차)을 위한 준비 단계예요. 학습·ONNX 내보내기는 10절, 배포 형식 그대로의 속도 재기는 7절 끝에 있어요.
 
 **컴퓨터는 두 종류예요.** (A) **GPU 컴퓨터**(NVIDIA GPU, 예: GTX 1060)는 학습과 빠른 평가용이에요. 학습은 여기나 국내 GPU 클라우드에서 해요. (B) **CPU 실행 환경**(예: AMD Ryzen 5 5625U 노트북, RAM 20GB, GPU 없음)은 학습된 모델을 실제로 돌릴 기기예요. 여기서는 **속도 확인**(RTF: 1분 낭독을 몇 초에 처리하는지, 메모리를 얼마나 쓰는지)을 해요. 평가 도구는 둘 다에서 돌아가고, GPU가 없어도 괜찮아요.
 
@@ -14,7 +14,7 @@ AI Hub 「한국어 아동 음성 데이터」(미디어젠, 아동 낭독 발�
 | 약관 | 지킬 일 |
 | --- | --- |
 | 국외 반출 금지, 제3자 제공 금지 | 데이터(음성·전사·가공본: `work/audio`, `work/feats`, `train.jsonl`…)는 이 노트북 안에서만 써요. 외부 서버(Colab, Kaggle, Hugging Face, 해외 클라우드)에 올리지 않아요. 클라우드 백업 폴더(OneDrive 등)에 `work/`·`data/`를 두지 마세요. |
-| 1번: 출처 표시 | 이 데이터를 쓴 모든 결과물(모델 설명서, 논문, 발표 자료)에 **"한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용"** 이라고 적어요. `train_whisper.py` 가 만드는 `MODEL_CARD.md` 에는 이미 들어 있어요. |
+| 1번: 출처 표시 | 이 데이터를 쓴 모든 결과물(모델 설명서, 논문, 발표 자료)에 **"한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용"** 이라고 적어요. `train_asr.py` 가 만드는 `MODEL_CARD.md` 에는 이미 들어 있어요. |
 | 8·9번: 개인정보 | 라벨 JSON에는 화자 이름(`SpeakerName`)이 있어요. 이 도구는 읽자마자 버리고, 출력·저장하지 않아요. 화자는 파일 이름에서 뽑은 코드의 **익명 키**로만 다뤄요. 데이터에서 개인정보를 발견하면 약관대로 신고·삭제하고, 누구인지 알아내려 하지 않아요. |
 
 그래서 저(개발 도우미)에게 알려 줄 때는 **숫자 통계와 칸(필드) 이름만** 보내 주세요(8절).
@@ -167,6 +167,13 @@ RTF가 1보다 크면 실시간보다 느려요(1분 낭독에 60초 넘게 걸�
 
 결과는 숫자 표만 `work\eval_*.json` 에 저장돼요. 전사 예시는 `--show-examples 3` 을 줄 때만 **내 화면에** 나와요(저장·공유하지 마세요).
 
+**배포 형식 그대로 속도 재기 (`scripts/asr-eval-onnx.mjs`)**: 위 평가는 sherpa-onnx·torch 로 돌려요. 앱이 실제로 쓰는 것과 같은 **transformers.js(Node, onnxruntime-node CPU) + ONNX 8비트**로 재려면 저장소 루트에서 실행해요(Node 22, `npm install` 뒤).
+```powershell
+npx tsx scripts/asr-eval-onnx.mjs --model training/asr/export/narae-asr-lite --eval training/asr/work/eval.jsonl --threads 6 --limit 20
+npx tsx scripts/asr-eval-onnx.mjs --model onnx-community/whisper-base --eval training/asr/work/eval.jsonl --cache D:\asr-cache   # 공개 모델과 비교(HF에서 받아 --cache 폴더에 둬요)
+```
+`src/core/fluency` 와 같은 규칙으로 CER·어절 WER(띄어쓰기 무시)·오경보율을 내고, RTF, **1분 낭독 처리 시간**(RTF×60 환산 + 소리를 이어 붙인 60초를 실제로 돌린 실측), 최대 메모리를 한 줄 표로 보여 줘요. 전사 글은 기본으로 출력하지 않아요(`--show-examples N` 은 내 화면에만). 모델 하나당 한 번씩 따로 실행하세요(최대 메모리가 프로세스 전체 값이라서요). 회사·학교망에서 Node 가 프록시를 못 쓰면 `NODE_USE_ENV_PROXY=1`(Node 22.21 이상)을 설정하고, 막혀 있으면 `--remote-host` 로 미러를 줘요. 이 값은 앱의 단계 고르기 문턱값(`src/core/speech/catalog.ts` 의 `SPEECH_BENCH_FAST_MS`)을 정할 때 써요.
+
 ### 8단계. 결과 숫자 표를 채팅에 공유
 `evaluate.py` 맨 끝의 **"비교 요약" 표**(모델·발화수·크기·CER·WER·RTF·1분 낭독 처리 시간·RAM·오경보·놓침)와 `work\eval_*.json` 의 숫자를 그대로 붙여 주세요. 글·음성·이름 없이 숫자만이라 안전해요(8절).
 
@@ -203,7 +210,7 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 
 **보내도 되는 것(숫자·이름만)**
 - `inspect_labels.py` 출력 전체(구조만 나와요), `scan_labels.py` 의 표, `normalize.py report-chars` 의 글자 빈도.
-- `check_env.py` 출력, `train_whisper.py --speedtest` 결과, `log.csv` 의 숫자, `evaluate.py` 의 표(`eval_*.json`).
+- `check_env.py` 출력, `train_asr.py --speedtest` 결과, `log.csv` 의 숫자, `evaluate.py` 의 표(`eval_*.json`).
 - 오류가 났을 때 오류 메시지(경로에 이름이 들어 있지 않은지만 훑어봐 주세요).
 
 **보내면 안 되는 것**
@@ -223,17 +230,106 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 | 화자 수가 너무 적게 나옴 | `speaker.regex` 가 맞지 않는 거예요. '파일 이름 모양'을 알려 주세요. |
 | 학습이 너무 느림 | `--speedtest` 로 확인. 걸음당 시간이 길면 `tiny`/`base`, 발화 수를 줄이거나 `--max-steps` 를 줄여요. |
 
-## 10. 선택: 나중에 학습하기
+## 10. 학습과 내보내기 (두 단계 모델 + 3단계)
 
-**학습은 GPU 컴퓨터나 국내 GPU 클라우드에서 해요**(CPU 실행 환경 노트북에서는 하지 않아요). 단, 국내 클라우드에서도 데이터 약관(국외 반출·제3자 제공 금지)을 지켜야 해요. 지금은 평가가 목적이라 학습은 하지 않아요. 나중에 해 보고 싶을 때만 아래를 쓰세요(`train_whisper.py`, `prepare_features.py`). 학습용 데이터는 `build_subset.py --train-hours 25` 와 학습용 원천(`TS_*`)이 필요해요.
+국어나래는 음성 인식 모델을 크기별로 나눠 제공해요(`docs/stage6-listening-speaking.md` "음성 인식 모델 두 단계 제공"). **학습은 GPU 컴퓨터나 국내 GPU 클라우드에서만** 해요(CPU 실행 노트북에서는 하지 않아요). 어느 쪽이든 데이터 약관(국외 반출·제3자 제공 금지, NIA 출처 표시, 화자 이름 칸 미사용)을 그대로 지켜요.
+
+| 단계 | 앱 id(가칭) | 출발 모델 | 학습 명령 | 학습 장소 | 라이선스 |
+| --- | --- | --- | --- | --- | --- |
+| 1 가벼움 | `narae-asr-lite` | `openai/whisper-base` | `train_asr.py --family whisper --model openai/whisper-base` | 1060 노트북 또는 클라우드 | MIT |
+| 1 선택지 | `narae-asr-moonshine-ko` | `moonshine-ai/moonshine-base-ko` | `train_asr.py --family moonshine` | 1060 노트북 또는 클라우드 | **Moonshine Community License(비상업·연구만)** |
+| 2 표준 | `narae-asr-standard` | `openai/whisper-small` | `train_asr.py --family whisper --model openai/whisper-small` (선택 `--lora`) | 1060 노트북(LoRA 권장) 또는 클라우드 | MIT |
+| 3 프로 | `narae-asr-pro` | `openai/whisper-large-v3-turbo`(8.1억) | `train_asr.py --family whisper --model openai/whisper-large-v3-turbo` | **국내 GPU 클라우드만**(24GB 이상, 권장 A100 80GB) | MIT |
+
+- 3단계는 GPU가 있는 **교사 기기 전용**이에요(학생이 교사 기기 앞에서 읽는 방식, 음성은 그 기기 밖으로 나가지 않아요). 앱이 자동으로 고르지 않고 교사가 직접 켜요. GPU 메모리가 16GiB 미만이면 `train_asr.py` 가 안내만 하고 끝나요. 24~40GB급은 기본 **LoRA**, 80GB급(60GiB 이상)은 전체 학습이에요(`--full` 로 전체 학습을 시도할 수도 있어요).
+- 실행 기준 기기는 Ryzen 5 5625U(CPU만)이고, 배포 형식은 **transformers.js 가 바로 읽는 ONNX 8비트** 하나로 통일해요(3단계만 GPU용 fp16 파일을 더 둘 수 있어요). 나중에 다른 큰 모델을 넣을 수 있게 목록(`src/core/speech/catalog.ts`)은 배열 구조예요.
+
+### 10-1. `train_asr.py` 옵션 요약
+
+| 옵션 | 설명 |
+| --- | --- |
+| `--family whisper\|moonshine` | 모델 계열(기본 whisper). `--model` 기본값: whisper→`openai/whisper-base`, moonshine→`moonshine-ai/moonshine-base-ko`. Whisper는 `tiny/base/small/turbo` 줄임말도 돼요 |
+| `--precision auto\|fp32\|fp16\|bf16` | auto: GPU 계산 능력 8 이상(A100 등)이면 **bf16**, 아니면 **fp32**(GTX 1060은 6.1이라 fp32). CPU는 늘 fp32 |
+| `--batch`, `--accum` | 기본은 GPU 메모리로 자동: 6GB급 4×8, 10~22GB 8×4, 24GB급 16×2, 80GB급 32×1(곱은 늘 32). large급(turbo)은 2×16 / 4×8 / 8×4. 직접 주면 그 값이 먼저예요(하나만 주면 곱을 맞춰 다른 하나를 정해요) |
+| `--grad-ckpt` / `--no-grad-ckpt` | gradient checkpointing. 기본은 GPU 메모리가 작을 때(22GiB 미만)와 large급일 때만 켜요 |
+| `--save-every N` / `--resume` | N걸음마다 이어 하기 저장(기본 100) / 끊긴 학습 이어서 하기 |
+| `--speedtest` | 30걸음만 돌려 걸음당 시간·GPU 메모리·예상 학습 시간 보기(저장 안 함) |
+| `--lora`, `--full` | LoRA 학습(whisper-small·turbo 등에 선택) / large급에서 전체 학습 강제 |
+
+- 메모리가 모자라면(`out of memory`) 도구가 "`--batch` 를 줄이고 `--accum` 을 늘려 곱을 같게" 하라고 안내하고 끝나요. 저장된 것이 있으면 `--resume`.
+- Whisper는 `prepare_features.py`(Whisper 전용 멜 특징 캐시, turbo는 128멜이라 `work\feats128`)를 먼저 돌리면 빨라져요. **Moonshine은 16kHz 원음을 그대로 넣으므로 특징 캐시가 필요 없어요.**
+- 결과: `work\runs\<이름>\final\`(평가·내보내기에 바로 써요), `log.csv`, `MODEL_CARD.md`(출발 모델·라이선스 문구, NIA 출처 표시 "한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용", 학습 데이터 미포함, 평가 결과 칸). 평가 결과 칸은 `evaluate.py`·`asr-eval-onnx.mjs` 숫자로 직접 채워요.
+- 옛 이름 `train_whisper.py` 는 `train_asr.py --family whisper` 를 부르는 껍데기로 남아 있어요(`--model base` 같은 줄임말도 그대로 돼요).
+
+### 10-2. 국내 GPU 클라우드에서 하는 순서 (A100 80GB 등, bf16)
+
+1. **인스턴스 만들기**: 국내 리전(서버가 한국 안에 있는 곳)의 GPU 인스턴스. 1단계·2단계는 24GB 이상이면 충분하고, 3단계(turbo)는 24GB 이상(권장 A100 80GB). 저장 공간은 학습용 16k 오디오 + 특징 캐시를 합쳐 넉넉히(25시간이면 약 100GB 미만으로 어림). **해외 리전·해외 서비스(Colab, Kaggle 등)는 쓰지 않아요.**
+2. **코드·평가 도구 올리기**: 저장소 코드(`training/asr/` 폴더)만 올려요(`git clone` 또는 복사). 데이터는 포함돼 있지 않아요. 파이썬 환경은 2절 A와 같고(리눅스면 `python3 -m venv .venv && . .venv/bin/activate`, CUDA 빌드 torch), `python check_env.py` 로 GPU를 확인해요.
+3. **학습에 필요한 16k 오디오와 manifest만 올리기**: 교사 노트북에서 `build_subset.py --train-hours 25` 로 만든 **`work/audio/`(16kHz wav)와 `work/train.jsonl`, `work/eval.jsonl`, `work/subset_report.json`** 만 인스턴스의 `work/` 로 올려요. 원본 zip(`data/source`, `data/labels`)과 라벨 JSON은 올리지 않아요(화자 이름이 있어요).
+4. **학습**: 아래 10-4의 명령. 먼저 `--speedtest` 로 시간·메모리를 확인해요. 사용 시간이 곧 비용이니 `tmux`/`nohup` 으로 끊김에 대비하고 `--resume` 을 믿어요.
+5. **내보내기**: 같은 인스턴스에서 10-5의 **내보내기 전용 환경**으로 `export_asr.py` 를 돌려요(CPU로 충분해요).
+6. **데이터 즉시 삭제, 결과 모델만 내려받기**: 내보낸 폴더(`export/<id>`: ONNX 파일, 설정, `MODEL_CARD.md`, `LICENSE.txt`, `manifest.json`)와 `log.csv`만 내려받고, 곧바로 `work/audio`, `work/feats*`, `work/*.jsonl` 과 인스턴스(디스크 포함)를 삭제해요. 학습에 쓴 음성·전사는 모델 폴더에 들어 있지 않아요. 삭제 뒤 스냅샷·백업이 남지 않았는지도 확인해요.
+
+### 10-3. GTX 1060 노트북에서 하는 순서 (fp32)
+
+1. 2절 A(CUDA 12.6 `cu126` 빌드)로 설치하고 `python check_env.py`. 학습 데이터(`TS_*` 원천)를 받고 `build_subset.py` 를 돌려요(이 노트북 안에서만 처리해요).
+2. 1단계는 `--model openai/whisper-base`(fp32, 4×8 자동), 2단계는 `--model openai/whisper-small --lora` 를 권해요(6GB). 3단계 turbo는 **이 컴퓨터에서 학습할 수 없어요**(안내 후 종료).
+3. 오래 돌릴 때: 전원 어댑터 연결, 전원 모드 **최고 성능**, 덮개를 닫아도 잠들지 않게, 쿨러 받침, 윈도우 자동 재시작 미루기, 무거운 프로그램 닫기, `--resume`.
+4. 내보내기는 10-5의 윈도우 명령으로 만든 별도 환경에서 해요.
+
+### 10-4. 단계별 명령
 
 ```powershell
+# (1) 학습 묶음 만들기(교사 노트북, 평가 화자는 학습에서 빠져요)
 python build_subset.py --labels data\labels --sources data\source --train-hours 25
-python prepare_features.py --model base
-python train_whisper.py --model base --speedtest   # 30걸음만 돌려 걸음당 시간·GPU 메모리·예상 시간 보기
-python train_whisper.py --model base               # 학습(100걸음마다 저장), 끊기면 --resume
-python train_whisper.py --model small --lora       # small은 LoRA
-```
-fp32(1060은 fp16 가속이 없어요), 기본 배치 4 × 누적 8, OOM이면 `--batch 2 --accum 16`. 끝나면 `work\runs\<이름>\final\`(평가에 바로 쓸 수 있어요), `log.csv`, `MODEL_CARD.md`(출처 표시 문구 포함, 학습 데이터는 포함하지 않는다고 적혀 있어요)가 생겨요. 학습한 모델은 `python evaluate.py --models work\runs\base\final` 로 비교해요.
+python prepare_features.py --model base          # Whisper 전용(small은 --model small, turbo는 --model turbo). Moonshine은 필요 없어요
 
-노트북으로 오래 돌릴 때: 전원 어댑터 연결, 전원 모드 **최고 성능**, 덮개를 닫아도 잠들지 않게, 쿨러 받침, 윈도우 자동 재시작 미루기, 무거운 프로그램 닫기, 중간 저장(`--resume`)을 믿고 쓰기.
+# (2) 1단계 whisper-base
+python train_asr.py --family whisper --model openai/whisper-base --speedtest
+python train_asr.py --family whisper --model openai/whisper-base          # 끊기면 --resume
+
+# (3) 2단계 whisper-small (6GB는 --lora)
+python train_asr.py --family whisper --model openai/whisper-small
+
+# (3b) 3단계 whisper-large-v3-turbo (국내 GPU 클라우드 전용, 24~40GB는 자동 LoRA, 80GB는 전체)
+python prepare_features.py --model turbo
+python train_asr.py --family whisper --model openai/whisper-large-v3-turbo
+
+# (4) 선택: Moonshine base-ko (비상업·연구용)
+python train_asr.py --family moonshine
+
+# (5) 내보내기(내보내기 전용 환경, 10-5)
+python export_asr.py --model work\runs\base\final  --out export\narae-asr-lite     --id narae-asr-lite
+python export_asr.py --model work\runs\small\final --out export\narae-asr-standard --id narae-asr-standard
+python export_asr.py --model work\runs\large-v3-turbo\final --out export\narae-asr-pro --id narae-asr-pro --fp16
+
+# (6) 배포 형식 그대로 평가(저장소 루트에서, 7절 끝의 "배포 형식 그대로 속도 재기")
+npx tsx scripts/asr-eval-onnx.mjs --model training/asr/export/narae-asr-lite --eval training/asr/work/eval.jsonl --threads 6
+```
+
+### 10-5. 내보내기 전용 환경 (학습 환경과 따로)
+
+optimum 설치가 다른 패키지(transformers, huggingface_hub 등)의 버전을 바꿔 학습 환경을 깨뜨려요(optimum-onnx 0.1.0 은 transformers 4.57 이하만 지원). 그래서 **내보내기만을 위한 별도 가상환경**을 만들어요(`training/export_env.sh` 와 같은 방식).
+
+리눅스·맥(클라우드 인스턴스 등):
+```bash
+bash ../export_env.sh /tmp/onnxenv          # 저장소의 training/export_env.sh. 한 번만 만들면 돼요
+/tmp/onnxenv/bin/python export_asr.py --model work/runs/base/final --out export/narae-asr-lite --id narae-asr-lite
+```
+
+윈도우(PowerShell, `training\asr` 폴더에서):
+```powershell
+py -3.11 -m venv .venv-export
+.\.venv-export\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install "transformers==4.57.*" "optimum==2.1.*" "optimum-onnx==0.1.0" onnx onnxruntime onnx-ir ml_dtypes safetensors sentencepiece tokenizers "huggingface_hub<1.0" numpy
+python export_asr.py --model work\runs\base\final --out export\narae-asr-lite --id narae-asr-lite
+deactivate
+```
+- `export_asr.py` 는 optimum 의 `main_export`(task `automatic-speech-recognition-with-past`, 디코더는 `decoder_model_merged.onnx` 하나로 합침)로 fp32 ONNX 를 만들고, onnxruntime `quantize_dynamic`(**QUInt8, per_channel, reduce_range**)으로 8비트로 줄여요. 선택 이유는 파일 머리말에 적어 뒀어요(공개 transformers.js 모델과 같은 방식, 구형 AVX2 CPU에서 안전, 가중치 오차가 작은 쪽). `--weight-type qint8`, `--no-reduce-range`, `--no-per-channel` 로 바꿔 비교할 수 있어요.
+- 결과 폴더: `config.json`, `generation_config.json`, `preprocessor_config.json`, 토크나이저 파일들, `onnx/encoder_model_quantized.onnx`, `onnx/decoder_model_merged_quantized.onnx`(Whisper·Moonshine 같은 이름이에요. `--fp16` 이면 `*_fp16.onnx` 도), `MODEL_CARD.md`, `LICENSE.txt`(Whisper는 MIT 전문, Moonshine은 비상업 안내), `manifest.json`(파일 크기·sha256).
+- 학습 환경(transformers 5.x)이 저장한 `config.json` 을 내보내기 환경(4.57)이 잘못 읽으면 `--base-id openai/whisper-base` 를 줘요(가중치는 학습 결과에서, 설정·토크나이저는 기본 모델에서 가져와요).
+- 학습 없이 `--model openai/whisper-base` 처럼 HF id 를 주면 출발 모델 그대로 내보내요(도구 확인용). Moonshine 내보내기는 optimum 이 Moonshine 구조를 지원하는 버전이어야 해요(onnx-community 의 `moonshine-base-ko-ONNX` 가 같은 파일 이름을 써요).
+- 내보낸 폴더는 학교(국내) 서버에 두고 앱의 모델 base URL 이 그 폴더를 가리키게 해요. 모델 파일을 이 저장소에 넣지 마세요(`.gitignore` 에 `training/asr/**` 데이터는 제외돼 있고, `export/` 도 올리지 않아요).
+

@@ -64,3 +64,4 @@ training/asr/**/*.npy
 training/asr/**/*.zip
 training/asr/**/*.zip.part*
 *.zip.part*
+training/asr/export/
