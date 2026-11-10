@@ -57,9 +57,16 @@ function loadSettings(): void {
   const file = path.join(app.getPath("userData"), "settings.json");
   let text: string | null = null;
   try {
-    text = fs.readFileSync(file, "utf8");
+    // 메모장이 붙이는 UTF-8 BOM은 지운다
+    text = fs.readFileSync(file, "utf8").replace(/^﻿/, "");
   } catch {
-    /* 파일이 없으면 기본값 */
+    // 파일이 없으면 기본값으로 빈 설정 파일을 만들어 둔다(교사가 찾아서 고칠 수 있게)
+    try {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify({ serverUrl: "", modelBaseUrl: "", modelRedirectOrigins: [], trialMode: false, trialModelPaths: {} }, null, 2) + "\n", { flag: "wx" });
+    } catch {
+      /* 만들지 못해도 기본값으로 동작 */
+    }
   }
   const parsed = parseSettingsText(text);
   settings = parsed.settings;
