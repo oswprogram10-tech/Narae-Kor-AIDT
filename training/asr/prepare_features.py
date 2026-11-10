@@ -1,8 +1,9 @@
-"""Whisper 로그 멜 특징을 미리 계산해 work/feats/<id>.npy 로 저장한다(학습 중 CPU 부담을 줄여요).
+"""[Whisper 전용] Whisper 로그 멜 특징을 미리 계산해 work/feats/<id>.npy 로 저장한다(학습 중 CPU 부담을 줄여요).
 
     python prepare_features.py                 # train.jsonl, eval.jsonl 모두
     python prepare_features.py --model small
 
+Moonshine 은 16kHz 원음을 그대로 입력으로 쓰므로 이 단계가 필요 없어요(train_asr.py --family moonshine 은 work/audio 의 wav 를 바로 읽어요).
 tiny·base·small 은 모두 같은 특징(80 멜 × 3000 프레임)을 써요. 이미 만든 파일은 건너뛰어서 이어서 할 수 있어요.
 기본 저장 형식은 float16(디스크 절반, 학습 때 float32로 읽어요). 발화 1개에 약 0.5MB(float16)예요.
 """
