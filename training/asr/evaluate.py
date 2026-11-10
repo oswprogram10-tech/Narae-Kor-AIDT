@@ -10,6 +10,8 @@
     moonshine:<HF id 또는 폴더>      transformers Moonshine(--moonshine 으로 moonshine-tiny-ko, moonshine-base-ko 추가)
     sherpa:<모델 폴더>               sherpa-onnx 스트리밍 zipformer transducer(encoder·decoder·joiner·tokens.txt, int8 우선, --sherpa-chunk 64)
     sensevoice:<모델 폴더>           sherpa-onnx 의 SenseVoice 오프라인 인식기(model.int8.onnx + tokens.txt)
+    sherpa-whisper:<모델 폴더>       sherpa-onnx 의 Whisper int8 ONNX(*-encoder.int8.onnx, *-decoder.int8.onnx, *-tokens.txt). torch 없이 CPU 로 tiny~turbo (download_models.py whisper-small 등)
+  CPU 평가: --threads 는 sherpa-onnx 와 torch 모두에 적용(기본 = 논리 스레드/2). --max-minutes N 은 모델당 시간 상한이고, 넘으면 부분 결과(요약표 발화수 뒤 '*').
   설치되지 않은 백엔드(pip install sherpa-onnx 등)나 없는 모델은 알리고 건너뛰어요. 모델은 하나씩 올리고 내려서 GTX 1060 6GB 에서도 돌아요.
 결과는 숫자 표만 work/eval_<모델>.json 에 저장해요(전사 글은 저장하지 않아요). 예시는 --show-examples 일 때만 화면에 나와요.
   - CER: 공백을 뺀 글자 기준, WER: 어절 기준이며 띄어쓰기를 무시해요(인식 결과의 공백을 지우고 글자로 맞춘 뒤 어절별로 셈:
@@ -28,6 +30,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+import cpuinfo
 from asr_common import add_common_args, load_config, load_wav_16k, read_jsonl, save_json, say, tqdm
 from fluency import align_eojeol, levenshtein, split_eojeols
 from normalize import normalize_transcript
@@ -37,6 +40,47 @@ ELMENWOL = "elmenwol/whisper-small_aihub_child"
 # 아래 HF id 는 바뀌었거나 없을 수 있어요. 없으면 친절한 오류로 알리고, --moonshine-ids 로 바꿀 수 있어요.
 MOONSHINE_IDS = ["moonshine-ai/moonshine-tiny-ko", "moonshine-ai/moonshine-base-ko"]
 WEIGHT_SUFFIXES = (".safetensors", ".bin", ".onnx", ".pt")
+CLOCK = time.monotonic  # 시험에서 가짜 시계로 바꿀 수 있게 모듈 값으로 둬요
+
+
+def fmt_duration(sec: float) -> str:
+    m = int(round(sec / 60))
+    h, m = divmod(m, 60)
+    return f"{h}시간 {m}분" if h else f"{m}분"
+
+
+class Pace:
+    """진행 속도를 재서 예상 시간을 알리고, --max-minutes 를 넘으면 멈추라고 알려 준다.
+
+    각 백엔드는 묶음/발화 하나를 처리할 때마다 step(처리한 발화 수, 소리 길이(초), 인식에 쓴 시간(초))을 부르고,
+    True 가 돌아오면 그때까지의 결과로 마친다(부분 결과).
+    """
+
+    def __init__(self, items, max_minutes: float = 0.0, warm_n: int = 10, warm_sec: float = 30.0):
+        self.total_audio = sum(it["seconds"] for it in items)
+        self.n_total = len(items)
+        self.max_sec = max_minutes * 60 if max_minutes else 0.0
+        self.warm_n, self.warm_sec = warm_n, warm_sec
+        self.t_start = CLOCK()
+        self.announced = False
+        self.n = 0
+        self.audio = 0.0
+        self.spent = 0.0
+
+    def step(self, n: int, audio_sec: float, spent_sec: float) -> bool:
+        self.n += n
+        self.audio += audio_sec
+        self.spent += spent_sec
+        if not self.announced and (self.n >= self.warm_n or self.audio >= self.warm_sec) and self.audio > 0:
+            self.announced = True
+            rtf = self.spent / self.audio
+            say(f"  [예상] RTF {rtf:.3f} → 이 모델은 전체 {self.n_total:,}개({self.total_audio / 3600:.2f}시간 분량)를 다 하려면 약 {fmt_duration(rtf * self.total_audio)}")
+            if self.max_sec:
+                say(f"         (--max-minutes {self.max_sec / 60:g}분 안에 끝나지 않으면 그때까지 한 것으로 부분 결과를 내요)")
+        if self.max_sec and CLOCK() - self.t_start >= self.max_sec and self.n < self.n_total:
+            say(f"  시간 상한({self.max_sec / 60:g}분)에 닿았어요. {self.n:,}/{self.n_total:,}개까지 한 부분 결과로 마쳐요.")
+            return True
+        return False
 
 
 def slug(model: str) -> str:
@@ -193,6 +237,7 @@ def run_whisper(spec: str, items, work: Path, a, device: str):
         from transformers import WhisperFeatureExtractor, WhisperForConditionalGeneration, WhisperTokenizer
     except Exception as e:  # noqa: BLE001
         raise Skip(f"torch/transformers 를 불러오지 못했어요({e})")
+    torch.set_num_threads(a.threads)
     hf_check(spec)
     try:
         fe = WhisperFeatureExtractor.from_pretrained(spec)
@@ -206,6 +251,7 @@ def run_whisper(spec: str, items, work: Path, a, device: str):
     size = hf_size_mb(model)
     hyps: list[str] = []
     audio_sec = spent = 0.0
+    pace = Pace(items, a.max_minutes)
     for i in tqdm(range(0, len(items), a.batch), desc="인식 중", unit="묶음", mininterval=2.0):
         chunk = items[i : i + a.batch]
         wavs = [load_wav_16k(work / it["audio"]) for it in chunk]
@@ -216,8 +262,11 @@ def run_whisper(spec: str, items, work: Path, a, device: str):
         if device == "cuda":
             torch.cuda.synchronize()
         spent += time.time() - t0
-        audio_sec += sum(len(w) for w in wavs) / 16000
+        chunk_sec = sum(len(w) for w in wavs) / 16000
+        audio_sec += chunk_sec
         hyps.extend(tok.batch_decode(ids, skip_special_tokens=True))
+        if pace.step(len(chunk), chunk_sec, time.time() - t0):
+            break
     del model
     free_gpu()
     return hyps, spent / audio_sec, size, device
@@ -229,6 +278,7 @@ def run_moonshine(spec: str, items, work: Path, a, device: str):
         from transformers import AutoProcessor, MoonshineForConditionalGeneration
     except Exception as e:  # noqa: BLE001
         raise Skip(f"이 transformers 에 Moonshine 이 없거나 torch 가 없어요({e}). transformers 를 올려 보세요.")
+    torch.set_num_threads(a.threads)
     hf_check(spec)
     try:
         proc = AutoProcessor.from_pretrained(spec)
@@ -238,6 +288,7 @@ def run_moonshine(spec: str, items, work: Path, a, device: str):
     size = hf_size_mb(model)
     hyps: list[str] = []
     audio_sec = spent = 0.0
+    pace = Pace(items, a.max_minutes)
     for it in tqdm(items, desc="인식 중", unit="개", mininterval=2.0):
         w = load_wav_16k(work / it["audio"])
         sec = len(w) / 16000
@@ -250,6 +301,8 @@ def run_moonshine(spec: str, items, work: Path, a, device: str):
         spent += time.time() - t0
         audio_sec += sec
         hyps.append(proc.batch_decode(ids, skip_special_tokens=True)[0])
+        if pace.step(1, sec, time.time() - t0):
+            break
     del model
     free_gpu()
     return hyps, spent / audio_sec, size, device
@@ -300,6 +353,7 @@ def run_sherpa(spec: str, items, work: Path, a, device: str):
     size = dir_size_mb(folder, [enc, dec, joi, tokens])
     hyps: list[str] = []
     audio_sec = spent = 0.0
+    pace = Pace(items, a.max_minutes)
     tail = np.zeros(int(0.66 * 16000), dtype=np.float32)
     for it in tqdm(items, desc="인식 중", unit="개", mininterval=2.0):
         w = load_wav_16k(work / it["audio"])
@@ -311,8 +365,11 @@ def run_sherpa(spec: str, items, work: Path, a, device: str):
         while rec.is_ready(st):
             rec.decode_stream(st)
         hyps.append(_decode_text(rec.get_result(st)))
-        spent += time.time() - t0
+        dt = time.time() - t0
+        spent += dt
         audio_sec += len(w) / 16000
+        if pace.step(1, len(w) / 16000, dt):
+            break
     return hyps, spent / audio_sec, size, "cpu"
 
 
@@ -333,6 +390,7 @@ def run_sensevoice(spec: str, items, work: Path, a, device: str):
     size = dir_size_mb(folder, [model, tokens])
     hyps: list[str] = []
     audio_sec = spent = 0.0
+    pace = Pace(items, a.max_minutes)
     for it in tqdm(items, desc="인식 중", unit="개", mininterval=2.0):
         w = load_wav_16k(work / it["audio"])
         t0 = time.time()
@@ -340,16 +398,60 @@ def run_sensevoice(spec: str, items, work: Path, a, device: str):
         st.accept_waveform(16000, w)
         rec.decode_stream(st)
         hyps.append(_decode_text(st.result))
-        spent += time.time() - t0
+        dt = time.time() - t0
+        spent += dt
         audio_sec += len(w) / 16000
+        if pace.step(1, len(w) / 16000, dt):
+            break
     return hyps, spent / audio_sec, size, "cpu"
 
 
-BACKENDS = {"whisper": run_whisper, "moonshine": run_moonshine, "sherpa": run_sherpa, "sensevoice": run_sensevoice}
+def find_whisper_files(folder: Path) -> tuple[Path, Path, Path]:
+    """sherpa-onnx Whisper 내보내기 폴더에서 (encoder, decoder, tokens) 파일을 glob 으로 찾는다. int8 우선."""
+    if not folder.is_dir():
+        raise Skip(f"모델 폴더가 없어요: {folder}")
+    enc = _first(folder, ["*-encoder.int8.onnx", "encoder.int8.onnx", "*encoder*.int8.onnx", "*-encoder.onnx", "encoder.onnx"])
+    dec = _first(folder, ["*-decoder.int8.onnx", "decoder.int8.onnx", "*decoder*.int8.onnx", "*-decoder.onnx", "decoder.onnx"])
+    tokens = _first(folder, ["*-tokens.txt", "tokens.txt"])
+    return enc, dec, tokens
+
+
+def run_sherpa_whisper(spec: str, items, work: Path, a, device: str):
+    try:
+        import sherpa_onnx
+    except Exception:  # noqa: BLE001
+        raise Skip("sherpa-onnx 가 설치돼 있지 않아요(pip install sherpa-onnx).")
+    enc, dec, tokens = find_whisper_files(Path(spec))
+    try:
+        rec = sherpa_onnx.OfflineRecognizer.from_whisper(
+            encoder=str(enc), decoder=str(dec), tokens=str(tokens), language="ko", task="transcribe", num_threads=a.threads, provider="cpu",
+        )
+    except Exception as e:  # noqa: BLE001
+        raise Skip(f"sherpa-onnx Whisper 인식기를 만들지 못했어요: {str(e).splitlines()[0] if str(e) else type(e).__name__}")
+    size = dir_size_mb(Path(spec), [enc, dec, tokens])
+    hyps: list[str] = []
+    audio_sec = spent = 0.0
+    pace = Pace(items, a.max_minutes)
+    for it in tqdm(items, desc="인식 중", unit="개", mininterval=2.0):
+        w = load_wav_16k(work / it["audio"])
+        t0 = time.time()
+        st = rec.create_stream()
+        st.accept_waveform(16000, w)
+        rec.decode_stream(st)
+        hyps.append(_decode_text(st.result))
+        dt = time.time() - t0
+        spent += dt
+        audio_sec += len(w) / 16000
+        if pace.step(1, len(w) / 16000, dt):
+            break
+    return hyps, spent / audio_sec, size, "cpu"
+
+
+BACKENDS = {"whisper": run_whisper, "moonshine": run_moonshine, "sherpa": run_sherpa, "sensevoice": run_sensevoice, "sherpa-whisper": run_sherpa_whisper}
 
 
 def split_spec(model: str) -> tuple[str, str]:
-    m = re.match(r"^(whisper|moonshine|sherpa|sensevoice):(.+)$", model)
+    m = re.match(r"^(whisper|moonshine|sherpa-whisper|sherpa|sensevoice):(.+)$", model)
     if m:
         return m.group(1), m.group(2)
     return ("moonshine" if "moonshine" in model.lower() else "whisper"), model
@@ -363,7 +465,8 @@ def main(argv=None) -> None:
     ap.add_argument("--moonshine", action="store_true", help="Moonshine 한국어 모델(--moonshine-ids)도 함께 평가")
     ap.add_argument("--moonshine-ids", nargs="+", default=MOONSHINE_IDS, help="Moonshine HF id(이름이 다르면 여기서 바꿔요)")
     ap.add_argument("--sherpa-chunk", default="64", help="sherpa 스트리밍 모델 파일 이름에서 고를 chunk 크기(기본 64)")
-    ap.add_argument("--threads", type=int, default=4, help="sherpa-onnx CPU 스레드 수")
+    ap.add_argument("--threads", type=int, default=cpuinfo.default_threads(), help="CPU 스레드 수(sherpa-onnx와 torch 모두에 적용). 기본: 논리 스레드/2 = 물리 코어 수 어림")
+    ap.add_argument("--max-minutes", type=float, default=0.0, help="모델마다 쓸 시간 상한(분). 넘으면 그때까지 한 발화로 '부분 결과'를 내요(0=제한 없음)")
     ap.add_argument("--eval", default=None, help="기본: work/eval.jsonl")
     ap.add_argument("--limit", type=int, default=0, help="앞에서 N개만")
     ap.add_argument("--batch", type=int, default=8)
@@ -390,7 +493,7 @@ def main(argv=None) -> None:
     if a.moonshine:
         models += [m for m in a.moonshine_ids if m not in models]
     max_cers = [float(x) for x in a.max_cer.split(",") if x.strip()]
-    say(f"평가 발화 {len(items):,}개({sum(i['seconds'] for i in items) / 3600:.2f}시간)")
+    say(f"평가 발화 {len(items):,}개({sum(i['seconds'] for i in items) / 3600:.2f}시간), CPU 스레드 {a.threads}개" + (f", 모델당 상한 {a.max_minutes:g}분" if a.max_minutes else ""))
     summary = []
     skipped = []
     for m in models:
@@ -410,14 +513,22 @@ def main(argv=None) -> None:
             skipped.append((m, msg))
             free_gpu()
             continue
+        done = items[: len(raw)]
+        if not done:
+            say("  건너뜀: 시간 상한 안에 한 발화도 처리하지 못했어요(--max-minutes 를 늘려 주세요).")
+            skipped.append((m, "처리한 발화 없음"))
+            continue
+        partial = len(done) < len(items)
         hyps = [normalize_transcript(h, cfg["normalize"]) or "" for h in raw]
-        res = {"model": spec, "backend": backend, "device": dev, "size_mb": size, "beams": a.beams, "rtf": round(rtf, 4)}
-        res.update(group_metrics(items, hyps))
-        res["scoring"] = scoring_metrics(items, hyps, max_cers, a.seed, a.sim_error_rate)
+        res = {"model": spec, "backend": backend, "device": dev, "size_mb": size, "beams": a.beams, "rtf": round(rtf, 4),
+               "sec_per_min_audio": round(rtf * 60, 2), "threads": a.threads, "n_evaluated": len(done), "n_total": len(items),
+               "partial": partial, "peak_ram_mb": None if (pk := cpuinfo.peak_rss_mb()) is None else round(pk)}
+        res.update(group_metrics(done, hyps))
+        res["scoring"] = scoring_metrics(done, hyps, max_cers, a.seed, a.sim_error_rate)
         save_json(work / f"eval_{slug(spec)}.json", res)
         summary.append(res)
         al = res["all"]
-        say(f"CER {al['cer']}  WER(띄어쓰기 무시) {al['wer']}  WERsp(띄어쓰기 따짐, 참고) {al['wer_spacing']}  RTF {res['rtf']}({dev})  파일 크기 {size}MB  (발화 {al['n']}개)")
+        say(f"CER {al['cer']}  WER(띄어쓰기 무시) {al['wer']}  WERsp(띄어쓰기 따짐, 참고) {al['wer_spacing']}  RTF {res['rtf']}({dev}, {a.threads}스레드) → 1분 낭독을 약 {res['sec_per_min_audio']}초에 처리  파일 크기 {size}MB  (발화 {al['n']}/{len(items)}개{' — 부분 결과' if partial else ''})")
         for k, v in res["by_grade"].items():
             say(f"  학년 {k}: CER {v['cer']} WER {v['wer']} (n={v['n']})")
         for k, v in res["by_noise"].items():
@@ -426,14 +537,19 @@ def main(argv=None) -> None:
             say(f"  [낭독 채점, 어절 같음 기준 글자오류율≤{s['max_cer']}] 오경보율 어절 {s['false_alarm_eojeol_rate']} / 발화 {s['false_alarm_utterance_rate']}, 놓침률(한 글자 바꾼 어절 {s['simulated_errors']}개) {s['miss_rate_one_syllable']}")
         if a.show_examples:
             say("  -- 예시(내 화면에만 나와요) --")
-            for it, h in list(zip(items, hyps))[: a.show_examples]:
+            for it, h in list(zip(done, hyps))[: a.show_examples]:
                 say(f"  정답: {it['text']}\n  인식: {h}")
     say("\n== 비교 요약(숫자만 — 이 표는 채팅에 붙여도 돼요) ==")
     say("(WER = 띄어쓰기 무시 어절 오류율, WERsp = 띄어쓰기까지 따진 예전 WER(참고), 오경보·놓침도 띄어쓰기 무시)")
-    say(f"{'모델':<40}{'백엔드':<11}{'장치':<6}{'크기MB':>8}{'CER':>8}{'WER':>8}{'WERsp':>8}{'RTF':>8}{'오경보':>8}{'놓침':>8}")
+    say(f"{'모델':<40}{'백엔드':<15}{'장치':<6}{'발화수':>9}{'크기MB':>8}{'CER':>8}{'WER':>8}{'WERsp':>8}{'RTF':>8}{'60초분량(초)':>12}{'RAM최대MB':>10}{'오경보':>8}{'놓침':>8}")
     for r in summary:
         sc = r["scoring"][0] if r["scoring"] else {}
-        say(f"{r['model'][-39:]:<40}{r['backend']:<11}{r['device']:<6}{r['size_mb']!s:>8}{r['all']['cer']!s:>8}{r['all']['wer']!s:>8}{r['all']['wer_spacing']!s:>8}{r['rtf']!s:>8}{sc.get('false_alarm_eojeol_rate')!s:>8}{sc.get('miss_rate_one_syllable')!s:>8}")
+        cnt = f"{r['n_evaluated']}" + ("*" if r["partial"] else "")
+        ram = "-" if r["peak_ram_mb"] is None else r["peak_ram_mb"]
+        say(f"{r['model'][-39:]:<40}{r['backend']:<15}{r['device']:<6}{cnt:>9}{r['size_mb']!s:>8}{r['all']['cer']!s:>8}{r['all']['wer']!s:>8}{r['all']['wer_spacing']!s:>8}{r['rtf']!s:>8}{r['sec_per_min_audio']!s:>12}{ram!s:>10}{sc.get('false_alarm_eojeol_rate')!s:>8}{sc.get('miss_rate_one_syllable')!s:>8}")
+    if any(r["partial"] for r in summary):
+        say("(* = 부분 결과: --max-minutes 시간 상한 때문에 앞의 일부 발화만 평가했어요. 정확도 숫자는 참고용이에요)")
+    say("(60초분량(초) = RTF×60 = 1분 길이 낭독을 처리하는 데 걸린 시간. RAM최대MB = 이 실행 프로세스의 지금까지 최대치라 뒤 모델 값은 앞 모델 것을 포함해요 → 모델별로 정확히 재려면 모델 하나씩 실행해요)")
     for m, why in skipped:
         say(f"(건너뜀) {m}: {why}")
     say(f"\n저장: {work}/eval_*.json (숫자만)")
