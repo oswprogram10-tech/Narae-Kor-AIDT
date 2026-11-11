@@ -22,6 +22,7 @@ from asr_common import (
     find_field_ex,
     flatten,
     list_files,
+    loose_container,
     load_config,
     nkey,
     parse_label_json,
@@ -29,6 +30,7 @@ from asr_common import (
     shape_of,
     speaker_code,
     unmerged_parts,
+    walk_json,
 )
 
 MAX_CAT_VALUE_LEN = 24  # 이보다 긴 범주형 값은 가려요
@@ -50,9 +52,22 @@ def kind_of(v) -> str:
     return "dict"
 
 
-def sample_files(paths, per_container: int):
-    """컨테이너(zip)마다 고르게 퍼진 JSON 몇 개의 (컨테이너, 안 이름, 내용)."""
-    for p in list_files(paths, (".zip", ".json")):
+def sample_files(paths, per_container: int, max_loose: int = 1500):
+    """컨테이너(zip)마다 고르게 퍼진 JSON 몇 개의 (컨테이너, 안 이름, 내용).
+    풀린 JSON은 폴더마다 per_container개까지, 전체 max_loose개까지만 열어 본다(수백만 개를 다 읽지 않음)."""
+    paths = list(paths)
+    taken = 0
+    per_dir: Counter = Counter()
+    for root, f in walk_json(paths):
+        if taken >= max_loose:
+            break
+        key = str(f.parent)
+        if per_dir[key] >= per_container:
+            continue
+        per_dir[key] += 1
+        taken += 1
+        yield loose_container(root, f), f.name, f.read_bytes(), 1
+    for p in list_files(paths, (".zip",)):
         if p.name.lower().endswith(".zip"):
             try:
                 zf = zipfile.ZipFile(p)
@@ -67,8 +82,6 @@ def sample_files(paths, per_container: int):
                 step = max(1, len(infos) // per_container)
                 for info in infos[::step][:per_container]:
                     yield p.name, decode_zip_name(info), zf.read(info), len(infos)
-        else:
-            yield p.parent.name, p.name, p.read_bytes(), 1
 
 
 def main(argv=None) -> None:

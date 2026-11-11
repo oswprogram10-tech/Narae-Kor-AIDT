@@ -226,3 +226,30 @@ def test_13_evaluate_helpers():
     sc = evaluate.scoring_metrics(items, ["나는 학교에 갔어요"] * 3, [0.0, 0.34], 1, 0.5)
     assert sc[0]["false_alarm_eojeol_rate"] == 0.0
     assert sc[0]["miss_rate_one_syllable"] == 0.0  # 기준 0 이면 한 글자 바꾼 어절을 다 잡는다
+
+
+def test_14_loose_json_like_extracted_tar(fake, tmp_path):
+    """tar를 풀어 JSON이 압축 없이 폴더에 있을 때: inspect는 일부만 열고, scan은 평가용(VL_)을 알아보고 짝 원천 zip을 맞춘다."""
+    import zipfile
+
+    labels = tmp_path / "labels"
+    for z in (fake["root"] / "labels").rglob("*.zip"):
+        rel = z.relative_to(fake["root"] / "labels").parent / z.stem  # 예: Validation/02.라벨링데이터/VL_01
+        with zipfile.ZipFile(z) as zf:
+            for info in zf.infolist():
+                if info.is_dir() or not info.filename.lower().endswith(".json"):
+                    continue
+                dest = labels / rel / "sub" / Path(info.filename).name
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(zf.read(info))
+    work = tmp_path / "work"
+    out = run("inspect_labels.py", "--labels", labels, "--work", work, "--per-zip", "2")
+    assert "DataCategory" in out
+    assert FAKE_MARK not in out
+    out = run("scan_labels.py", "--labels", labels, "--sources", fake["root"] / "source", "--work", work)
+    assert "다 읽었어요" in out
+    scan = json.loads((work / "scan.json").read_text(encoding="utf-8"))
+    by = {b["label_zip"]: b for b in scan["by_source"]}
+    assert by["VL_01"]["split"] == "valid" and by["VL_01"]["source_zip"] == "VS_01.zip"
+    assert by["TL_01"]["split"] == "train" and by["TL_01"]["source_zip"] == "TS_01.zip"
+    assert FAKE_MARK not in out

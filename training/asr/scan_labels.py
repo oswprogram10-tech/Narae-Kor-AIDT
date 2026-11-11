@@ -119,6 +119,8 @@ def main(argv=None) -> None:
         total = 0.0
         for name, d in group:
             pair = zip_pair_name(name, cfg)
+            if pair and not pair.lower().endswith(".zip"):
+                pair += ".zip"  # 풀린 라벨 폴더(VL_…)의 짝은 원천 zip(VS_….zip)
             have = "-" if sources_present is None else ("있음" if pair in sources_present else "없음")
             total += d["seconds"]
             say(f"{name[:27]:<28}{(pair or '(짝 규칙 없음)')[:27]:<28}{fmt_hours(d['seconds']):>9}{fmt_hours(d['clean']):>8}{fmt_hours(d['noisy']):>7}{d['utts']:>10,}{len(d['spk']):>6,}  {have}   (누적 {fmt_hours(total)}시간)")

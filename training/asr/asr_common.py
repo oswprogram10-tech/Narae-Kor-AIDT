@@ -112,6 +112,40 @@ def list_files(paths: Iterable[str | os.PathLike], suffixes: tuple[str, ...]) ->
     return out
 
 
+
+_LABEL_DIR_RE = re.compile(r"^[TV][LS]_", re.IGNORECASE)
+
+
+def loose_container(root: Path, file: Path) -> str:
+    """압축이 풀린 JSON의 '묶음 이름'. 경로 안에 TL_/VL_ 같은 폴더가 있으면 그 이름(원래 zip 이름과 같다),
+    없으면 기준 폴더에서 두 단계까지의 상대 경로. Training/Validation 표시는 앞에 붙여 둔다(평가용 구분에 쓰임)."""
+    try:
+        parts = file.parent.relative_to(root).parts
+    except ValueError:
+        parts = file.parent.parts[-2:]
+    marker = next((c for c in parts if re.search(r"validation|검증", c, re.IGNORECASE)), "")
+    for c in parts:
+        if _LABEL_DIR_RE.match(c):
+            return c if not marker or marker in c else f"{c}"
+    base = "/".join(parts[:2]) or root.name
+    return f"{marker}/{base}" if marker and marker not in base else base
+
+
+def walk_json(roots: Iterable[str | os.PathLike]) -> Iterator[tuple[Path, Path]]:
+    """(기준 폴더, JSON 파일)을 os.walk로 하나씩(목록을 한꺼번에 만들지 않아 수백만 개도 바로 시작)."""
+    for r in roots:
+        r = Path(r)
+        if r.is_file() and r.name.lower().endswith(".json"):
+            yield r.parent, r
+            continue
+        if not r.is_dir():
+            continue
+        for d, dirs, names in os.walk(r):
+            dirs.sort()
+            for n in sorted(names):
+                if n.lower().endswith(".json"):
+                    yield r, Path(d) / n
+
 def unmerged_parts(paths: Iterable[str | os.PathLike]) -> list[Path]:
     found: list[Path] = []
     for p in paths:
@@ -330,14 +364,13 @@ class Row:
 
 
 def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, str, bytes]]:
-    """(컨테이너 이름, 안 파일 이름, 내용). 라벨 zip은 풀지 않고 zipfile로 바로 읽는다.
+    """(묶음 이름, 안 파일 이름, 내용). 라벨 zip은 풀지 않고 zipfile로 바로 읽고, 풀린 JSON은 폴더를 걸으며 읽는다.
     라벨이 수십만~수백만 개라 오래 걸리므로 진행 상황을 주기적으로 알린다(파일 이름·내용은 출력하지 않음)."""
     import time
 
-    say("라벨 파일 목록을 모으는 중이에요(파일이 많으면 몇 분 걸려요)…")
-    files = list_files(paths, (".zip", ".json"))
-    nz = sum(1 for f in files if f.name.lower().endswith(".zip"))
-    say(f"zip {nz}개, 따로 있는 json {len(files) - nz}개를 읽어요. 진행 상황을 5만 개마다 알려 줘요.")
+    paths = list(paths)
+    zips = list_files(paths, (".zip",))
+    say(f"라벨 zip {len(zips)}개와 풀린 JSON을 읽어요. 진행 상황을 5만 개마다 알려 줘요.")
     t0 = time.monotonic()
     done = 0
 
@@ -348,22 +381,21 @@ def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, 
             m = (time.monotonic() - t0) / 60
             say(f"  … {done:,}개 읽음 ({m:.1f}분)")
 
-    for p in files:
-        if p.name.lower().endswith(".zip"):
-            try:
-                zf = zipfile.ZipFile(p)
-            except zipfile.BadZipFile:
-                say(f"[알림] zip이 아니거나 깨졌어요: {p.name} (분할 파일이면 merge_parts.py 로 먼저 이어 붙여 주세요)")
-                continue
-            with zf:
-                for info in zf.infolist():
-                    if info.is_dir() or not info.filename.lower().endswith(".json"):
-                        continue
-                    tick()
-                    yield p.name, decode_zip_name(info), zf.read(info)
-        else:
-            tick()
-            yield p.parent.name, p.name, p.read_bytes()
+    for p in zips:
+        try:
+            zf = zipfile.ZipFile(p)
+        except zipfile.BadZipFile:
+            say(f"[알림] zip이 아니거나 깨졌어요: {p.name} (분할 파일이면 merge_parts.py 로 먼저 이어 붙여 주세요)")
+            continue
+        with zf:
+            for info in zf.infolist():
+                if info.is_dir() or not info.filename.lower().endswith(".json"):
+                    continue
+                tick()
+                yield p.name, decode_zip_name(info), zf.read(info)
+    for root, f in walk_json(paths):
+        tick()
+        yield loose_container(root, f), f.name, f.read_bytes()
     say(f"라벨 {done:,}개를 다 읽었어요({(time.monotonic() - t0) / 60:.1f}분).")
 
 
