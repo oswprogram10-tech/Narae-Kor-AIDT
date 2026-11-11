@@ -116,7 +116,7 @@ export function createEngine(cfg: EngineConfig) {
     if (!d.ok) throw new Error(d.error);
     const a = checkAudio(req.audio);
     if (!a.ok) throw new Error(a.error);
-    const order = deviceOrder(req.device, platform);
+    const order = deviceOrder(req.device, platform, d.dtype);
     const notes: string[] = [];
     let lastError: unknown;
     for (const dev of order) {

@@ -1,10 +1,15 @@
 // 장치 고르기·스레드 수(순수 함수).
 import type { DeviceChoice, UsedDevice } from "./api";
 
-/** 장치 시험 순서. auto는 윈도우에서 DirectML을 먼저, 안 되면 CPU. 윈도우가 아니면 CPU만. */
-export function deviceOrder(device: DeviceChoice, platform: string): UsedDevice[] {
+/**
+ * 장치 시험 순서. auto는 형식에 따라 고른다.
+ * - q8(8비트): CPU만. 5625U 실측(2026-11-11)에서 DirectML q8이 CPU보다 느렸다(그래픽은 8비트 계산 이득이 없음).
+ * - fp16: 윈도우에서는 DirectML 먼저, 안 되면 CPU.
+ */
+export function deviceOrder(device: DeviceChoice, platform: string, dtype: string = "q8"): UsedDevice[] {
   if (device === "cpu") return ["cpu"];
   if (device === "dml") return ["dml"];
+  if (dtype !== "fp16") return ["cpu"];
   return platform === "win32" ? ["dml", "cpu"] : ["cpu"];
 }
 

@@ -202,7 +202,10 @@ describe("manifest 검증", () => {
 
 describe("장치 순서와 스레드", () => {
   it("auto는 윈도우에서 DirectML 먼저, 안 되면 CPU", () => {
-    expect(deviceOrder("auto", "win32")).toEqual(["dml", "cpu"]);
+    expect(deviceOrder("auto", "win32")).toEqual(["cpu"]); // q8 기본: CPU(실측상 DirectML q8이 더 느림)
+    expect(deviceOrder("auto", "win32", "q8")).toEqual(["cpu"]);
+    expect(deviceOrder("auto", "win32", "fp16")).toEqual(["dml", "cpu"]);
+    expect(deviceOrder("auto", "linux", "fp16")).toEqual(["cpu"]);
     expect(deviceOrder("auto", "linux")).toEqual(["cpu"]);
     expect(deviceOrder("auto", "darwin")).toEqual(["cpu"]);
   });
