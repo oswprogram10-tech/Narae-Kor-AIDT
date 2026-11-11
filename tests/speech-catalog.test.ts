@@ -146,3 +146,25 @@ describe("canUseTier3", () => {
     expect(canUseTier3({ gpu: true, vramGB: 8 }).reason).toMatch(/요\.$/);
   });
 });
+
+describe("chooseSpeechTier: 1단계 실측 RTF로 고르기", () => {
+  it("5625U 실측값(앱 0.048, 브라우저 0.087)이면 2단계", () => {
+    expect(chooseSpeechTier({ tier1Rtf: 0.048 }).tier).toBe(2);
+    expect(chooseSpeechTier({ tier1Rtf: 0.087 }).tier).toBe(2);
+  });
+  it("느린 기기(1단계 RTF 0.2)면 1단계", () => {
+    expect(chooseSpeechTier({ tier1Rtf: 0.2 }).tier).toBe(1);
+  });
+  it("경계: 0.5 ÷ 3.5 이하는 2단계, 넘으면 1단계", () => {
+    expect(chooseSpeechTier({ tier1Rtf: 0.5 / 3.5 }).tier).toBe(2);
+    expect(chooseSpeechTier({ tier1Rtf: 0.5 / 3.5 + 0.001 }).tier).toBe(1);
+  });
+  it("실측이 benchMs보다 먼저, 메모리 부족이면 실측과 상관없이 1단계", () => {
+    expect(chooseSpeechTier({ tier1Rtf: 0.05, benchMs: 10_000 }).tier).toBe(2);
+    expect(chooseSpeechTier({ tier1Rtf: 0.05, memoryGB: 2 }).tier).toBe(1);
+  });
+  it("잘못된 값은 무시하고 다른 정보로(없으면 1단계)", () => {
+    expect(chooseSpeechTier({ tier1Rtf: Number.NaN }).tier).toBe(1);
+    expect(chooseSpeechTier({ tier1Rtf: -1 }).tier).toBe(1);
+  });
+});

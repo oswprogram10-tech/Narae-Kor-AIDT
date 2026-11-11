@@ -180,6 +180,11 @@ export interface SpeechProbe {
   webgpu?: boolean;
   /** 설치형(안드로이드·윈도우 프로그램) 여부 */
   native?: boolean;
+  /**
+   * 이 기기·이 실행 방식에서 1단계 모델을 실제로 돌려 잰 RTF(처리 시간 ÷ 소리 길이). 있으면 benchMs보다 먼저 쓴다.
+   * 30초 이상 소리로 잰 값이어야 믿을 만하다(짧은 소리는 불러오기 같은 고정 시간이 섞인다).
+   */
+  tier1Rtf?: number;
   /** 3단계용: GPU가 있는지, GPU 메모리(GB) */
   gpu?: boolean;
   vramGB?: number;
@@ -192,6 +197,12 @@ export const SPEECH_BENCH_FAST_MS_WEBGPU = 300; // WebGPU가 있으면 조금 �
 export const SPEECH_MIN_CORES_TIER2 = 4;
 export const SPEECH_MIN_MEMORY_GB_TIER2 = 4;
 
+// 실측(2026-11-11, Ryzen 5 5625U, q8, 37초 소리): 1단계 RTF 앱 0.048 / 브라우저 0.087, 2단계 RTF 앱 0.117 / 브라우저 0.281.
+// 2단계는 1단계보다 앱에서 약 2.4배, 브라우저에서 약 3.2배 느렸다 → 넉넉하게 3.5배로 어림한다.
+export const SPEECH_TIER2_OVER_TIER1 = 3.5;
+// 2단계 RTF가 이 값 이하로 예상되면 2단계를 쓴다(1분 낭독을 30초 안에 처리 — 읽는 동안 앞부분부터 처리하면 기다림이 짧다).
+export const SPEECH_TIER2_MAX_RTF = 0.5;
+
 export interface TierChoice {
   tier: 1 | 2;
   reason: string; // 해요체
@@ -199,6 +210,15 @@ export interface TierChoice {
 
 /** 기기 정보로 기본 단계(1 또는 2)를 고른다. 3단계는 자동으로 고르지 않는다(canUseTier3 참고). 정보가 없으면 안전하게 1단계. */
 export function chooseSpeechTier(probe: SpeechProbe = {}): TierChoice {
+  if (typeof probe.memoryGB === "number" && probe.memoryGB < SPEECH_MIN_MEMORY_GB_TIER2) {
+    return { tier: 1, reason: "기기 메모리가 넉넉하지 않아서 가벼운 1단계를 써요." };
+  }
+  const r1 = probe.tier1Rtf;
+  if (typeof r1 === "number" && Number.isFinite(r1) && r1 > 0) {
+    return r1 * SPEECH_TIER2_OVER_TIER1 <= SPEECH_TIER2_MAX_RTF
+      ? { tier: 2, reason: "이 기기에서 재 보니 더 정확한 2단계도 충분히 빨라요." }
+      : { tier: 1, reason: "이 기기에서 재 보니 가벼운 1단계가 더 알맞아요." };
+  }
   const bench = probe.benchMs;
   if (typeof bench !== "number" || !Number.isFinite(bench) || bench <= 0) {
     return { tier: 1, reason: "기기 속도를 아직 알 수 없어서 가벼운 1단계로 시작해요." };
