@@ -330,8 +330,25 @@ class Row:
 
 
 def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, str, bytes]]:
-    """(컨테이너 이름, 안 파일 이름, 내용). 라벨 zip은 풀지 않고 zipfile로 바로 읽는다."""
-    for p in list_files(paths, (".zip", ".json")):
+    """(컨테이너 이름, 안 파일 이름, 내용). 라벨 zip은 풀지 않고 zipfile로 바로 읽는다.
+    라벨이 수십만~수백만 개라 오래 걸리므로 진행 상황을 주기적으로 알린다(파일 이름·내용은 출력하지 않음)."""
+    import time
+
+    say("라벨 파일 목록을 모으는 중이에요(파일이 많으면 몇 분 걸려요)…")
+    files = list_files(paths, (".zip", ".json"))
+    nz = sum(1 for f in files if f.name.lower().endswith(".zip"))
+    say(f"zip {nz}개, 따로 있는 json {len(files) - nz}개를 읽어요. 진행 상황을 5만 개마다 알려 줘요.")
+    t0 = time.monotonic()
+    done = 0
+
+    def tick() -> None:
+        nonlocal done
+        done += 1
+        if done % 50000 == 0:
+            m = (time.monotonic() - t0) / 60
+            say(f"  … {done:,}개 읽음 ({m:.1f}분)")
+
+    for p in files:
         if p.name.lower().endswith(".zip"):
             try:
                 zf = zipfile.ZipFile(p)
@@ -342,9 +359,12 @@ def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, 
                 for info in zf.infolist():
                     if info.is_dir() or not info.filename.lower().endswith(".json"):
                         continue
+                    tick()
                     yield p.name, decode_zip_name(info), zf.read(info)
         else:
+            tick()
             yield p.parent.name, p.name, p.read_bytes()
+    say(f"라벨 {done:,}개를 다 읽었어요({(time.monotonic() - t0) / 60:.1f}분).")
 
 
 def count_label_files(paths: Iterable[str | os.PathLike]) -> int:
