@@ -71,7 +71,8 @@ describe("음성 인식 모델 목록", () => {
       }
     }
     // 지원하지 않는 형식은 빈 목록
-    expect(speechModelFiles(getSpeechModel("narae-asr-lite")!, "fp16")).toEqual([]);
+    expect(speechModelFiles(getSpeechModel("narae-asr-moonshine-ko")!, "fp16")).toEqual([]);
+    expect(speechModelFiles(getSpeechModel("narae-asr-lite")!, "fp16")).toContain("onnx/encoder_model_fp16.onnx");
   });
 
   it("3단계는 교사 기기 전용이고 GPU가 필요하며 q8과 fp16을 둘 다 둔다", () => {

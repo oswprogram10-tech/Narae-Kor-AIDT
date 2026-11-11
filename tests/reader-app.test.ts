@@ -115,7 +115,8 @@ describe("입력 검사", () => {
   it("dtype은 모델이 제공하는 것만", () => {
     const lite = getSpeechModel("narae-asr-lite")!;
     expect(checkDtype(lite, undefined)).toEqual({ ok: true, dtype: "q8" });
-    expect(checkDtype(lite, "fp16").ok).toBe(false);
+    expect(checkDtype(lite, "fp16").ok).toBe(true); // 그래픽용 선택
+    expect(checkDtype(getSpeechModel("narae-asr-moonshine-ko")!, "fp16").ok).toBe(false);
     expect(checkDtype(lite, "q4").ok).toBe(false);
     expect(checkDtype(getSpeechModel("narae-asr-pro")!, "fp16").ok).toBe(true);
   });
