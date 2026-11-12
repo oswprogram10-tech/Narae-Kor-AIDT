@@ -56,7 +56,8 @@ def wav_bytes(freq: float, seconds: float, noisy: bool, sr: int = 48000) -> byte
 
 def label_json(name: str, text: str, grade_text: str, age: int, category: str, noisy: bool, fname: str, secs: float, code: str) -> dict:
     return {
-        "Basic": {"Language": "ko", "DataCategory": category, "NumberOfSpeaker": 1},
+        # 실제 데이터처럼 NumberOfSpeaker 칸이 화자 번호(숫자 4자리)예요.
+        "Basic": {"Language": "ko", "DataCategory": category, "NumberOfSpeaker": f"{int(code[3:]) % 10000:04d}"},
         "Wav": {"SamplingRate": "48000", "BitRate": "16"},
         "Transcription": {"LableText": text, "ErrorTagged": "N", "GrammaticalError": "N"},
         "Speaker": {"SpeakerName": name, "Gender": "여" if int(code[-1]) % 2 else "남", "Age": str(age), "AgeGroup": "어린이", "SchoolYear": grade_text, "Region": FAKE_REGION, "Dialect": "표준어"},

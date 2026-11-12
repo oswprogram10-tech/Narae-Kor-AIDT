@@ -340,10 +340,17 @@ def speaker_code(stem: str, member: str, cfg: dict, flat: Any = None) -> str | N
     """화자 코드. source가 "field"면 라벨의 칸(speaker.field 경로 목록)에서, 아니면 파일 이름/경로에서 정규식으로."""
     sp = cfg["speaker"]
     if sp.get("source") == "field":
+        # fields: 이어 붙일 칸 목록(각 항목은 대체 경로 목록). 하나라도 없으면 화자를 모르는 것으로 본다.
         if flat is None:
             return None
-        v = find_field(flat, sp.get("field", []))
-        return None if v is None or str(v).strip() == "" else str(v).strip()
+        groups = sp.get("fields") or [sp.get("field", [])]
+        parts = []
+        for cand in groups:
+            v = find_field(flat, cand if isinstance(cand, list) else [cand])
+            if v is None or str(v).strip() == "":
+                return None
+            parts.append(str(v).strip())
+        return "|".join(parts)
     target = member if sp.get("source") == "path" else stem
     m = re.search(sp["regex"], target)
     if not m:
