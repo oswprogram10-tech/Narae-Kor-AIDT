@@ -492,25 +492,65 @@ def wav_stem(name: str) -> str:
     return unicodedata.normalize("NFC", Path(name.replace("\\", "/")).stem).lower()
 
 
-def build_wav_index(source_paths: Iterable[str | os.PathLike]) -> tuple[list[Path], dict[str, tuple[int, int]], int]:
-    """원천 zip들의 wav 목록 → (zip 목록, 이름(확장자 뺀 것)→(zip 번호, 안 번호), 이름이 겹친 개수)."""
-    zips = [p for p in list_files(source_paths, (".zip",))]
-    index: dict[str, tuple[int, int]] = {}
+def build_wav_index(source_paths: Iterable[str | os.PathLike], cache_dir: Path | None = None) -> tuple[list[Path], dict[str, tuple[int, Any]], int]:
+    """원천 zip·tar들의 wav 목록 → (원천 파일 목록, 이름(확장자 뺀 것)→(파일 번호, 위치), 이름이 겹친 개수).
+    위치는 zip이면 안 번호(int), tar면 (데이터 시작 바이트, 크기). tar는 풀지 않고 그 자리에서 바로 읽는다(수십 GB를 풀 필요 없음).
+    tar 목록은 한 번 만들면 cache_dir에 저장해 두고 다음에는 다시 훑지 않는다(파일 크기·수정 시각이 같을 때)."""
+    import json
+    import tarfile
+    import time
+
+    files = [p for p in list_files(source_paths, (".zip", ".tar"))]
+    index: dict[str, tuple[int, Any]] = {}
     dup = 0
-    for zi, p in enumerate(zips):
+    for zi, p in enumerate(files):
+        if p.name.lower().endswith(".tar"):
+            st = p.stat()
+            cache = (cache_dir / f"tarindex_{p.stem}_{st.st_size}_{int(st.st_mtime)}.json") if cache_dir else None
+            entries: list[tuple[str, int, int]] | None = None
+            if cache and cache.exists():
+                try:
+                    entries = [tuple(e) for e in json.loads(cache.read_text(encoding="utf-8"))]
+                    say(f"tar 목록을 저장해 둔 것에서 읽었어요: {p.name} (wav {len(entries):,}개)")
+                except Exception:  # noqa: BLE001
+                    entries = None
+            if entries is None:
+                say(f"tar 안의 wav 목록을 만드는 중이에요: {p.name} (큰 파일은 몇 분~수십 분, 한 번만 해요)")
+                t0 = time.monotonic()
+                entries = []
+                try:
+                    with tarfile.open(p, "r:") as tf:
+                        for m in tf:
+                            if m.isfile() and m.name.lower().endswith(".wav"):
+                                entries.append((unicodedata.normalize("NFC", m.name), m.offset_data, m.size))
+                                if len(entries) % 50000 == 0:
+                                    say(f"  … wav {len(entries):,}개 ({(time.monotonic() - t0) / 60:.1f}분)")
+                except (tarfile.TarError, OSError) as e:
+                    say(f"[알림] tar를 읽지 못했어요(받다가 끊겼을 수 있어요): {p.name} ({type(e).__name__})")
+                say(f"  wav {len(entries):,}개 ({(time.monotonic() - t0) / 60:.1f}분)")
+                if cache and entries:
+                    cache.parent.mkdir(parents=True, exist_ok=True)
+                    cache.write_text(json.dumps(entries, ensure_ascii=False), encoding="utf-8")
+            for name, off, size in entries:
+                s_ = wav_stem(name)
+                if s_ in index:
+                    dup += 1
+                else:
+                    index[s_] = (zi, (off, size))
+            continue
         try:
             with zipfile.ZipFile(p) as zf:
                 for ii, info in enumerate(zf.infolist()):
                     if info.is_dir() or not info.filename.lower().endswith(".wav"):
                         continue
-                    s = wav_stem(decode_zip_name(info))
-                    if s in index:
+                    s_ = wav_stem(decode_zip_name(info))
+                    if s_ in index:
                         dup += 1
                     else:
-                        index[s] = (zi, ii)
+                        index[s_] = (zi, ii)
         except zipfile.BadZipFile:
             say(f"[알림] 원천 zip이 깨졌어요(분할 파일이면 merge_parts.py 로 이어 붙여 주세요): {p.name}")
-    return zips, index, dup
+    return files, index, dup
 
 
 def fmt_hours(sec: float) -> str:

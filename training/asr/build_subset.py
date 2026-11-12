@@ -161,8 +161,9 @@ def extract_audio(chosen: dict[str, list[tuple[Row, str, float]]], zips: list[Pa
         for r, text, _ in items:
             zi, ii = index[wav_stem(r.stem)]
             todo.append((zi, ii, split, r, text))
-    todo.sort(key=lambda t: (t[0], t[1]))
+    todo.sort(key=lambda t: (t[0], t[1] if isinstance(t[1], int) else t[1][0]))  # 파일 안 순서대로(tar는 앞에서부터 읽게)
     cur_zi, zf = -1, None
+    tar_fh = None  # tar는 풀지 않고 파일을 열어 둔 채 위치로 바로 읽는다
     bar = tqdm(todo, desc="wav 꺼내는 중", unit="개", mininterval=2.0)
     try:
         for zi, ii, split, r, text in bar:
@@ -180,10 +181,22 @@ def extract_audio(chosen: dict[str, list[tuple[Row, str, float]]], zips: list[Pa
                 if zi != cur_zi:
                     if zf:
                         zf.close()
-                    zf = zipfile.ZipFile(zips[zi])
+                        zf = None
+                    if tar_fh:
+                        tar_fh.close()
+                        tar_fh = None
+                    if isinstance(ii, int):
+                        zf = zipfile.ZipFile(zips[zi])
+                    else:
+                        tar_fh = open(zips[zi], "rb")  # noqa: SIM115
                     cur_zi = zi
                 try:
-                    data, sr = sf.read(io.BytesIO(zf.read(zf.infolist()[ii])), dtype="float32", always_2d=True)
+                    if isinstance(ii, int):
+                        raw = zf.read(zf.infolist()[ii])
+                    else:
+                        tar_fh.seek(ii[0])
+                        raw = tar_fh.read(ii[1])
+                    data, sr = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
                 except Exception:  # noqa: BLE001
                     report["wav를 읽지 못함"] += 1
                     continue
@@ -205,6 +218,8 @@ def extract_audio(chosen: dict[str, list[tuple[Row, str, float]]], zips: list[Pa
     finally:
         if zf:
             zf.close()
+        if tar_fh:
+            tar_fh.close()
     return out
 
 
@@ -238,9 +253,9 @@ def main(argv=None) -> None:
     if unmerged_parts(a.labels) or unmerged_parts(a.sources):
         say("[알림] 이어 붙이지 않은 분할 파일이 있어요. merge_parts.py 를 먼저 실행해 주세요.")
 
-    zips, index, dup = build_wav_index(a.sources)
+    zips, index, dup = build_wav_index(a.sources, cache_dir=work)
     if not zips:
-        die("원천(wav) zip을 찾지 못했어요. --sources 경로를 확인해 주세요.")
+        die("원천(wav) zip·tar를 찾지 못했어요. --sources 경로를 확인해 주세요.")
     say(f"원천 zip {len(zips)}개, wav {len(index):,}개" + (f" (이름이 겹친 wav {dup:,}개는 첫 번째만 써요)" if dup else ""))
 
     stats: Counter = Counter()

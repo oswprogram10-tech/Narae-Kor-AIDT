@@ -259,3 +259,30 @@ def test_14_loose_json_like_extracted_tar(fake, tmp_path):
     assert by["VL_01"]["split"] == "valid" and by["VL_01"]["source_zip"] == "VS_01.zip"
     assert by["TL_01"]["split"] == "train" and by["TL_01"]["source_zip"] == "TS_01.zip"
     assert FAKE_MARK not in out
+
+
+def test_15_build_subset_reads_tar_without_extracting(fake, tmp_path):
+    """원천이 큰 tar로 올 때: 풀지 않고 tar 안의 wav를 바로 꺼내 평가 묶음을 만든다(두 번째 실행은 tar 목록을 저장본에서)."""
+    import tarfile
+    import zipfile
+
+    tar_path = tmp_path / "source" / "VS_kor_formatted_01.tar"
+    tar_path.parent.mkdir(parents=True)
+    with tarfile.open(tar_path, "w") as tf:
+        for z in (fake["root"] / "source").rglob("*.zip"):
+            with zipfile.ZipFile(z) as zf:
+                for info in zf.infolist():
+                    if info.filename.lower().endswith(".wav"):
+                        data = zf.read(info)
+                        ti = tarfile.TarInfo(name=f"kor_formatted/2021-12-14/{Path(info.filename).name}")
+                        ti.size = len(data)
+                        import io as _io
+                        tf.addfile(ti, _io.BytesIO(data))
+    work = tmp_path / "work"
+    out = run("build_subset.py", "--labels", fake["root"] / "labels", "--sources", tar_path.parent, "--work", work, "--eval-hours", "0.01")
+    assert "tar 안의 wav 목록을 만드는 중" in out
+    lines = (work / "eval.jsonl").read_text(encoding="utf-8").strip().splitlines()
+    assert lines and all((work / json.loads(x)["audio"]).exists() for x in lines)
+    out2 = run("build_subset.py", "--labels", fake["root"] / "labels", "--sources", tar_path.parent, "--work", work, "--eval-hours", "0.01")
+    assert "저장해 둔 것에서 읽었어요" in out2
+    assert FAKE_MARK not in out + out2
