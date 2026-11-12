@@ -336,8 +336,14 @@ def anon_key(raw: str, work: Path) -> str:
     return "s" + hashlib.sha256(get_salt(work) + raw.encode("utf-8")).hexdigest()[:10]
 
 
-def speaker_code(stem: str, member: str, cfg: dict) -> str | None:
+def speaker_code(stem: str, member: str, cfg: dict, flat: Any = None) -> str | None:
+    """화자 코드. source가 "field"면 라벨의 칸(speaker.field 경로 목록)에서, 아니면 파일 이름/경로에서 정규식으로."""
     sp = cfg["speaker"]
+    if sp.get("source") == "field":
+        if flat is None:
+            return None
+        v = find_field(flat, sp.get("field", []))
+        return None if v is None or str(v).strip() == "" else str(v).strip()
     target = member if sp.get("source") == "path" else stem
     m = re.search(sp["regex"], target)
     if not m:
@@ -450,7 +456,7 @@ def iter_rows(
                     seconds = b - a
             if seconds is None:
                 stats["no_duration"] += 1
-            code = speaker_code(stem, member, cfg)
+            code = speaker_code(stem, member, cfg, flat)
             if code is None:
                 stats["speaker_fail"] += 1
             text = vals.get("transcript") if want_text else None

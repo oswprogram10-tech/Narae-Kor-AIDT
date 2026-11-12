@@ -18,11 +18,11 @@
   "sensitive_keys": ["SpeakerName", "Name", "Region", "Dialect", "이름", "화자이름", "지역", "방언", "Address", "Phone", "Email", "BirthDate"],
   "categorical_keys": ["DataCategory", "SchoolYear", "Age", "AgeGroup", "NoiseEnviron", "RecordingEnviron", "Gender", "SamplingRate"],
   "values": {
-    "formal": ["정형"],
-    "informal": ["비정형"],
-    "noise_clean": ["무소음", "조용", "정숙", "quiet", "silent", "clean", "없음", "none"],
+    "formal": ["정형", "Formatted"],
+    "informal": ["비정형", "Unformatted", "UnFormatted", "Unformated"],
+    "noise_clean": ["무소음", "조용", "정숙", "quiet", "silent", "silence", "clean", "없음", "none"],
     "noise_noisy": ["소음", "시끄", "noisy", "noise", "잡음"],
-    "school_year_map": {}
+    "school_year_map": {"Y0": "미취학", "Y1": "초1", "Y2": "초2", "Y3": "초3", "Y4": "초4", "Y5": "초5", "Y6": "초6"}
   },
   "speaker": {
     "_설명": "화자 코드를 파일 이름(확장자 뺀 것)에서 뽑는 정규식이에요. 첫 번째 묶음(...)이 화자 코드예요. 이름은 쓰지 않아요.",

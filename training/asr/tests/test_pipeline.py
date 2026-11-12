@@ -69,7 +69,7 @@ def test_02_inspect(fake):
     assert "SPK" not in out  # 화자 코드(파일 이름)도 모양(AAA###)으로만
     assert "AAA###_A#_####" in out
     assert "안녕하세요" not in out and "토끼" not in out  # 전사 글 값은 없다
-    assert "화자 코드 정규식으로 뽑힌 비율: " in out
+    assert "화자 코드로 뽑힌 비율: " in out
 
 
 def test_03_scan(fake):
@@ -246,6 +246,7 @@ def test_14_loose_json_like_extracted_tar(fake, tmp_path):
     out = run("inspect_labels.py", "--labels", labels, "--work", work, "--per-zip", "2")
     assert "DataCategory" in out
     assert FAKE_MARK not in out
+    assert "화자 칸 찾기" in out and "SPK" not in out  # 후보 이름과 숫자만, 값(화자 코드)은 안 보인다
     out = run("scan_labels.py", "--labels", labels, "--sources", fake["root"] / "source", "--work", work)
     assert "다 읽었어요" in out
     scan = json.loads((work / "scan.json").read_text(encoding="utf-8"))

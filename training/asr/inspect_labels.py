@@ -10,6 +10,7 @@ fields.json 의 칸 이름을 찾았는지.
 from __future__ import annotations
 
 import argparse
+import re
 import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,6 +21,7 @@ from asr_common import (
     decode_zip_name,
     die,
     find_field_ex,
+    find_field,
     flatten,
     list_files,
     loose_container,
@@ -84,6 +86,61 @@ def sample_files(paths, per_container: int, max_loose: int = 1500):
                     yield p.name, decode_zip_name(info), zf.read(info), len(infos)
 
 
+def speaker_probe(paths, cfg, limit: int = 3000) -> None:
+    """어느 칸(또는 파일 이름의 몇 번째 조각)이 '화자'를 가리키는지 값 없이 숫자로만 보여 준다.
+    한 폴더에서 이어진 JSON을 읽어, 후보마다 묶음 수·묶음 크기와 '같은 묶음 안에서 성별·나이·학년이 늘 같은 비율'을 센다.
+    진짜 화자 칸이면 묶음이 적당히 크고(한 아이가 여러 문장) 같은 묶음 안의 성별·나이·학년이 100% 같아요."""
+    from itertools import islice
+
+    rows = []
+    for _root, f in islice(walk_json(paths), limit):
+        try:
+            doc = parse_label_json(f.read_bytes(), cfg)
+        except Exception:  # noqa: BLE001
+            continue
+        flat = flatten(doc)
+        rows.append((flat, f))
+    if len(rows) < 50:
+        return
+    P = cfg["paths"]
+    skip = {nkey(x) for x in ("labeltext", "lable text", "text")}
+    cands: dict[str, list] = defaultdict(list)
+    who = []
+    for flat, f in rows:
+        w = tuple(str(find_field(flat, P[k])) for k in ("gender", "age", "school_year"))
+        who.append(w)
+        for path, v in flat[0].items():
+            if path.split(".")[-1] in skip or not isinstance(v, (str, int, float)):
+                continue
+            cands[f"칸 {path}"].append(str(v))
+        fn = find_field(flat, P["file_name"])
+        stem = Path(str(fn).replace("\\", "/")).stem if fn else f.stem
+        for i, tok in enumerate(re.split(r"[-_]", stem)):
+            cands[f"파일이름 {i + 1}번째 조각"].append(tok)
+        dp = find_field(flat, ["File.DirectoryPath"])
+        if dp:
+            for i, seg in enumerate(str(dp).replace("\\", "/").strip("/").split("/")):
+                cands[f"DirectoryPath {i + 1}번째 폴더"].append(seg)
+    n = len(rows)
+    out = []
+    for name, vals in cands.items():
+        if len(vals) != n:
+            continue
+        groups: dict[str, set] = defaultdict(set)
+        for v, w in zip(vals, who):
+            groups[v].add(w)
+        g = len(groups)
+        if g <= 1 or g >= n:
+            continue
+        consistent = sum(1 for s_ in groups.values() if len(s_) == 1) / g
+        out.append((consistent, -abs((n / g) - 30), name, g, n / g))
+    say(f"\n== 화자 칸 찾기(값은 보이지 않아요, 이어진 JSON {n}개로) ==")
+    say(f"{'후보':<34}{'묶음 수':>8}{'묶음당 문장':>12}{'성별·나이·학년 일치':>18}")
+    for consistent, _, name, g, avg in sorted(out, reverse=True)[:15]:
+        say(f"{name[:33]:<34}{g:>8,}{avg:>12.1f}{consistent * 100:>17.1f}%")
+    say("→ '일치'가 100%에 가깝고 묶음당 문장이 수십 개인 후보가 화자 칸일 가능성이 커요.")
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_common_args(ap, labels=True)
@@ -128,7 +185,7 @@ def main(argv=None) -> None:
         stem = Path(str(fn).replace("\\", "/")).stem if fn else Path(member.replace("\\", "/")).stem
         name_shapes[shape_of(stem)] += 1
         member_shapes["/".join(shape_of(x) for x in member.replace("\\", "/").split("/")[-4:])] += 1
-        if speaker_code(stem, member, cfg):
+        if speaker_code(stem, member, cfg, flat):
             spk_ok += 1
 
     if n == 0:
@@ -160,7 +217,8 @@ def main(argv=None) -> None:
     say("== zip 안 경로 모양(마지막 4단계) ==")
     for s, c in member_shapes.most_common(5):
         say(f"  {s}  ×{c}")
-    say(f"\n화자 코드 정규식으로 뽑힌 비율: {spk_ok}/{n}" + ("" if spk_ok == n else "  → 못 뽑는 파일이 있어요. 위 '파일 이름 모양'을 보고 fields.json 의 speaker.regex 를 고쳐야 해요."))
+    speaker_probe(a.labels, cfg)
+    say(f"\n화자 코드로 뽑힌 비율: {spk_ok}/{n}" + ("" if spk_ok == n else "  → 못 뽑는 파일이 있어요. 위 '파일 이름 모양'을 보고 fields.json 의 speaker.regex 를 고쳐야 해요."))
 
 
 if __name__ == "__main__":
