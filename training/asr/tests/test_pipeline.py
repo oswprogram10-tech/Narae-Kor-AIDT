@@ -247,6 +247,11 @@ def test_14_loose_json_like_extracted_tar(fake, tmp_path):
     assert "DataCategory" in out
     assert FAKE_MARK not in out
     assert "화자 칸 찾기" in out and "SPK" not in out  # 후보 이름과 숫자만, 값(화자 코드)은 안 보인다
+    # 구분 칸이 없는 라벨이 하나 섞여도(구분 없음=None과 '정형'이 같은 표에) 정렬에서 멈추지 않아야 한다
+    one = next(labels.rglob("*.json"))
+    d = json.loads(one.read_text(encoding="utf-8"))
+    d["Basic"].pop("DataCategory", None)
+    one.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
     out = run("scan_labels.py", "--labels", labels, "--sources", fake["root"] / "source", "--work", work)
     assert "다 읽었어요" in out
     scan = json.loads((work / "scan.json").read_text(encoding="utf-8"))

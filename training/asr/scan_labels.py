@@ -94,12 +94,12 @@ def main(argv=None) -> None:
         say(f"[주의] 화자 코드를 못 뽑은 파일 {stats['speaker_fail']:,}개 → 화자 수가 실제보다 적게 보여요. inspect_labels.py 의 '파일 이름 모양'을 보고 fields.json 의 speaker.regex 를 고쳐 주세요.")
 
     for split in ("train", "valid"):
-        rows = sorted((k, v) for k, v in cells.items() if k[0] == split)
+        rows = [(k, v) for k, v in cells.items() if k[0] == split]  # 칸에 None(구분 없음)이 섞여 있어 그대로 정렬하지 않는다
         if not rows:
             continue
         say(f"\n== {SPLIT_KO[split]} : 학년 × 구분 × 소음 ==")
         say(f"{'학년':<10}{'구분':<8}{'소음':<10}{'시간(시)':>10}{'발화 수':>12}{'화자 수':>8}")
-        for k, (sec, n) in sorted(rows, key=lambda kv: (grade_sort(kv[0][1]), str(kv[0][2]), kv[0][3])):
+        for k, (sec, n) in sorted(rows, key=lambda kv: (grade_sort(kv[0][1]), str(kv[0][2]), str(kv[0][3]))):
             say(f"{k[1]:<10}{CAT_KO[k[2]]:<8}{NOISE_KO[k[3]]:<10}{fmt_hours(sec):>10}{n:>12,}{len(cell_spk[k]):>8,}")
     both = len(spk_by_split["train"] & spk_by_split["valid"])
     say(f"\n학습과 검증에 모두 나온 화자 코드: {both:,}명 (평가용 화자는 build_subset.py 가 학습에서 빼요)")
@@ -160,7 +160,7 @@ def main(argv=None) -> None:
                     "utterances": v[1],
                     "speakers": len(cell_spk[k]),
                 }
-                for k, v in sorted(cells.items(), key=lambda kv: (kv[0][0], grade_sort(kv[0][1]), str(kv[0][2]), kv[0][3]))
+                for k, v in sorted(cells.items(), key=lambda kv: (kv[0][0], grade_sort(kv[0][1]), str(kv[0][2]), str(kv[0][3])))
             ],
             "by_source": by_source,
         },
