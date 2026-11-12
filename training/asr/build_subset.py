@@ -299,8 +299,13 @@ def main(argv=None) -> None:
     # 평가 먼저 → 평가 화자를 학습에서 뺀다
     train_pool, eval_pool = pool["train"], pool["valid"]
     if not eval_pool:
-        say("[알림] 검증(Validation) 후보가 없어서 학습 화자 일부를 평가용으로 떼어 놓아요.")
-        train_pool, eval_pool = holdout_eval_from_train(train_pool, a.seed)
+        if a.train_hours <= 0:
+            # 평가만 할 때: 학습/검증 구분이 없는 데이터(예: kor_formatted)면 내려받은 것 전부를 평가 후보로(화자 단위로 고른다)
+            say("[알림] 검증(Validation) 구분이 없어서, 내려받은 발화 전체에서 평가용을 화자 단위로 골라요(평가만 하는 경우).")
+            train_pool, eval_pool = [], train_pool
+        else:
+            say("[알림] 검증(Validation) 후보가 없어서 학습 화자 일부를 평가용으로 떼어 놓아요.")
+            train_pool, eval_pool = holdout_eval_from_train(train_pool, a.seed)
     eval_sel = select(eval_pool, a.eval_hours, clean_share, a.seed + 1)
     eval_speakers = {it[0].speaker for it in eval_sel}
     train_sel = select([it for it in train_pool if it[0].speaker not in eval_speakers], a.train_hours, clean_share, a.seed)
