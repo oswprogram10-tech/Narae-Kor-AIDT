@@ -36,10 +36,36 @@ def grade_sort(g: str) -> tuple:
     return (0, g) if g.startswith("초") else (1, g)
 
 
+def pick_eval_folders(src: dict, want_hours: float) -> list[dict]:
+    """학습/검증 구분이 없을 때 평가용으로 받을 '아이(묶음)'를 고른다: 초1~초6마다 무소음 1명 + 소음 1명(없으면 무소음 2명).
+    한 묶음이 한 아이인 경우(화자 1명)만 쓰고, 시간이 want_hours에 가까운 묶음을 고른다. 묶음 이름·숫자만 다룬다."""
+    by_grade: dict[str, list[tuple[str, dict]]] = defaultdict(list)
+    for name, d in src.items():
+        if len(d["spk"]) != 1 or not d.get("grades"):
+            continue
+        g = d["grades"].most_common(1)[0][0]
+        if g in {f"초{i}" for i in range(1, 7)}:
+            by_grade[g].append((name, d))
+    out: list[dict] = []
+    for g in sorted(by_grade):
+        items = by_grade[g]
+        def near(it):
+            return abs(it[1]["seconds"] / 3600 - want_hours)
+        clean = sorted((it for it in items if it[1]["noisy"] == 0), key=near)
+        noisy = sorted((it for it in items if it[1]["clean"] == 0 and it[1]["noisy"] > 0), key=near)
+        chosen = clean[:1] + (noisy[:1] if noisy else clean[1:2])
+        for name, d in chosen:
+            out.append({"folder": name, "grade": g, "noise": "소음" if d["noisy"] > 0 else "무소음",
+                        "hours": round(d["seconds"] / 3600, 3), "utterances": d["utts"]})
+    return out
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_common_args(ap, labels=True)
     ap.add_argument("--sources", nargs="*", default=None, help="내려받은 원천 zip 또는 폴더(있으면 짝 zip이 있는지 확인)")
+    ap.add_argument("--max-rows", type=int, default=30, help="원천 묶음 표에 보일 줄 수(나머지는 scan.json에만)")
+    ap.add_argument("--eval-pick-hours", type=float, default=0.45, help="평가용 추천에서 한 아이당 바라는 시간(시)")
     a = ap.parse_args(argv)
     cfg = load_config(a.fields)
     work = Path(a.work)
@@ -65,7 +91,8 @@ def main(argv=None) -> None:
             cell_spk[key].add(r.speaker)
             spk_by_split[r.split].add(r.speaker)
         if is_elementary(r.grade, r.age) and r.category == "formal":
-            d = src.setdefault(r.container, {"seconds": 0.0, "utts": 0, "clean": 0.0, "noisy": 0.0, "spk": set(), "split": r.split})
+            d = src.setdefault(r.container, {"seconds": 0.0, "utts": 0, "clean": 0.0, "noisy": 0.0, "spk": set(), "split": r.split, "grades": Counter()})
+            d["grades"][r.grade or (f"{r.age}세" if r.age is not None else "?")] += 1
             d["seconds"] += sec
             d["utts"] += 1
             if r.noise == "noisy":
@@ -117,7 +144,18 @@ def main(argv=None) -> None:
         say(f"\n== 원천 zip 추천: {title} (초등 정형, 시간이 큰 순) ==")
         say(f"{'라벨 zip':<28}{'짝 원천 zip':<28}{'시간(시)':>9}{'무소음':>8}{'소음':>7}{'발화 수':>10}{'화자':>6}  내려받음")
         total = 0.0
+        shown = 0
         for name, d in group:
+            shown += 1
+            if shown > a.max_rows:
+                if shown == a.max_rows + 1:
+                    say(f"  … 나머지 {len(group) - a.max_rows:,}개는 생략했어요(모두 {work / 'scan.json'} 에 있어요. --max-rows 로 늘릴 수 있어요)")
+                pair = zip_pair_name(name, cfg)
+                if pair and not pair.lower().endswith(".zip"):
+                    pair += ".zip"
+                total += d["seconds"]
+                by_source.append({"label_zip": name, "source_zip": pair, "split": d["split"], "elementary_formal_hours": round(d["seconds"] / 3600, 4), "clean_hours": round(d["clean"] / 3600, 4), "noisy_hours": round(d["noisy"] / 3600, 4), "utterances": d["utts"], "speakers": len(d["spk"])})
+                continue
             pair = zip_pair_name(name, cfg)
             if pair and not pair.lower().endswith(".zip"):
                 pair += ".zip"  # 풀린 라벨 폴더(VL_…)의 짝은 원천 zip(VS_….zip)
@@ -139,7 +177,19 @@ def main(argv=None) -> None:
             )
     if not src:
         say("  (초등 정형으로 분류된 발화가 없어요. 학년·구분 칸을 못 찾았거나 값이 예상과 다를 수 있어요 → inspect_labels.py)")
-    say("\n평가만 할 때는 Validation 표에서 누적 4시간(안전하게 5~6시간)이 채워질 만큼만 원천(VS_) zip을 받으면 돼요.")
+    eval_pick = pick_eval_folders(src, a.eval_pick_hours)
+    if eval_pick:
+        say("\n== 평가용 추천: 학년마다 무소음 1명 + 소음 1명(없으면 무소음 2명), 한 명당 약 "
+            f"{a.eval_pick_hours:g}시간에 가까운 아이 ==")
+        say("   (학습/검증 구분이 없는 데이터라서, 이 아이들의 원천 음성만 받아 평가용으로 써요. 나중에 학습에서는 이 아이들을 빼요)")
+        say(f"{'묶음(폴더)':<24}{'학년':<6}{'소음':<6}{'시간(시)':>9}{'발화 수':>9}")
+        tot = 0.0
+        for e in eval_pick:
+            tot += e["hours"]
+            say(f"{e['folder']:<24}{e['grade']:<6}{e['noise']:<6}{e['hours']:>9.2f}{e['utterances']:>9,}")
+        say(f"   합계 {tot:.2f}시간, {len(eval_pick)}명")
+    elif src:
+        say("\n평가만 할 때는 Validation 표에서 누적 4시간(안전하게 5~6시간)이 채워질 만큼만 원천(VS_) zip을 받으면 돼요.")
 
     save_json(
         work / "scan.json",
@@ -150,6 +200,7 @@ def main(argv=None) -> None:
             "speaker_extraction_failed": stats["speaker_fail"],
             "no_duration": stats["no_duration"],
             "speakers_in_both_splits": both,
+            "eval_pick": eval_pick,
             "cells": [
                 {
                     "split": k[0],

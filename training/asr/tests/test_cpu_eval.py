@@ -136,3 +136,24 @@ def test_decode_text_does_not_eagerly_str_result():
 
     assert evaluate._decode_text(Bad()) == "안녕"
     assert evaluate._decode_text("가") == "가"
+
+
+def test_pick_eval_folders_balanced():
+    """학습/검증 구분이 없을 때: 학년마다 무소음 1명 + 소음 1명, 시간이 원하는 값에 가까운 '한 아이 묶음'만."""
+    from collections import Counter
+
+    import scan_labels
+
+    def folder(g, clean, noisy, spk=1):
+        return {"seconds": (clean + noisy) * 3600, "clean": clean * 3600, "noisy": noisy * 3600, "utts": 100,
+                "spk": {f"s{i}" for i in range(spk)}, "split": "train", "grades": Counter({g: 100})}
+
+    src = {
+        "d/0001": folder("초1", 0.5, 0), "d/0002": folder("초1", 2.0, 0), "d/0003": folder("초1", 0, 0.4),
+        "d/0004": folder("초2", 0.45, 0), "d/0005": folder("초2", 0.9, 0),  # 소음 없음 → 무소음 2명
+        "d/0006": folder("미취학", 0.45, 0),  # 초등 아님 → 제외
+        "d/0007": folder("초3", 0.45, 0, spk=2),  # 한 묶음에 두 아이 → 제외
+    }
+    pick = scan_labels.pick_eval_folders(src, 0.45)
+    got = {(p["folder"], p["noise"]) for p in pick}
+    assert got == {("d/0001", "무소음"), ("d/0003", "소음"), ("d/0004", "무소음"), ("d/0005", "무소음")}
