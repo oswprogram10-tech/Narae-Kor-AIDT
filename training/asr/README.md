@@ -264,6 +264,8 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 ### 10-2. 국내 GPU 클라우드에서 하는 순서 (A100 80GB 등, bf16)
 
 > **복사·붙여넣기로 따라 하는 순서표는 [`CLOUD_TRAINING.md`](CLOUD_TRAINING.md)** 예요(엘리스클라우드 기준, 비용 어림, 스팟 회수 대비, 데이터 삭제까지). 아래는 요약이에요.
+>
+> **SenseVoice-Small 재학습**(기준선에서 가장 정확·빠른 모델, FunASR 라이선스)은 [`sensevoice/README.md`](sensevoice/README.md)를 봐요. 같은 업로드 묶음과 같은 평가(`evaluate.py --models sensevoice:<폴더>`)를 써요.
 
 노트북에서 학습 묶음과 업로드 묶음 만들기(`TS_kor_formatted_01.tar` 하나만 받아도 25시간은 충분해요. 초등 정형 약 1,100시간이 TS 4개에 나뉘어 있어요):
 ```powershell
