@@ -1,0 +1,65 @@
+{
+  "name": "narae-reader-win",
+  "version": "0.1.0",
+  "private": true,
+  "description": "국어나래 낭독 도우미 윈도우 앱 시험판(1단계: 속도 시험)",
+  "author": "국어나래",
+  "main": "out/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "dist:win": "npm run build && electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2",
+    "typescript": "^5"
+  },
+  "build": {
+    "appId": "kr.narae.reader",
+    "productName": "국어나래 낭독 도우미",
+    "executableName": "narae-reader",
+    "copyright": "국어나래",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "package.json",
+      "!node_modules/onnxruntime-web/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
+      "!out/engine-core.cjs"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "narae-reader-setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "language": "1042",
+      "shortcutName": "국어나래 낭독 도우미"
+    }
+  }
+}

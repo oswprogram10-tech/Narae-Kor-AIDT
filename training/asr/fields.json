@@ -1,0 +1,156 @@
+{
+  "_설명": "AI Hub 「한국어 아동 음성 데이터」 라벨 JSON의 칸 이름을 적어 두는 설정이에요. 실제 JSON의 키가 다르면 이 파일(또는 --fields 로 준 다른 파일)에서 고치세요. 경로는 점(.)으로 잇고, 대소문자·밑줄·하이픈은 무시해요. 목록이면 앞에서부터 찾아요. 경로로 못 찾으면 마지막 이름만으로도 한 번 더 찾아요.",
+  "paths": {
+    "transcript": [
+      "Transcription.LableText",
+      "Transcription.LabelText",
+      "Transcription.Text"
+    ],
+    "data_category": [
+      "Basic.DataCategory"
+    ],
+    "school_year": [
+      "Speaker.SchoolYear"
+    ],
+    "age": [
+      "Speaker.Age"
+    ],
+    "age_group": [
+      "Speaker.AgeGroup"
+    ],
+    "gender": [
+      "Speaker.Gender"
+    ],
+    "noise": [
+      "Environment.NoiseEnviron"
+    ],
+    "recording_env": [
+      "Environment.RecordingEnviron"
+    ],
+    "sampling_rate": [
+      "Wav.SamplingRate"
+    ],
+    "file_name": [
+      "File.FileName"
+    ],
+    "file_length": [
+      "File.FileLength"
+    ],
+    "speech_start": [
+      "Miscellaneous_Info.SpeechStart"
+    ],
+    "speech_end": [
+      "Miscellaneous_Info.SpeechEnd"
+    ]
+  },
+  "sensitive_keys": [
+    "SpeakerName",
+    "Name",
+    "Region",
+    "Dialect",
+    "이름",
+    "화자이름",
+    "지역",
+    "방언",
+    "Address",
+    "Phone",
+    "Email",
+    "BirthDate"
+  ],
+  "categorical_keys": [
+    "DataCategory",
+    "SchoolYear",
+    "Age",
+    "AgeGroup",
+    "NoiseEnviron",
+    "RecordingEnviron",
+    "Gender",
+    "SamplingRate",
+    "ErrorTagged",
+    "GrammaticalError",
+    "Fluency"
+  ],
+  "values": {
+    "formal": [
+      "정형",
+      "Formatted"
+    ],
+    "informal": [
+      "비정형",
+      "Unformatted",
+      "UnFormatted",
+      "Unformated",
+      "Free",
+      "free",
+      "자유"
+    ],
+    "noise_clean": [
+      "무소음",
+      "조용",
+      "정숙",
+      "quiet",
+      "silent",
+      "silence",
+      "clean",
+      "없음",
+      "none"
+    ],
+    "noise_noisy": [
+      "소음",
+      "시끄",
+      "noisy",
+      "noise",
+      "잡음"
+    ],
+    "school_year_map": {
+      "Y0": "미취학",
+      "Y1": "초1",
+      "Y2": "초2",
+      "Y3": "초3",
+      "Y4": "초4",
+      "Y5": "초5",
+      "Y6": "초6"
+    }
+  },
+  "speaker": {
+    "_설명": "화자 코드를 어디서 뽑을지예요. source가 field면 라벨 칸(fields: 이어 붙일 칸들)에서, name/path면 파일 이름/경로에서 regex로. 이름은 쓰지 않고, 뽑은 값은 소금 해시로만 다뤄요. 2026-11-12 inspect의 '화자 칸 찾기'에서 Basic.NumberOfSpeaker가 성별·나이·학년 일치 100%(이어진 3000개, 11명)로 확인됨. 번호가 겹치는 다른 아이를 나누려고 성별을 함께 붙여요.",
+    "source": "field",
+    "fields": [
+      [
+        "Basic.NumberOfSpeaker"
+      ],
+      [
+        "Speaker.Gender"
+      ]
+    ],
+    "regex": "(?:^|[_\\-])([A-Za-z]{0,4}\\d{3,8})(?=[_\\-.]|$)"
+  },
+  "zip_pairs": [
+    {
+      "label": "^TL_",
+      "source": "TS_"
+    },
+    {
+      "label": "^VL_",
+      "source": "VS_"
+    }
+  ],
+  "validation_markers": [
+    "VL_",
+    "Validation",
+    "검증"
+  ],
+  "normalize": {
+    "_설명": "전사 기호 처리 규칙이에요. dual_keep: (철자)/(발음) 중 남길 쪽(first=철자, second=발음).",
+    "dual_keep": "first",
+    "noise_tag_regex": "(?<![0-9A-Za-z가-힣])[A-Za-z]/",
+    "unclear_marks": [
+      "*"
+    ],
+    "unclear_policy": "drop",
+    "remove_chars": "+",
+    "unwrap_brackets": "()[]{}<>",
+    "strip_punctuation": true,
+    "drop_if_regex": []
+  }
+}

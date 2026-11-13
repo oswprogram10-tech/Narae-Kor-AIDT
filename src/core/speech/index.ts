@@ -1,0 +1,22 @@
+// 낭독 음성 인식 모델 목록 핵심부 공개 API.
+export {
+  DEFAULT_SPEECH_MODEL,
+  SPEECH_ATTRIBUTION,
+  SPEECH_BENCH_FAST_MS,
+  SPEECH_BENCH_FAST_MS_WEBGPU,
+  SPEECH_MIN_CORES_TIER2,
+  SPEECH_MIN_MEMORY_GB_TIER2,
+  SPEECH_MODELS,
+  canUseTier3,
+  chooseSpeechTier,
+  defaultModelForTier,
+  getSpeechModel,
+  speechModelFileUrl,
+  speechModelFiles,
+  type SpeechDtype,
+  type SpeechModelInfo,
+  type SpeechProbe,
+  type SpeechTier,
+  type Tier3Availability,
+  type TierChoice,
+} from "./catalog";

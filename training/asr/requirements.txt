@@ -1,0 +1,19 @@
+# PyTorch는 여기에 넣지 않았어요. README 2절에서 컴퓨터에 맞춰 따로 설치해요.
+#   GPU 컴퓨터(학습·빠른 평가): pip install torch --index-url https://download.pytorch.org/whl/cu126
+#   CPU 실행 환경(속도 확인):   pip install torch --index-url https://download.pytorch.org/whl/cpu
+transformers==5.22.2
+peft==0.21.2
+soundfile>=0.12
+scipy>=1.13
+numpy>=1.26
+tqdm>=4.66
+# 시험용(선택): pip install pytest
+# CPU 평가의 주력: sherpa-onnx(zipformer·SenseVoice·Whisper int8). huggingface_hub는 download_models.py가 써요(transformers가 함께 깔아요).
+sherpa-onnx>=1.12
+huggingface_hub>=0.30
+# Moonshine은 transformers 5.x가 필요해요(없으면 그 모델만 건너뛰어요).
+# 선택(원문 기반 채점 연구, align_score.py·align_eval.py): SenseVoice ONNX 를 직접 돌려 CTC 강제 정렬을 해요.
+#   BPE 모델(chn_jpn_yue_eng_ko_spectok.bpe.model)은 HF FunAudioLLM/SenseVoiceSmall 에 있어요(모델 파일이라 약관 문제 없음).
+onnxruntime>=1.20
+sentencepiece>=0.2
+kaldi-native-fbank>=1.20
