@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import re
 import time
@@ -177,6 +178,79 @@ def scoring_metrics(items: list[dict], hyps: list[str], max_cers: list[float], s
             }
         )
     return out
+
+
+ERROR_KINDS = [
+    ("number", "숫자 표기(3↔삼 등)"),
+    ("latin", "영문 표기"),
+    ("deleted", "어절 통째 빠짐"),
+    ("tail_cut", "  └ 그중 문장 끝이 잘림"),
+    ("ending", "끝 1~2글자만 다름(조사·어미)"),
+    ("one_char", "한 글자만 다름"),
+    ("far", "크게 다름(절반 이상)"),
+    ("other", "기타"),
+]
+
+
+def classify_error(ref: str, hyp: str | None) -> str:
+    """틀린 어절 하나의 종류. 표기 차이(숫자·영문)를 먼저 가려낸다 — 채점 정규화만 고쳐도 줄일 수 있는 오류라서."""
+    import re as _re
+
+    if hyp is None or hyp == "":
+        return "deleted"
+    if _re.search(r"[0-9]", ref + hyp):
+        return "number"
+    if _re.search(r"[A-Za-z]", ref + hyp):
+        return "latin"
+    d = levenshtein(list(ref), list(hyp))
+    common = 0
+    for x, y in zip(ref, hyp):
+        if x != y:
+            break
+        common += 1
+    if len(ref) >= 2 and common >= max(1, len(ref) - 2) and abs(len(ref) - len(hyp)) <= 2:
+        return "ending"
+    if d == 1:
+        return "one_char"
+    if d >= max(1, len(ref)) * 0.5:
+        return "far"
+    return "other"
+
+
+def error_breakdown(items: list[dict], hyps: list[str]) -> dict:
+    """정답 어절 중 오류로 표시된 것을 종류별로 센다(띄어쓰기 무시 맞춤, 정확히 같아야 맞음). 글은 담지 않고 개수만."""
+    from collections import Counter as _C
+
+    kinds: _C = _C()
+    total = wrong = ins = 0
+    refs_with_digit = sum(1 for it in items if any(c.isdigit() for c in it["text"]))
+    for it, hyp in zip(items, hyps):
+        a = align_eojeol(it["text"], hyp)
+        total += len(a.items)
+        ins += len(a.insertions)
+        # 문장 끝에서부터 이어진 '빠짐'은 잘림으로 따로 센다
+        tail = 0
+        for _r, _h, op in reversed(a.items):
+            if op == "del":
+                tail += 1
+            else:
+                break
+        for i, (r, h, op) in enumerate(a.items):
+            if op == "match":
+                continue
+            wrong += 1
+            k = classify_error(r, h if op != "del" else None)
+            kinds[k] += 1
+            if k == "deleted" and i >= len(a.items) - tail:
+                kinds["tail_cut"] += 1
+    share = {k: round(v / wrong, 4) if wrong else 0.0 for k, v in kinds.items()}
+    fixable = kinds["number"] + kinds["latin"]
+    return {
+        "eojeols": total, "wrong": wrong, "insertions": ins, "counts": dict(kinds), "share_of_wrong": share,
+        "notation_fixable_rate": round(fixable / total, 4) if total else 0.0,
+        "false_alarm_if_notation_fixed": round((wrong - fixable) / total, 4) if total else None,
+        "utterances_with_digits_in_reference": refs_with_digit,
+    }
 
 
 class Skip(Exception):
@@ -480,6 +554,7 @@ def main(argv=None) -> None:
     ap.add_argument("--sim-error-rate", type=float, default=0.15, help="놓침률 시험에서 어절을 바꿔 놓을 비율")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default=None, help="whisper·moonshine 의 장치(cuda/cpu, 기본 자동). sherpa 계열은 CPU")
+    ap.add_argument("--no-save-hyps", action="store_true", help="인식 결과를 work 폴더에 저장하지 않음(기본은 이 컴퓨터에만 저장해 다시 분석에 씀)")
     ap.add_argument("--show-examples", type=int, default=0, help="정답·인식 예시를 이 개수만큼 내 화면에만 보여요(저장 안 함)")
     a = ap.parse_args(argv)
 
@@ -530,7 +605,13 @@ def main(argv=None) -> None:
                "partial": partial, "peak_ram_mb": None if (pk := cpuinfo.peak_rss_mb()) is None else round(pk)}
         res.update(group_metrics(done, hyps))
         res["scoring"] = scoring_metrics(done, hyps, max_cers, a.seed, a.sim_error_rate)
+        res["errors"] = error_breakdown(done, hyps)
         save_json(work / f"eval_{slug(spec)}.json", res)
+        if not a.no_save_hyps:
+            # 인식 결과(아이 낭독을 받아 적은 글)는 이 컴퓨터의 work 폴더에만 둔다(채팅·저장소로 보내지 않음). 다시 분석할 때 모델을 또 돌리지 않으려고.
+            with open(work / f"hyps_{slug(spec)}.jsonl", "w", encoding="utf-8") as fh:
+                for it, h in zip(done, hyps):
+                    fh.write(json.dumps({"id": it["id"], "hyp": h}, ensure_ascii=False) + "\n")
         summary.append(res)
         al = res["all"]
         say(f"CER {al['cer']}  WER(띄어쓰기 무시) {al['wer']}  WERsp(띄어쓰기 따짐, 참고) {al['wer_spacing']}  RTF {res['rtf']}({dev}, {a.threads}스레드) → 1분 낭독을 약 {res['sec_per_min_audio']}초에 처리  파일 크기 {size}MB  (발화 {al['n']}/{len(items)}개{' — 부분 결과' if partial else ''})")
@@ -540,6 +621,9 @@ def main(argv=None) -> None:
             say(f"  소음 {k}: CER {v['cer']} WER {v['wer']} (n={v['n']})")
         for s in res["scoring"]:
             say(f"  [낭독 채점, 어절 같음 기준 글자오류율≤{s['max_cer']}] 오경보율 어절 {s['false_alarm_eojeol_rate']} / 발화 {s['false_alarm_utterance_rate']}, 놓침률(한 글자 바꾼 어절 {s['simulated_errors']}개) {s['miss_rate_one_syllable']}")
+        eb = res["errors"]
+        say(f"  [오류 나눠 보기] 틀린 어절 {eb['wrong']:,}/{eb['eojeols']:,}개 중: " + ", ".join(f"{lab.strip(' └')} {eb['counts'].get(k, 0):,}({eb['share_of_wrong'].get(k, 0) * 100:.0f}%)" for k, lab in ERROR_KINDS if eb['counts'].get(k)))
+        say(f"  표기 차이(숫자·영문)만 바로잡으면 오경보율 → {eb['false_alarm_if_notation_fixed']}  (끼워 넣은 덩어리 {eb['insertions']:,}개는 오류로 안 셈)")
         if a.show_examples:
             say("  -- 예시(내 화면에만 나와요) --")
             for it, h in list(zip(done, hyps))[: a.show_examples]:
@@ -555,9 +639,18 @@ def main(argv=None) -> None:
     if any(r["partial"] for r in summary):
         say("(* = 부분 결과: --max-minutes 시간 상한 때문에 앞의 일부 발화만 평가했어요. 정확도 숫자는 참고용이에요)")
     say("(60초분량(초) = RTF×60 = 1분 길이 낭독을 처리하는 데 걸린 시간. RAM최대MB = 이 실행 프로세스의 지금까지 최대치라 뒤 모델 값은 앞 모델 것을 포함해요 → 모델별로 정확히 재려면 모델 하나씩 실행해요)")
+    if summary:
+        say("\n== 오류 나눠 보기(틀린 어절 중 비율, 숫자만) ==")
+        heads = [lab.strip(" └") for k, lab in ERROR_KINDS]
+        say(f"{'모델':<34}" + "".join(f"{h[:10]:>12}" for h in heads) + f"{'표기 고치면 오경보':>16}")
+        for r in summary:
+            eb = r.get("errors", {})
+            sh = eb.get("share_of_wrong", {})
+            say(f"{r['model'][-33:]:<34}" + "".join(f"{sh.get(k, 0) * 100:>11.1f}%" for k, _ in ERROR_KINDS) + f"{eb.get('false_alarm_if_notation_fixed')!s:>16}")
+        say("(숫자·영문 표기 차이는 채점 정규화로 줄일 수 있어요. '끝 1~2글자'는 조사·어미, '문장 끝이 잘림'은 인식이 중간에 멈춘 경우예요.)")
     for m, why in skipped:
         say(f"(건너뜀) {m}: {why}")
-    say(f"\n저장: {work}/eval_*.json (숫자만)")
+    say(f"\n저장: {work}/eval_*.json (숫자만), hyps_*.jsonl (인식 글 — 이 컴퓨터에만, 보내지 마세요)")
 
 
 if __name__ == "__main__":

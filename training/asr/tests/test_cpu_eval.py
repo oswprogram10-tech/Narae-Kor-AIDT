@@ -157,3 +157,21 @@ def test_pick_eval_folders_balanced():
     pick = scan_labels.pick_eval_folders(src, 0.45)
     got = {(p["folder"], p["noise"]) for p in pick}
     assert got == {("d/0001", "무소음"), ("d/0003", "소음"), ("d/0004", "무소음"), ("d/0005", "무소음")}
+
+
+def test_error_breakdown_kinds():
+    """오류 종류 나누기: 숫자 표기, 끝 글자, 한 글자, 빠짐(끝 잘림), 크게 다름. 글은 저장하지 않고 개수만."""
+    items = [
+        {"text": "나는 3학년 학생이에요"},       # 3학년 → 삼학년 : 숫자 표기
+        {"text": "그는 학교에 갔어요"},          # 그는 → 걔는 : 한 글자
+        {"text": "토끼가 깡충깡충 뛰어요"},      # 토끼가 → 토끼는 : 끝 글자(조사)
+        {"text": "오늘은 날씨가 정말 좋아요"},   # 끝 두 어절 빠짐 : 문장 끝 잘림
+    ]
+    hyps = ["나는 삼학년 학생이에요", "걔는 학교에 갔어요", "토끼는 깡충깡충 뛰어요", "오늘은 날씨가"]
+    eb = evaluate.error_breakdown(items, hyps)
+    c = eb["counts"]
+    assert c.get("number") == 1 and c.get("one_char") == 1 and c.get("ending") == 1
+    assert c.get("deleted") == 2 and c.get("tail_cut") == 2
+    assert eb["wrong"] == 5 and eb["eojeols"] == 13
+    assert eb["false_alarm_if_notation_fixed"] == round(4 / 13, 4)
+    assert evaluate.classify_error("코끼리", "바나나") == "far"
