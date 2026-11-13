@@ -65,7 +65,10 @@
     "NoiseEnviron",
     "RecordingEnviron",
     "Gender",
-    "SamplingRate"
+    "SamplingRate",
+    "ErrorTagged",
+    "GrammaticalError",
+    "Fluency"
   ],
   "values": {
     "formal": [
