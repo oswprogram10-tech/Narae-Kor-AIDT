@@ -28,6 +28,7 @@ DEFAULT_DEST = HERE / "models"
 MODELS: dict[str, tuple[str, list[str], int, str]] = {
     "zipformer-ko-72m": ("kangkyu/icefall-asr-ko-streaming-zipformer-72m", ["tokens.txt", "*-chunk-64-left-128.int8.onnx"], 70, "한국어 스트리밍 zipformer 72M, chunk-64 int8 → evaluate 의 sherpa: 백엔드"),
     "sensevoice": ("csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17", ["model.int8.onnx", "tokens.txt"], 230, "SenseVoice-Small int8(중·영·일·한·광둥어) → sensevoice: 백엔드"),
+    "sensevoice-bpe": ("FunAudioLLM/SenseVoiceSmall", ["chn_jpn_yue_eng_ko_spectok.bpe.model"], 1, "SenseVoice 토큰 나누기 모델(BPE) → align_score.py·align_eval.py 의 --bpe"),
     "whisper-tiny": ("csukuangfj/sherpa-onnx-whisper-tiny", ["*.int8.onnx", "*-tokens.txt"], 100, "Whisper tiny int8 → sherpa-whisper: 백엔드"),
     "whisper-base": ("csukuangfj/sherpa-onnx-whisper-base", ["*.int8.onnx", "*-tokens.txt"], 155, "Whisper base int8 → sherpa-whisper: 백엔드"),
     "whisper-small": ("csukuangfj/sherpa-onnx-whisper-small", ["*.int8.onnx", "*-tokens.txt"], 360, "Whisper small int8 → sherpa-whisper: 백엔드"),

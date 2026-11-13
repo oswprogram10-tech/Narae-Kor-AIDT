@@ -200,16 +200,100 @@ def load_tokens_txt(path: Path) -> list[str]:
 
 def text_to_tokens(sp, text: str) -> tuple[list[int], list[tuple[int, int]], list[str]]:
     """원문 → (토큰 id 열, 어절별 (시작, 끝) 토큰 구간, 어절 목록). 문장부호는 지운다(받아 적기 쪽 전처리와 같은 split_eojeols).
-    어절마다 따로 SentencePiece 로 쪼갠다(공백 단위로 ▁ 가 붙으므로 문장 통째로 쪼갠 것과 같다). 사전에 없는 글자(unk)는 건너뛴다."""
+    이 BPE 모델은 문장 맨 앞에 ▁ 를 붙이지 않고 어절 사이 공백만 ▁ 로 바꾼다. 그래서 어절을 따로 쪼개면 안 되고,
+    문장 전체를 쪼갠 뒤 조각의 글자 위치(바이트 오프셋)로 어절을 찾는다. 공백은 뒤따르는 어절에 속한다.
+    사전에 없는 글자(unk)는 건너뛴다."""
     words = split_eojeols(text)
-    ids: list[int] = []
-    ranges: list[tuple[int, int]] = []
+    if not words:
+        return [], [], []
+    joined = " ".join(words)
+    # 바이트 위치 -> 어절 번호(공백은 다음 어절)
+    owner: list[int] = []
+    for wi, w in enumerate(words):
+        if wi > 0:
+            owner.append(wi)  # 앞 공백 1바이트
+        owner.extend([wi] * len(w.encode("utf-8")))
+    try:
+        proto = sp.encode(joined, return_type="proto")
+    except (TypeError, ValueError):  # 옛 sentencepiece
+        proto = sp.encode(joined, out_type="immutable_proto")
     unk = sp.unk_id()
-    for w in words:
-        a = len(ids)
-        ids.extend(i for i in sp.encode(w) if i != unk and i != BLANK)
-        ranges.append((a, len(ids)))
-    return ids, ranges, words
+    ids: list[int] = []
+    ranges = [[0, 0] for _ in words]
+    first = [True] * len(words)
+    for p in proto.pieces:
+        if p.id in (unk, BLANK):
+            continue
+        wi = owner[min(max(p.end - 1, 0), len(owner) - 1)]
+        if first[wi]:
+            ranges[wi][0] = len(ids)
+            first[wi] = False
+        ids.append(p.id)
+        ranges[wi][1] = len(ids)
+    for r, f in zip(ranges, first):
+        if f:  # 토큰이 하나도 없는 어절은 빈 구간
+            r[0] = r[1] = 0
+    return ids, [(a, b) for a, b in ranges], words
+
+
+def word_alternatives(sp, words: list[str], k: int, samples: int = 40, alpha: float = 0.3, seed: int = 1) -> list[list[list[int]]]:
+    """어절마다 '다른 쪼개기' 후보 최대 k개(첫째는 기본 쪼개기). BPE 는 n-best 를 못 하므로 BPE-dropout 표본으로 모은다.
+    같은 소리도 모델이 '▁벌','▁리','고' 처럼 기본 쪼개기('▁벌','리고')와 다르게 낼 수 있어서, 그 차이로 맞게 읽은 어절을 틀렸다고 하지 않게 하려는 것."""
+    import sentencepiece as spm
+
+    spm.set_random_generator_seed(seed)
+    unk = sp.unk_id()
+    out: list[list[list[int]]] = []
+    for wi, w in enumerate(words):
+        ctx = "" if wi == 0 else "가 "
+        prefix = [] if wi == 0 else [i for i in sp.encode("가") if i != unk]
+        base = [i for i in sp.encode(ctx + w)]
+        seen = [base]
+        for _ in range(samples):
+            if len(seen) >= k:
+                break
+            cand = sp.encode(ctx + w, enable_sampling=True, alpha=alpha, nbest_size=-1)
+            if cand not in seen:
+                seen.append(cand)
+        alts = []
+        for c in seen:
+            c = [i for i in c if i != unk and i != BLANK]
+            if prefix:
+                if c[: len(prefix)] != prefix:
+                    continue
+                c = c[len(prefix) :]
+            if c and c not in alts:
+                alts.append(c)
+        out.append(alts)
+    return out
+
+
+def score_text_robust(logp: np.ndarray, sp, text: str, k: int = 1, prune_min_post: float = 0.9):
+    """score_text + 어절마다 다른 쪼개기 후보 중 점수 항목별 최댓값(k>1 일 때). 이미 충분히 잘 맞는 어절(min_post ≥ prune)은 다시 안 본다.
+    반환: (어절 점수 목록 또는 None, 어절 목록)."""
+    ids, ranges, words = text_to_tokens(sp, text)
+    base = score_text(logp, ids, ranges)
+    if base is None or k <= 1:
+        return base, words
+    alts = word_alternatives(sp, words, k)
+    out = list(base)
+    for wi, sc in enumerate(base):
+        if sc is None or sc.min_post >= prune_min_post:
+            continue
+        a, b = ranges[wi]
+        best = {n: sc.get(n) for n in SCORE_NAMES}
+        for alt in alts[wi]:
+            if alt == ids[a:b]:
+                continue
+            shift = len(alt) - (b - a)
+            r2 = [(x, y) if i < wi else ((a, a + len(alt)) if i == wi else (x + shift, y + shift)) for i, (x, y) in enumerate(ranges)]
+            s2 = score_text(logp, ids[:a] + alt + ids[b:], r2)
+            if s2 is None or s2[wi] is None:
+                continue
+            for n in SCORE_NAMES:
+                best[n] = max(best[n], s2[wi].get(n))
+        out[wi] = WordScore(sc.n_tokens, sc.start, sc.end, **best)
+    return out, words
 
 
 # ----------------------------------------------------------------------------------------------
@@ -252,10 +336,11 @@ class SenseVoiceCTC:
 
         opts = knf.FbankOptions()
         opts.frame_opts.dither = 0.0
-        opts.frame_opts.snip_edges = False
+        opts.frame_opts.snip_edges = True
         opts.frame_opts.samp_freq = 16000
         opts.frame_opts.window_type = "hamming"
         opts.mel_opts.num_bins = 80
+        opts.mel_opts.low_freq = 0.0  # 두 공개 음성에서 sherpa-onnx 와 가장 가까운 설정(20.0 이면 더 달라졌다)
         fb = knf.OnlineFbank(opts)
         x = np.asarray(wav, dtype=np.float32)
         if not self.normalize_samples:

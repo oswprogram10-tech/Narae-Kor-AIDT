@@ -12,3 +12,8 @@ tqdm>=4.66
 sherpa-onnx>=1.12
 huggingface_hub>=0.30
 # Moonshine은 transformers 5.x가 필요해요(없으면 그 모델만 건너뛰어요).
+# 선택(원문 기반 채점 연구, align_score.py·align_eval.py): SenseVoice ONNX 를 직접 돌려 CTC 강제 정렬을 해요.
+#   BPE 모델(chn_jpn_yue_eng_ko_spectok.bpe.model)은 HF FunAudioLLM/SenseVoiceSmall 에 있어요(모델 파일이라 약관 문제 없음).
+onnxruntime>=1.20
+sentencepiece>=0.2
+kaldi-native-fbank>=1.20
