@@ -7,8 +7,11 @@
 
 고르는 방법
   - 조건: 정형, 초등(학년 1~6, 학년 칸이 없으면 나이 7~13), 길이 0.5~30초, 전사가 비지 않을 것.
-  - 화자 단위로 나눠요: 평가는 Validation 라벨에서 뽑고, 평가에 들어간 화자는 학습에서 빼요.
-    (Validation이 없으면 학습 화자 중 일부를 평가로 떼어 놓아요.)
+  - 학습/검증은 '원천 파일 이름'으로 가르요: wav를 꺼내는 원천이 VS_(또는 fields.json validation_markers)면 검증,
+    TS_면 학습. 라벨이 한 폴더에 섞여 있어도 상관없어요(라벨 경로의 구분보다 우선).
+  - 화자 단위로 나눠요: 검증 원천에 나온 모든 화자와, 이미 만든 work/eval.jsonl 의 화자는 학습에서 빼요.
+    (검증 원천이 없으면 학습 화자 중 일부를 평가로 떼어 놓아요.)
+  - work/eval.jsonl 이 이미 있으면 그대로 두고 학습만 추가해요(--no-keep-eval 이면 평가도 다시 만들어요).
   - 학년이 고르게, 무소음:소음 = 기본 85:15, 화자도 고르게(화자마다 번갈아 한 발화씩) 담아요.
 기본은 '평가만'(--eval-hours 4, --train-hours 0)이에요. 그래서 라벨 + Validation 원천 일부만 받으면 돼요.
   학습용도 만들려면 --train-hours 25 (나중에 학습할 때).
@@ -61,6 +64,16 @@ def parse_range(s: str) -> tuple[int, int]:
 
 def who_of(r: Row) -> str:
     return r.grade if r.grade is not None else (f"{r.age}세" if r.age is not None else "미확인")
+
+
+def source_split(name: str, cfg: dict) -> str | None:
+    """원천 파일 이름으로 학습/검증을 가른다. VS_ 또는 validation_markers 가 들어 있으면 'valid', TS_ 면 'train', 모르면 None."""
+    low = name.lower()
+    if re.search(r"(?:^|[^a-z])vs_", low) or any(m.lower() in low for m in cfg.get("validation_markers", [])):
+        return "valid"
+    if re.search(r"(?:^|[^a-z])ts_", low):
+        return "train"
+    return None
 
 
 def utt_id(r: Row) -> str:
@@ -236,6 +249,7 @@ def main(argv=None) -> None:
     ap.add_argument("--min-sec", type=float, default=0.5)
     ap.add_argument("--max-sec", type=float, default=30.0)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--keep-eval", action=argparse.BooleanOptionalAction, default=True, help="work/eval.jsonl 이 있으면 그대로 두고 학습만 추가(기본). --no-keep-eval 이면 평가도 다시 만들어요")
     ap.add_argument("--allow-unknown-speaker", action="store_true", help="화자 코드를 못 뽑은 파일을 빼지 않고 파일마다 다른 화자로 취급(학습·평가가 섞일 수 있어 권하지 않아요)")
     ap.add_argument("--dry-run", action="store_true", help="고르기만 하고 wav는 만들지 않아요")
     a = ap.parse_args(argv)
@@ -263,7 +277,13 @@ def main(argv=None) -> None:
     hits: Counter = Counter()
     pool: dict[str, list[tuple[Row, str, float]]] = {"train": [], "valid": []}
     unk_i = 0
+    valid_src_speakers: set[str] = set()  # 검증 원천에 나온 모든 화자(조건에 안 맞는 발화의 화자도 포함)
     for r in iter_rows(a.labels, cfg, work, want_text=True, stats=stats):
+        src = index.get(wav_stem(r.stem))
+        if src is not None:
+            r.split = source_split(zips[src[0]].name, cfg) or r.split  # 원천 파일 기준이 라벨 경로보다 우선
+            if r.split == "valid" and r.speaker:
+                valid_src_speakers.add(r.speaker)
         if r.category != a.category:
             drop["구분이 다름(정형/비정형)"] += 1
             continue
@@ -311,9 +331,17 @@ def main(argv=None) -> None:
     if not pool["train"] and not pool["valid"]:
         die("조건에 맞는 후보가 없어요. scan_labels.py 의 표와 --sources 에 내려받은 원천 zip을 확인해 주세요.")
 
-    # 평가 먼저 → 평가 화자를 학습에서 뺀다
+    # 평가 먼저 → 평가 화자(와 검증 원천의 모든 화자)를 학습에서 뺀다
     train_pool, eval_pool = pool["train"], pool["valid"]
-    if not eval_pool:
+    eval_path = work / "eval.jsonl"
+    kept_eval: list[dict] | None = None
+    if a.keep_eval and eval_path.exists():
+        kept_eval = [json.loads(x) for x in eval_path.read_text(encoding="utf-8").splitlines() if x.strip()]
+        say(f"[알림] 이미 있는 평가 묶음(eval.jsonl, {len(kept_eval):,}개)을 그대로 둬요. 다시 만들려면 --no-keep-eval.")
+    if kept_eval is not None:
+        eval_sel = []
+        eval_speakers = {it["speaker"] for it in kept_eval}
+    elif not eval_pool:
         if a.train_hours <= 0:
             # 평가만 할 때: 학습/검증 구분이 없는 데이터(예: kor_formatted)면 내려받은 것 전부를 평가 후보로(화자 단위로 고른다)
             say("[알림] 검증(Validation) 구분이 없어서, 내려받은 발화 전체에서 평가용을 화자 단위로 골라요(평가만 하는 경우).")
@@ -321,16 +349,23 @@ def main(argv=None) -> None:
         else:
             say("[알림] 검증(Validation) 후보가 없어서 학습 화자 일부를 평가용으로 떼어 놓아요.")
             train_pool, eval_pool = holdout_eval_from_train(train_pool, a.seed)
-    eval_sel = select(eval_pool, a.eval_hours, clean_share, a.seed + 1)
-    eval_speakers = {it[0].speaker for it in eval_sel}
-    train_sel = select([it for it in train_pool if it[0].speaker not in eval_speakers], a.train_hours, clean_share, a.seed)
+    if kept_eval is None:
+        eval_sel = select(eval_pool, a.eval_hours, clean_share, a.seed + 1)
+        eval_speakers = {it[0].speaker for it in eval_sel}
+    exclude = eval_speakers | valid_src_speakers
+    train_sel = select([it for it in train_pool if it[0].speaker not in exclude], a.train_hours, clean_share, a.seed)
     train_speakers = {it[0].speaker for it in train_sel}
-    assert not (train_speakers & eval_speakers), "화자가 학습과 평가에 겹쳤어요(코드 오류)"
+    overlap = train_speakers & exclude
+    if overlap:
+        die(f"화자가 학습과 평가에 겹쳤어요({len(overlap)}명). 코드 오류예요.")
+    eval_n = len(kept_eval) if kept_eval is not None else len(eval_sel)
+    eval_sec = sum(it["seconds"] for it in kept_eval) if kept_eval is not None else sum(i[2] for i in eval_sel)
     say(f"\n고른 결과: 학습 {fmt_hours(sum(i[2] for i in train_sel))}시간({len(train_sel):,}개, 화자 {len(train_speakers)}명), "
-        f"평가 {fmt_hours(sum(i[2] for i in eval_sel))}시간({len(eval_sel):,}개, 화자 {len(eval_speakers)}명) — 화자 겹침 0명")
+        f"평가 {fmt_hours(eval_sec)}시간({eval_n:,}개, 화자 {len(eval_speakers)}명) — 화자 겹침 0명")
+    say(f"확인: 학습·평가 화자 겹침 0명 (학습에서 뺀 화자: 검증 원천 {len(valid_src_speakers)}명 + 평가 묶음 {len(eval_speakers)}명, 합쳐 {len(exclude)}명)")
     if a.train_hours > 0 and sum(i[2] for i in train_sel) < a.train_hours * 3600 * 0.9:
         say(f"[알림] 학습 시간이 목표({a.train_hours}시간)에 못 미쳐요. 원천 zip을 더 내려받아 주세요.")
-    if sum(i[2] for i in eval_sel) < a.eval_hours * 3600 * 0.9:
+    if kept_eval is None and eval_sec < a.eval_hours * 3600 * 0.9:
         say(f"[알림] 평가 시간이 목표({a.eval_hours}시간)에 못 미쳐요. Validation 원천(VS_) zip을 더 내려받아 주세요.")
     if a.dry_run:
         say("--dry-run 이라 여기서 끝내요.")
@@ -338,9 +373,13 @@ def main(argv=None) -> None:
 
     report: Counter = Counter()
     result = extract_audio({"train": train_sel, "valid": eval_sel}, zips, index, work, a, report)
+    if kept_eval is not None:
+        result["valid"] = kept_eval
     for split, name in (("train", "train.jsonl"), ("valid", "eval.jsonl")):
         if split == "train" and a.train_hours <= 0:
             continue  # 평가만 만들 때는 학습 목록을 쓰지 않는다
+        if split == "valid" and kept_eval is not None:
+            continue  # 있던 평가 묶음은 건드리지 않는다
         items = sorted(result[split], key=lambda it: (it["grade"], it["id"]))
         with open(work / name, "w", encoding="utf-8") as f:
             for it in items:

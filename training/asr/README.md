@@ -263,9 +263,18 @@ Hugging Face에서 모델을 내려받지 못하는 환경이면 학습·평가 
 
 ### 10-2. 국내 GPU 클라우드에서 하는 순서 (A100 80GB 등, bf16)
 
+> **복사·붙여넣기로 따라 하는 순서표는 [`CLOUD_TRAINING.md`](CLOUD_TRAINING.md)** 예요(엘리스클라우드 기준, 비용 어림, 스팟 회수 대비, 데이터 삭제까지). 아래는 요약이에요.
+
+노트북에서 학습 묶음과 업로드 묶음 만들기(`TS_kor_formatted_01.tar` 하나만 받아도 25시간은 충분해요. 초등 정형 약 1,100시간이 TS 4개에 나뉘어 있어요):
+```powershell
+python build_subset.py --labels data\labels --sources data\source --train-hours 25
+python pack_for_cloud.py        # work\cloud_upload\narae_asr_data.tar + MANIFEST.txt (wav·익명 manifest만, 국내 클라우드에만 올리고 끝나면 지워요)
+```
+학습/검증은 원천 파일 이름(`TS_`/`VS_`)으로 갈라요(라벨이 한 폴더에 섞여 있어도 돼요). 검증 원천에 나온 화자와 기존 `work/eval.jsonl` 의 화자는 모두 학습에서 빠지고, 이미 만든 `eval.jsonl` 은 그대로 둬요(다시 만들려면 `--no-keep-eval`).
+
 1. **인스턴스 만들기**: 국내 리전(서버가 한국 안에 있는 곳)의 GPU 인스턴스. 1단계·2단계는 24GB 이상이면 충분하고, 3단계(turbo)는 24GB 이상(권장 A100 80GB). 저장 공간은 학습용 16k 오디오 + 특징 캐시를 합쳐 넉넉히(25시간이면 약 100GB 미만으로 어림). **해외 리전·해외 서비스(Colab, Kaggle 등)는 쓰지 않아요.**
 2. **코드·평가 도구 올리기**: 저장소 코드(`training/asr/` 폴더)만 올려요(`git clone` 또는 복사). 데이터는 포함돼 있지 않아요. 파이썬 환경은 2절 A와 같고(리눅스면 `python3 -m venv .venv && . .venv/bin/activate`, CUDA 빌드 torch), `python check_env.py` 로 GPU를 확인해요.
-3. **학습에 필요한 16k 오디오와 manifest만 올리기**: 교사 노트북에서 `build_subset.py --train-hours 25` 로 만든 **`work/audio/`(16kHz wav)와 `work/train.jsonl`, `work/eval.jsonl`, `work/subset_report.json`** 만 인스턴스의 `work/` 로 올려요. 원본 zip(`data/source`, `data/labels`)과 라벨 JSON은 올리지 않아요(화자 이름이 있어요).
+3. **학습에 필요한 16k 오디오와 manifest만 올리기**: 교사 노트북에서 `build_subset.py --train-hours 25` 와 `pack_for_cloud.py` 로 만든 묶음(아래는 같은 내용을 낱개로 올릴 때) **`work/audio/`(16kHz wav)와 `work/train.jsonl`, `work/eval.jsonl`, `work/subset_report.json`** 만 인스턴스의 `work/` 로 올려요. 원본 zip(`data/source`, `data/labels`)과 라벨 JSON은 올리지 않아요(화자 이름이 있어요).
 4. **학습**: 아래 10-4의 명령. 먼저 `--speedtest` 로 시간·메모리를 확인해요. 사용 시간이 곧 비용이니 `tmux`/`nohup` 으로 끊김에 대비하고 `--resume` 을 믿어요.
 5. **내보내기**: 같은 인스턴스에서 10-5의 **내보내기 전용 환경**으로 `export_asr.py` 를 돌려요(CPU로 충분해요).
 6. **데이터 즉시 삭제, 결과 모델만 내려받기**: 내보낸 폴더(`export/<id>`: ONNX 파일, 설정, `MODEL_CARD.md`, `LICENSE.txt`, `manifest.json`)와 `log.csv`만 내려받고, 곧바로 `work/audio`, `work/feats*`, `work/*.jsonl` 과 인스턴스(디스크 포함)를 삭제해요. 학습에 쓴 음성·전사는 모델 폴더에 들어 있지 않아요. 삭제 뒤 스냅샷·백업이 남지 않았는지도 확인해요.
