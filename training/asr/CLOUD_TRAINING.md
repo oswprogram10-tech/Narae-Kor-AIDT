@@ -15,7 +15,7 @@
 ```powershell
 cd training\asr
 # 학습 25시간 만들기(평가 묶음 work\eval.jsonl 이 이미 있으면 그대로 두고 학습만 추가해요)
-python build_subset.py --labels data\labels --sources data\source --train-hours 25
+python build_subset.py --labels data\labels\kor_formatted --sources data\source --train-hours 25
 # 클라우드에 올릴 묶음 만들기 -> work\cloud_upload\narae_asr_data.tar, MANIFEST.txt
 python pack_for_cloud.py
 ```
@@ -24,16 +24,45 @@ python pack_for_cloud.py
 - 학습/검증은 **원천 파일 이름(`TS_`/`VS_`)** 으로 갈라요. 검증 원천에 나온 화자는 모두 학습에서 빠지고, 보고서에 "학습·평가 화자 겹침 0명"이 나와요. 그 줄이 보이는지 꼭 확인하세요.
 - `MANIFEST.txt` 의 sha256 은 올린 뒤 파일이 온전한지 비교할 때 써요.
 
-## 1. 회원가입과 인스턴스 만들기
+## 1. 회원가입과 인스턴스 만들기 (엘리스클라우드 '런박스')
 
-1. 엘리스클라우드 가입 후, **GPU 인스턴스**를 만들어요(서버 위치가 국내인지 확인).
-2. GPU는 **A100 80GB** 를 골라요. **스팟(저렴하지만 중간에 회수될 수 있는 것)** 도 괜찮아요. 회수되면 4절의 `--resume` 으로 이어요.
-3. 운영체제는 우분투 + CUDA 가 들어 있는 것, 디스크는 **150GB 이상**(wav 25시간 + 특징 캐시 + 결과)을 잡아요.
-4. 어림 비용: A100 시간당 약 2,250~2,500원. base 흐름 확인은 약 1~1.5시간 → 약 3,000~4,000원 안팎. small·turbo 는 5절의 `--speedtest` 가 알려 주는 예상 시간 × 시간당 요금으로 어림해요. **쓰지 않을 때는 멈추지 말고 삭제**해요(멈춰도 디스크 요금이 나올 수 있어요).
+공식 안내: https://help.elice.io/help/docs/elicecloud/introduction/ (화면 이름은 바뀔 수 있어요)
+
+1. **가입과 기관 만들기**: 엘리스클라우드 → "무료로 시작하기" → 가입 → **기관 만들기**(이름·주소는 개인 이름 대신 프로젝트 이름으로). 혼자 써도 기관이 있어야 해요.
+2. **결제수단 등록**: 기관 설정에서 카드를 등록해요. 처음 등록하면 체험 크레딧을 주는 경우가 있어요(남은 크레딧은 화면에서 확인).
+3. **런박스 → 인스턴스 만들기**:
+   - **인스턴스 종류**: `G-NAHP-80`(A100 80GB, 16코어, 192GiB 램). 더 싼 `G-NAHPM-40`(A100을 나눈 40GB)이 보이면 base·small·SenseVoice 는 그것도 충분해요. turbo 는 80GB 를 권해요.
+   - **실행 환경**: **Jupyter (CUDA)** 를 권해요(웹 터미널·파일 올리기가 같이 됨). 명령줄만 쓸 거면 SSH-Only.
+   - **저장공간**: **150GiB** 안팎. 늘릴 수는 있어도 **줄일 수 없어요**.
+4. 만든 인스턴스가 '실행 중'이 되면 **열기(접속)** 로 Jupyter 를 열고, 거기서 **Terminal** 을 새로 열어요.
+5. 어림 비용: A100 80GB 시간당 약 2,250~2,500원(초 단위 과금). base 흐름 확인은 약 1~1.5시간 → 약 3,000~4,000원 안팎. small·turbo 는 4절의 `--speedtest` 가 알려 주는 예상 시간 × 시간당 요금으로 어림해요.
+6. **중지해도 저장공간 요금은 계속 나와요.** 다 끝나면 7절대로 **삭제**해요.
+
+### (선택) SSH 로 접속하기 — 큰 파일을 scp 로 올릴 때
+
+1. 기관 메뉴의 **비밀키 관리**에서 키를 만들고 `.pem` 파일을 받아요(**한 번만 받을 수 있어요**). 예: `C:\Users\<나>\elice.pem`
+2. 윈도우는 키 파일 권한을 나만 읽게 바꿔야 접속돼요(PowerShell):
+
+```powershell
+icacls $HOME\elice.pem /inheritance:r
+```
+
+```powershell
+icacls $HOME\elice.pem /grant:r "${env:USERNAME}:(R)"
+```
+
+3. 인스턴스 화면에 나온 **포트 번호**로 접속해요:
+
+```powershell
+ssh -i $HOME\elice.pem -p <포트> elicer@central-01.tcp.tunnel.elice.io
+```
+
+- 주소·사용자 이름(`elicer`)은 인스턴스 화면의 SSH 안내와 다르면 **화면 값**을 따라요.
+- `.pem` 은 비밀번호와 같아요. 채팅·깃허브에 올리지 마세요.
 
 ## 2. 접속하고 저장소 받기
 
-웹 터미널(인스턴스 화면의 "터미널"/"Jupyter") 또는 SSH 로 접속해요. 접속한 뒤:
+Jupyter 의 Terminal 또는 SSH 로 접속해요. 접속한 뒤:
 
 ```bash
 cd ~
@@ -53,12 +82,12 @@ python check_env.py
 
 ## 3. 학습 묶음 올리고 풀기
 
-**방법 A. 웹 업로드**: 인스턴스 화면의 파일 업로드로 `narae_asr_data.tar` 를 홈(`~`)에 올려요.
+**방법 A. Jupyter 업로드**: Jupyter 왼쪽 파일 목록에서 홈 폴더를 연 채로 **Upload(위쪽 화살표)** 로 `narae_asr_data.tar` 를 올려요. 파일이 수 GB 라 브라우저 업로드가 도중에 끊기면 방법 B 를 써요.
 
-**방법 B. scp (윈도우 PowerShell, 노트북에서)**: `<사용자>`와 `<서버주소>`는 인스턴스 화면에 나온 값으로 바꿔요(포트가 따로 있으면 `-P 포트` 를 `scp` 바로 뒤에 넣어요).
+**방법 B. scp (노트북 PowerShell, `training\asr` 에서)**: scp 는 포트를 **대문자 `-P`** 로 줘요.
 
 ```powershell
-scp work\cloud_upload\narae_asr_data.tar <사용자>@<서버주소>:~/
+scp -i $HOME\elice.pem -P <포트> work\cloud_upload\narae_asr_data.tar elicer@central-01.tcp.tunnel.elice.io:~/
 ```
 
 그다음 인스턴스에서 확인하고 풀어요.
@@ -119,12 +148,12 @@ bash ../export_env.sh /tmp/onnxenv
 필요한 것은 **내보낸 모델 폴더와 평가 숫자 파일, 학습 기록**뿐이에요. 노트북(PowerShell)에서:
 
 ```powershell
-scp -r <사용자>@<서버주소>:~/Narae-Kor-AIDT/training/asr/export/narae-asr-lite .\export\
-scp <사용자>@<서버주소>:~/Narae-Kor-AIDT/training/asr/work/eval_runs_base_final.json work\
-scp <사용자>@<서버주소>:~/Narae-Kor-AIDT/training/asr/work/runs/base/log.csv work\runs\base\
+scp -i $HOME\elice.pem -P <포트> -r elicer@central-01.tcp.tunnel.elice.io:~/Narae-Kor-AIDT/training/asr/export/narae-asr-lite .\export\
+scp -i $HOME\elice.pem -P <포트> elicer@central-01.tcp.tunnel.elice.io:~/Narae-Kor-AIDT/training/asr/work/eval_runs_base_final.json work\
+scp -i $HOME\elice.pem -P <포트> elicer@central-01.tcp.tunnel.elice.io:~/Narae-Kor-AIDT/training/asr/work/runs/base/log.csv work\runs\base\
 ```
 
-(`work\runs\base` 폴더가 없으면 먼저 만들어요. 웹 다운로드를 써도 돼요.) 받은 폴더에는 학습에 쓴 음성·전사가 들어 있지 않아요.
+(`work\runs\base` 폴더가 없으면 먼저 만들어요. Jupyter 파일 목록에서 오른쪽 클릭 → Download 로 받아도 돼요. 폴더는 받기 전에 `tar -czf` 로 묶어요.) 받은 폴더에는 학습에 쓴 음성·전사가 들어 있지 않아요.
 
 ## 7. 데이터 지우기와 인스턴스 삭제 (반드시)
 
@@ -138,7 +167,7 @@ ls work ~/narae_asr_data.tar 2>&1       # "No such file or directory" 가 나오
 ```
 
 - `rm -rf work export` 는 **이 폴더(`training/asr`)의 `work`, `export` 만** 지워요. 이 줄을 다른 곳에서 실행하지 마세요.
-- 그다음 **인스턴스를 삭제**해요(중지 아님). 디스크·스냅샷·백업이 따로 남아 있으면 그것도 삭제하고, 업로드용 웹 저장소에 올렸다면 그 파일도 지워요.
+- 그다음 런박스 인스턴스 목록에서 **삭제**해요(중지 아님 — 중지는 저장공간 요금이 계속 나와요). 비밀키 관리의 키도 더 안 쓰면 지워요. 디스크·스냅샷·백업이 따로 남아 있으면 그것도 삭제하고, 업로드용 웹 저장소에 올렸다면 그 파일도 지워요.
 - 노트북의 `work\cloud_upload\narae_asr_data.tar` 도 필요 없어지면 지워요.
 
 ## 8. 두 번째 세션: small, turbo
