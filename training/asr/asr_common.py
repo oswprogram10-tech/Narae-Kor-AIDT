@@ -376,7 +376,7 @@ class Row:
     text: str | None = None
 
 
-def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, str, bytes]]:
+def iter_label_files(paths: Iterable[str | os.PathLike], want_stems: set[str] | None = None) -> Iterator[tuple[str, str, bytes]]:
     """(묶음 이름, 안 파일 이름, 내용). 라벨 zip은 풀지 않고 zipfile로 바로 읽고, 풀린 JSON은 폴더를 걸으며 읽는다.
     라벨이 수십만~수백만 개라 오래 걸리므로 진행 상황을 주기적으로 알린다(파일 이름·내용은 출력하지 않음)."""
     import time
@@ -386,13 +386,25 @@ def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, 
     say(f"라벨 zip {len(zips)}개와 풀린 JSON을 읽어요. 진행 상황을 5만 개마다 알려 줘요.")
     t0 = time.monotonic()
     done = 0
+    skipped = 0
+    if want_stems is not None:
+        say(f"내려받은 원천에 wav가 있는 라벨만 열어요(이름이 같은 것만, 나머지는 열지 않고 건너뛰어요). 찾을 wav {len(want_stems):,}개")
 
     def tick() -> None:
         nonlocal done
         done += 1
         if done % 50000 == 0:
             m = (time.monotonic() - t0) / 60
-            say(f"  … {done:,}개 읽음 ({m:.1f}분)")
+            say(f"  … {done:,}개 읽음, {skipped:,}개 건너뜀 ({m:.1f}분)")
+
+    def skip(name: str) -> bool:
+        nonlocal skipped
+        if want_stems is None or wav_stem(name) in want_stems:
+            return False
+        skipped += 1
+        if skipped % 200000 == 0:
+            say(f"  … {done:,}개 읽음, {skipped:,}개 건너뜀 ({(time.monotonic() - t0) / 60:.1f}분)")
+        return True
 
     for p in zips:
         try:
@@ -404,12 +416,21 @@ def iter_label_files(paths: Iterable[str | os.PathLike]) -> Iterator[tuple[str, 
             for info in zf.infolist():
                 if info.is_dir() or not info.filename.lower().endswith(".json"):
                     continue
+                name = decode_zip_name(info)
+                if skip(name):
+                    continue
                 tick()
-                yield p.name, decode_zip_name(info), zf.read(info)
+                yield p.name, name, zf.read(info)
     for root, f in walk_json(paths):
+        if skip(f.name):
+            continue
         tick()
         yield loose_container(root, f), f.name, f.read_bytes()
-    say(f"라벨 {done:,}개를 다 읽었어요({(time.monotonic() - t0) / 60:.1f}분).")
+    say(f"라벨 {done:,}개를 다 읽었어요" + (f", {skipped:,}개는 원천에 wav가 없어 건너뛰었어요" if want_stems is not None else "") + f"({(time.monotonic() - t0) / 60:.1f}분).")
+    if want_stems is not None and done == 0 and skipped > 0:
+        # 라벨 파일 이름이 wav 이름과 다른 데이터: 건너뛰기를 끄고 처음부터 모두 연다(느리지만 정확).
+        say("[알림] 이름이 맞는 라벨이 하나도 없어서(라벨·wav 이름 규칙이 달라요) 모든 라벨을 열어 다시 읽어요.")
+        yield from iter_label_files(paths, None)
 
 
 def count_label_files(paths: Iterable[str | os.PathLike]) -> int:
@@ -433,13 +454,14 @@ def iter_rows(
     want_text: bool = False,
     stats: Counter | None = None,
     show_progress: bool = True,
+    want_stems: set[str] | None = None,
 ) -> Iterator[Row]:
     stats = stats if stats is not None else Counter()
     P = cfg["paths"]
-    total = count_label_files(paths) if show_progress else None
-    bar = tqdm(total=total, desc="라벨 읽는 중", unit="개", mininterval=2.0, disable=not show_progress) if show_progress else None
+    # 전체 개수를 미리 세지 않는다(풀린 JSON이 수백만 개면 아무 말 없이 몇 시간 걸려서). 진행 상황은 iter_label_files가 5만 개마다 알려 준다.
+    bar = None
     try:
-        for container, member, data in iter_label_files(paths):
+        for container, member, data in iter_label_files(paths, want_stems):
             if bar is not None and hasattr(bar, "update"):
                 bar.update(1)
             stats["files"] += 1

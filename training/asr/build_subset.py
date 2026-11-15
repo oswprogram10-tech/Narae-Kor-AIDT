@@ -246,6 +246,7 @@ def main(argv=None) -> None:
     ap.add_argument("--unknown-noise", choices=["clean", "skip"], default="clean", help="소음 칸 값을 해석 못 한 발화를 무소음으로 칠지(기본) 뺄지")
     ap.add_argument("--train-hours", type=float, default=0.0, help="학습용 시간(기본 0 = 평가만 만들어요. 나중에 학습할 때 25 정도)")
     ap.add_argument("--eval-hours", type=float, default=4.0)
+    ap.add_argument("--no-skip-by-name", action="store_true", help="원천에 같은 이름의 wav가 없는 라벨도 모두 열어 봐요(느려요). 라벨·wav 이름 규칙이 다를 때만")
     ap.add_argument("--min-sec", type=float, default=0.5)
     ap.add_argument("--max-sec", type=float, default=30.0)
     ap.add_argument("--seed", type=int, default=1)
@@ -278,7 +279,7 @@ def main(argv=None) -> None:
     pool: dict[str, list[tuple[Row, str, float]]] = {"train": [], "valid": []}
     unk_i = 0
     valid_src_speakers: set[str] = set()  # 검증 원천에 나온 모든 화자(조건에 안 맞는 발화의 화자도 포함)
-    for r in iter_rows(a.labels, cfg, work, want_text=True, stats=stats):
+    for r in iter_rows(a.labels, cfg, work, want_text=True, stats=stats, want_stems=None if a.no_skip_by_name else set(index)):
         src = index.get(wav_stem(r.stem))
         if src is not None:
             r.split = source_split(zips[src[0]].name, cfg) or r.split  # 원천 파일 기준이 라벨 경로보다 우선
