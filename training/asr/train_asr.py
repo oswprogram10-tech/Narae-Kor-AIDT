@@ -672,7 +672,9 @@ def main(argv=None) -> None:
             say(f"GPU 메모리 최대 사용 {torch.cuda.max_memory_allocated() / 2**30:.2f}GiB / 전체 {torch.cuda.get_device_properties(0).total_memory / 2**30:.1f}GiB")
         else:
             say("(GPU가 아니라서 메모리는 재지 않았어요)")
-        say(f"전체 {max_steps:,}걸음이면 학습 시간 약 {per_step * max_steps / 3600:.1f}시간 (평가·저장 시간 제외)")
+        est_min = per_step * max_steps / 60
+        est = f"{est_min / 60:.1f}시간" if est_min >= 90 else f"{max(1, round(est_min))}분"
+        say(f"전체 {max_steps:,}걸음이면 학습 시간 약 {est} (평가·저장 시간 제외)")
         return
 
     save_ckpt()
