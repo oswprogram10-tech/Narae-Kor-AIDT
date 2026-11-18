@@ -225,9 +225,13 @@ def to_fp16(src: Path, dst: Path) -> None:
     import onnx
     from onnxruntime.transformers.float16 import convert_float_to_float16
 
-    m = onnx.load(str(src))
-    m16 = convert_float_to_float16(m, keep_io_types=True)
-    onnx.save(m16, str(dst))
+    # 모델 객체가 아니라 '경로'를 넘겨야 2GB가 넘는 모델(turbo 인코더)도 모양 추론(infer_shapes_path)이 돼요.
+    m16 = convert_float_to_float16(str(src), keep_io_types=True)
+    try:
+        onnx.save(m16, str(dst))
+    except ValueError:  # fp16 결과도 2GB를 넘으면 가중치를 옆 파일(.onnx_data)로 나눠 저장해요
+        onnx.save(m16, str(dst), save_as_external_data=True, all_tensors_to_one_file=True,
+                  location=Path(dst).name + "_data")
 
 
 def versions() -> dict:
