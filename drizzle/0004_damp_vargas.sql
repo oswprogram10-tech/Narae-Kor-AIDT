@@ -1,0 +1,1 @@
+ALTER TABLE "teacher_comments" ADD COLUMN "as_character" text;

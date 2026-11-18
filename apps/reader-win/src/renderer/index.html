@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self' blob: data:; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>국어나래 낭독 도우미 — 속도 시험</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>국어나래 낭독 도우미 <span class="tag">시험판</span></h1>
+  <p class="lead">교사용 속도 시험이에요. 이 컴퓨터에서 목소리를 글로 바꾸는 일이 얼마나 빠른지 재 봐요. 목소리는 이 컴퓨터 밖으로 나가지 않고, 저장하지도 않아요.</p>
+</header>
+
+<main>
+  <section id="sec-device">
+    <h2>1. 이 컴퓨터</h2>
+    <dl id="device-info" class="kv"><dt>불러오는 중</dt><dd>…</dd></dl>
+    <p id="settings-note" class="note"></p>
+  </section>
+
+  <section id="sec-models">
+    <h2>2. 음성 인식 모델</h2>
+    <p id="trial-warn" class="warn" hidden>시험 모드(확인 안 함): 받은 파일이 맞는지 sha256으로 확인하지 않아요. 시험용으로만 써요.</p>
+    <table id="model-table">
+      <thead><tr><th>모델</th><th>크기</th><th>설치됨</th><th>받기·지우기</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="install-progress" class="progress" hidden>
+      <progress id="install-bar" max="1" value="0"></progress>
+      <span id="install-text"></span>
+    </div>
+    <p id="model-msg" class="note"></p>
+  </section>
+
+  <section id="sec-input">
+    <h2>3. 소리 고르기</h2>
+    <div class="row">
+      <button id="btn-rec" type="button">마이크로 녹음하기 (최대 60초)</button>
+      <button id="btn-stop" type="button" hidden>녹음 끝내기</button>
+      <label class="filebtn">내 컴퓨터의 wav 파일 고르기
+        <input id="file-wav" type="file" accept=".wav,audio/wav,audio/x-wav">
+      </label>
+    </div>
+    <p class="note">녹음한 소리는 메모리에서만 쓰고 <strong>저장하지 않아요</strong>. 프로그램을 닫으면 사라져요.</p>
+    <p id="input-status" class="status">아직 고른 소리가 없어요.</p>
+  </section>
+
+  <section id="sec-run">
+    <h2>4. 속도 재기</h2>
+    <div class="row">
+      <label>모델 <select id="sel-model"></select></label>
+      <label>모델 형식 <select id="sel-dtype"><option value="">자동(설치된 것)</option><option value="q8">q8 (8비트)</option><option value="fp16">fp16</option></select></label>
+    </div>
+    <div class="row checks">
+      <label><input type="checkbox" id="chk-cpu" checked> 앱 CPU</label>
+      <label><input type="checkbox" id="chk-dml" checked> 앱 DirectML(그래픽)</label>
+      <label><input type="checkbox" id="chk-web" checked> 브라우저 엔진(WASM)</label>
+      <label><input type="checkbox" id="chk-warm" checked> 시작 전에 5초 몸풀기</label>
+    </div>
+    <div class="row">
+      <button id="btn-run" type="button" class="primary" disabled>차례로 재기</button>
+      <button id="btn-synth" type="button" disabled>합성 소리 60초로 앱 CPU 어림하기</button>
+    </div>
+    <p id="run-status" class="status"></p>
+
+    <table id="result-table" hidden>
+      <thead><tr><th>방식</th><th>장치</th><th>형식</th><th>불러오기(초)</th><th>처리(초)</th><th>RTF</th><th>1분 낭독 환산(초)</th><th>비고</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row">
+      <button id="btn-copy" type="button" hidden>숫자만 복사</button>
+      <span id="copy-msg" class="note"></span>
+    </div>
+    <textarea id="copy-area" class="sr-only" readonly tabindex="-1" aria-hidden="true"></textarea>
+  </section>
+
+  <section id="sec-text">
+    <h2>5. 인식된 글 보기 <span class="tag">화면에만</span></h2>
+    <p class="note">인식된 글은 이 화면에만 보이고 저장하지 않아요. 지금 창을 닫으면 사라져요.</p>
+    <div id="texts"></div>
+    <label class="block">읽은 글 원문을 붙여 넣으면 어절 결과도 볼 수 있어요
+      <textarea id="ref-text" rows="3" placeholder="여기에 원문을 붙여 넣어요"></textarea>
+    </label>
+    <div id="fluency-out"></div>
+  </section>
+</main>
+<footer>
+  <p>모델: Whisper(MIT, Copyright (c) 2022 OpenAI). 국어나래 모델은 한국지능정보사회진흥원(NIA) 「한국어 아동 음성 데이터」 사업 결과를 활용했어요. 이 결과는 진단이 아니라 연습 참고용이에요.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

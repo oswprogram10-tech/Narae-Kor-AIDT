@@ -1,0 +1,872 @@
+{
+  "_설명": "어절 맞춤 채점 공통 시험 자료(기본 spacing=ignore: 인식 결과의 공백을 지우고 글자 단위로 맞춤). TS(tests/fluency.test.ts)와 파이썬(training/asr/tests/test_fluency.py)이 함께 쓴다. items: [원문 어절, 인식 글자들 또는 null, op], insertions: [끼워 넣은 자리(원문 어절 번호), 끼워 넣은 글자들], errors: 오류로 센 원문 어절 번호.",
+  "cases": [
+    {
+      "name": "그대로 읽음",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는 오늘 학교에 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          "오늘",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 4
+    },
+    {
+      "name": "문장부호 차이",
+      "reference": "나는, 오늘 학교에 갔어요.",
+      "hypothesis": "나는 오늘 학교에 갔어요!",
+      "seconds": 30,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          "오늘",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 8
+    },
+    {
+      "name": "따옴표와 줄임표",
+      "reference": "\"안녕하세요\" 하고 말했어요…",
+      "hypothesis": "안녕하세요 하고 말했어요",
+      "seconds": 60,
+      "items": [
+        [
+          "안녕하세요",
+          "안녕하세요",
+          "match"
+        ],
+        [
+          "하고",
+          "하고",
+          "match"
+        ],
+        [
+          "말했어요",
+          "말했어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 3
+    },
+    {
+      "name": "문장부호만 있는 덩어리",
+      "reference": "이것은 — 연필이에요",
+      "hypothesis": "이것은 연필이에요",
+      "seconds": 60,
+      "items": [
+        [
+          "이것은",
+          "이것은",
+          "match"
+        ],
+        [
+          "연필이에요",
+          "연필이에요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 2
+    },
+    {
+      "name": "한 어절 바꿈",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는 어제 학교에 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          "어제",
+          "sub"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.75,
+      "wcpm": 3
+    },
+    {
+      "name": "오래 걸려 읽음",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는 어제 학교에 갔어요",
+      "seconds": 120,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          "어제",
+          "sub"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.75,
+      "wcpm": 1.5
+    },
+    {
+      "name": "전부 다르게 읽음",
+      "reference": "토끼가 숲에서 놀았어요",
+      "hypothesis": "거북이가 강에서 잤어요",
+      "seconds": 60,
+      "items": [
+        [
+          "토끼가",
+          "거북이가",
+          "sub"
+        ],
+        [
+          "숲에서",
+          "강에서",
+          "sub"
+        ],
+        [
+          "놀았어요",
+          "잤어요",
+          "sub"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        0,
+        1,
+        2
+      ],
+      "accuracy": 0,
+      "wcpm": 0
+    },
+    {
+      "name": "한 어절 빠뜨림",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는 학교에 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          null,
+          "del"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.75,
+      "wcpm": 3
+    },
+    {
+      "name": "아무것도 인식하지 못함",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          null,
+          "del"
+        ],
+        [
+          "학교에",
+          null,
+          "del"
+        ],
+        [
+          "갔어요",
+          null,
+          "del"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        0,
+        1,
+        2
+      ],
+      "accuracy": 0,
+      "wcpm": 0
+    },
+    {
+      "name": "되풀이(앞)",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는 나는 학교에 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          1,
+          "나는"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 3
+    },
+    {
+      "name": "되풀이(가운데)",
+      "reference": "비가 오면 우산을 써요",
+      "hypothesis": "비가 오면 오면 우산을 써요",
+      "seconds": 60,
+      "items": [
+        [
+          "비가",
+          "비가",
+          "match"
+        ],
+        [
+          "오면",
+          "오면",
+          "match"
+        ],
+        [
+          "우산을",
+          "우산을",
+          "match"
+        ],
+        [
+          "써요",
+          "써요",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          2,
+          "오면"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 4
+    },
+    {
+      "name": "말을 끼워 넣음",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는 어제 학교에 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          1,
+          "어제"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 3
+    },
+    {
+      "name": "끝에 덧붙임",
+      "reference": "나는 갔어요",
+      "hypothesis": "나는 갔어요 음 그리고",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          2,
+          "음그리고"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 2
+    },
+    {
+      "name": "원문이 비어 있음",
+      "reference": "",
+      "hypothesis": "나는 갔어요",
+      "seconds": 60,
+      "items": [],
+      "insertions": [
+        [
+          0,
+          "나는갔어요"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 0,
+      "wcpm": 0
+    },
+    {
+      "name": "띄어쓰기 차이(붙여 읽음)",
+      "reference": "할 수 있다",
+      "hypothesis": "할수 있다",
+      "seconds": 60,
+      "items": [
+        [
+          "할",
+          "할",
+          "match"
+        ],
+        [
+          "수",
+          "수",
+          "match"
+        ],
+        [
+          "있다",
+          "있다",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 3
+    },
+    {
+      "name": "띄어쓰기 차이(떼어 읽음)",
+      "reference": "할수 있다",
+      "hypothesis": "할 수 있다",
+      "seconds": 60,
+      "items": [
+        [
+          "할수",
+          "할수",
+          "match"
+        ],
+        [
+          "있다",
+          "있다",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 2
+    },
+    {
+      "name": "숫자는 그대로",
+      "reference": "사과 3개를 샀어요",
+      "hypothesis": "사과 세 개를 샀어요",
+      "seconds": 60,
+      "items": [
+        [
+          "사과",
+          "사과",
+          "match"
+        ],
+        [
+          "3개를",
+          "세개를",
+          "sub"
+        ],
+        [
+          "샀어요",
+          "샀어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.6666666666666666,
+      "wcpm": 2
+    },
+    {
+      "name": "글자 한 개 다른 어절을 같게 봐 줌(maxCer)",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는 학교에 갔어여",
+      "maxCer": 0.34,
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어여",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 3
+    },
+    {
+      "name": "글자 한 개 다르면 기본은 오류",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는 학교에 갔어여",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어여",
+          "sub"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        2
+      ],
+      "accuracy": 0.6666666666666666,
+      "wcpm": 2
+    },
+    {
+      "name": "실제 예: 띄어쓰기 없는 인식(한 어절만 다름)",
+      "reference": "그는 괜찮은 척하려고 애쓰는 것 같았다",
+      "hypothesis": "걔는괜찮은척하려고애쓰는것같았다",
+      "seconds": 60,
+      "items": [
+        [
+          "그는",
+          "걔는",
+          "sub"
+        ],
+        [
+          "괜찮은",
+          "괜찮은",
+          "match"
+        ],
+        [
+          "척하려고",
+          "척하려고",
+          "match"
+        ],
+        [
+          "애쓰는",
+          "애쓰는",
+          "match"
+        ],
+        [
+          "것",
+          "것",
+          "match"
+        ],
+        [
+          "같았다",
+          "같았다",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        0
+      ],
+      "accuracy": 0.8333333333333334,
+      "wcpm": 5
+    },
+    {
+      "name": "실제 예: 띄어쓰기 없는 인식(모두 맞음)",
+      "reference": "지하철에서 다리를 벌리고 앉지 마라",
+      "hypothesis": "지하철에서다리를벌리고앉지마라",
+      "seconds": 60,
+      "items": [
+        [
+          "지하철에서",
+          "지하철에서",
+          "match"
+        ],
+        [
+          "다리를",
+          "다리를",
+          "match"
+        ],
+        [
+          "벌리고",
+          "벌리고",
+          "match"
+        ],
+        [
+          "앉지",
+          "앉지",
+          "match"
+        ],
+        [
+          "마라",
+          "마라",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 5
+    },
+    {
+      "name": "인식에 띄어쓰기가 전혀 없음",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는오늘학교에갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          "오늘",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 4
+    },
+    {
+      "name": "인식의 띄어쓰기가 틀린 곳에 있음",
+      "reference": "지하철에서 다리를 벌리고 앉지 마라",
+      "hypothesis": "지하철에서 다리를벌 리고 앉지마라",
+      "seconds": 60,
+      "items": [
+        [
+          "지하철에서",
+          "지하철에서",
+          "match"
+        ],
+        [
+          "다리를",
+          "다리를",
+          "match"
+        ],
+        [
+          "벌리고",
+          "벌리고",
+          "match"
+        ],
+        [
+          "앉지",
+          "앉지",
+          "match"
+        ],
+        [
+          "마라",
+          "마라",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 5
+    },
+    {
+      "name": "어절 하나 통째로 빠짐",
+      "reference": "나는 오늘 학교에 갔어요",
+      "hypothesis": "나는학교에갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "오늘",
+          null,
+          "del"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.75,
+      "wcpm": 3
+    },
+    {
+      "name": "어절 되풀이(띄어쓰기 없음)",
+      "reference": "지하철에서 다리를 벌리고 앉지 마라",
+      "hypothesis": "지하철에서다리를다리를벌리고앉지마라",
+      "seconds": 60,
+      "items": [
+        [
+          "지하철에서",
+          "지하철에서",
+          "match"
+        ],
+        [
+          "다리를",
+          "다리를",
+          "match"
+        ],
+        [
+          "벌리고",
+          "벌리고",
+          "match"
+        ],
+        [
+          "앉지",
+          "앉지",
+          "match"
+        ],
+        [
+          "마라",
+          "마라",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          2,
+          "다리를"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 5
+    },
+    {
+      "name": "한 글자만 다름(띄어쓰기 없음)",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는학교에갔어여",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교에",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어여",
+          "sub"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        2
+      ],
+      "accuracy": 0.6666666666666666,
+      "wcpm": 2
+    },
+    {
+      "name": "맨 앞에 끼워 넣음",
+      "reference": "나는 갔어요",
+      "hypothesis": "음 나는 갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [
+        [
+          0,
+          "음"
+        ]
+      ],
+      "errors": [],
+      "accuracy": 1,
+      "wcpm": 2
+    },
+    {
+      "name": "어절 안쪽에 글자가 끼어듦",
+      "reference": "나는 학교에 갔어요",
+      "hypothesis": "나는학교 가에갔어요",
+      "seconds": 60,
+      "items": [
+        [
+          "나는",
+          "나는",
+          "match"
+        ],
+        [
+          "학교에",
+          "학교가에",
+          "sub"
+        ],
+        [
+          "갔어요",
+          "갔어요",
+          "match"
+        ]
+      ],
+      "insertions": [],
+      "errors": [
+        1
+      ],
+      "accuracy": 0.6666666666666666,
+      "wcpm": 2
+    }
+  ]
+}
