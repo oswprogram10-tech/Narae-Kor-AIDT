@@ -68,13 +68,14 @@ Jupyter 의 Terminal 또는 SSH 로 접속해요. 접속한 뒤:
 cd ~
 git clone https://github.com/oswprogram10-tech/Narae-Kor-AIDT.git -b feat/module-core
 cd Narae-Kor-AIDT/training/asr
-python3 -m venv .venv
+python3 -m pip install --user uv
+~/.local/bin/uv venv -p 3.11 .venv
 . .venv/bin/activate
-pip install --upgrade pip
-pip install torch
-pip install -r requirements.txt
+~/.local/bin/uv pip install torch -r requirements.txt
 python check_env.py
 ```
+
+- 클라우드 기본 파이썬이 3.10 이면 `transformers==5.22.2`(3.11 이상 필요)를 못 깔아요. 그래서 `uv` 로 **파이썬 3.11 환경**을 따로 만들어요(노트북과 같은 버전).
 
 - 클라우드는 최신 CUDA 용 torch 를 그대로 받아도 돼요(`pip install torch`).
 - `check_env.py` 에서 **GPU 이름(A100)과 메모리 80GB 근처**가 보이면 성공이에요. GPU가 안 보이면 인스턴스 종류를 다시 확인하세요.
